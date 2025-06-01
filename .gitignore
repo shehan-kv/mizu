@@ -1,0 +1,14 @@
+# Env Files
+.env
+
+# VS Code Files
+.vscode
+
+# DB Files
+*.db
+
+# Build Files
+bin
+
+# Uploads Directory
+uploads
