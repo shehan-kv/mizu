@@ -1,9 +1,9 @@
 <script lang="ts">
-	import ChatsIcon from '$lib/components/icons/chatsIcon.svelte';
-	import FilesIcon from '$lib/components/icons/filesIcon.svelte';
-	import MoonFillIcon from '$lib/components/icons/moonFillIcon.svelte';
-	import SunFillIcon from '$lib/components/icons/sunFillIcon.svelte';
-	import TrendUpIcon from '$lib/components/icons/trendUpIcon.svelte';
+	import ChatsIcon from '$lib/components/icons/ChatsIcon.svelte';
+	import FilesIcon from '$lib/components/icons/FilesIcon.svelte';
+	import MoonFillIcon from '$lib/components/icons/MoonFillIcon.svelte';
+	import SunFillIcon from '$lib/components/icons/SunFillIcon.svelte';
+	import TrendUpIcon from '$lib/components/icons/TrendUpIcon.svelte';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { toggleTheme } from '$lib/utils/theme';
 
