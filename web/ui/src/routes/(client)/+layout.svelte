@@ -1,13 +1,13 @@
 <script>
 	import { page } from '$app/state';
-	import Header from '$lib/components/header.svelte';
-	import ChatsIcon from '$lib/components/icons/chatsIcon.svelte';
-	import DashboardIcon from '$lib/components/icons/dashboardIcon.svelte';
-	import FolderIcon from '$lib/components/icons/folderIcon.svelte';
-	import InvoiceIcon from '$lib/components/icons/invoiceIcon.svelte';
-	import TicketIcon from '$lib/components/icons/ticketIcon.svelte';
-	import UserGearIcon from '$lib/components/icons/userGearIcon.svelte';
-	import XIcon from '$lib/components/icons/xIcon.svelte';
+	import Header from '$lib/components/Header.svelte';
+	import ChatsIcon from '$lib/components/icons/ChatsIcon.svelte';
+	import DashboardIcon from '$lib/components/icons/DashboardIcon.svelte';
+	import FolderIcon from '$lib/components/icons/FolderIcon.svelte';
+	import InvoiceIcon from '$lib/components/icons/InvoiceIcon.svelte';
+	import TicketIcon from '$lib/components/icons/TicketIcon.svelte';
+	import UserGearIcon from '$lib/components/icons/UserGearIcon.svelte';
+	import XIcon from '$lib/components/icons/XIcon.svelte';
 	import { fade, fly } from 'svelte/transition';
 
 	let { children } = $props();

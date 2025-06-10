@@ -2,13 +2,13 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { toggleTheme } from '$lib/utils/theme';
-	import BellIcon from './icons/bellIcon.svelte';
-	import MenuIcon from './icons/menuIcon.svelte';
-	import MoonIcon from './icons/moonIcon.svelte';
-	import SignOutIcon from './icons/signOutIcon.svelte';
-	import SunIcon from './icons/sunIcon.svelte';
-	import UserGearIcon from './icons/userGearIcon.svelte';
-	import UserIcon from './icons/userIcon.svelte';
+	import BellIcon from './icons/BellIcon.svelte';
+	import MenuIcon from './icons/MenuIcon.svelte';
+	import MoonIcon from './icons/MoonIcon.svelte';
+	import SignOutIcon from './icons/SignOutIcon.svelte';
+	import SunIcon from './icons/SunIcon.svelte';
+	import UserGearIcon from './icons/UserGearIcon.svelte';
+	import UserIcon from './icons/UserIcon.svelte';
 
 	let { openMobileMenu }: { openMobileMenu: () => void } = $props();
 </script>

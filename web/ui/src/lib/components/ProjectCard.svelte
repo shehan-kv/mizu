@@ -1,11 +1,11 @@
 <script lang="ts">
-	import ChatsIcon from './icons/chatsIcon.svelte';
-	import CheckCircleIcon from './icons/checkCircleIcon.svelte';
-	import InvoiceIcon from './icons/invoiceIcon.svelte';
-	import KanbanIcon from './icons/kanbanIcon.svelte';
-	import ScrollIcon from './icons/scrollIcon.svelte';
-	import SpinnerIcon from './icons/spinnerIcon.svelte';
-	import TicketIcon from './icons/ticketIcon.svelte';
+	import ChatsIcon from './icons/ChatsIcon.svelte';
+	import CheckCircleIcon from './icons/CheckCircleIcon.svelte';
+	import InvoiceIcon from './icons/InvoiceIcon.svelte';
+	import KanbanIcon from './icons/KanbanIcon.svelte';
+	import ScrollIcon from './icons/ScrollIcon.svelte';
+	import SpinnerIcon from './icons/SpinnerIcon.svelte';
+	import TicketIcon from './icons/TicketIcon.svelte';
 
 	interface Props {
 		id: number;

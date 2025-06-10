@@ -1,10 +1,10 @@
 <script>
-	import CheckCircleIcon from '$lib/components/icons/checkCircleIcon.svelte';
-	import SpinnerGapIcon from '$lib/components/icons/spinnerGapIcon.svelte';
-	import TicketIcon from '$lib/components/icons/ticketIcon.svelte';
-	import WarningCircleIcon from '$lib/components/icons/warningCircleIcon.svelte';
-	import XCircleIcon from '$lib/components/icons/xCircleIcon.svelte';
-	import ProjectCard from '$lib/components/projectCard.svelte';
+	import CheckCircleIcon from '$lib/components/icons/CheckCircleIcon.svelte';
+	import SpinnerGapIcon from '$lib/components/icons/SpinnerGapIcon.svelte';
+	import TicketIcon from '$lib/components/icons/TicketIcon.svelte';
+	import WarningCircleIcon from '$lib/components/icons/WarningCircleIcon.svelte';
+	import XCircleIcon from '$lib/components/icons/XCircleIcon.svelte';
+	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import Check from '@lucide/svelte/icons/check';
 </script>
 
