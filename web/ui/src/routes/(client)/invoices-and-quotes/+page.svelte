@@ -1,11 +1,11 @@
 <script lang="ts">
+	import Checks from 'phosphor-svelte/lib/Checks';
+	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
+	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
+	import Envelope from 'phosphor-svelte/lib/Envelope';
 	import * as Table from '$lib/components/ui/table';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
-	import DownloadIcon from '$lib/components/icons/DownloadIcon.svelte';
-	import SendIcon from '$lib/components/icons/SendIcon.svelte';
-	import FilesIcon from '$lib/components/icons/FilesIcon.svelte';
-	import CheckCircleIcon from '$lib/components/icons/CheckCircleIcon.svelte';
 
 	let invoicesAndQuotes = [
 		{
@@ -233,7 +233,7 @@
 								<Table.Cell class="flex items-center gap-1">
 									{entry.status}
 									{#if entry.status == 'Paid' || entry.status == 'Accepted'}
-										<CheckCircleIcon class="size-4 text-emerald-500" />
+										<Checks size={18} class="text-emerald-500" />
 									{/if}
 								</Table.Cell>
 								<Table.Cell>{entry.issuedOn}</Table.Cell>
@@ -243,12 +243,12 @@
 										class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
 									>
 										<button title="View">
-											<FilesIcon class="size-4.5" />
+											<ArrowRight size={18} />
 										</button>
 										<button title="Download as PDF">
-											<DownloadIcon class="size-4.5" />
+											<DownloadSimple size={18} />
 										</button>
-										<button title="Email Me"><SendIcon class="size-4.5" /></button>
+										<button title="Email Me"><Envelope size={18} /></button>
 									</div>
 								</Table.Cell>
 							</Table.Row>

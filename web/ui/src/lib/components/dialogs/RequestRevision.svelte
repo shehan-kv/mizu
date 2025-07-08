@@ -1,6 +1,6 @@
 <script>
+	import X from 'phosphor-svelte/lib/X';
 	import { Dialog } from 'bits-ui';
-	import XIcon from '../icons/XIcon.svelte';
 
 	let { open = $bindable(), close } = $props();
 
@@ -15,11 +15,13 @@
 			inset-0 z-50 bg-neutral-100/80 dark:bg-black/80"
 		/>
 		<Dialog.Content
-			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
-			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
-			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 
-			overflow-hidden rounded"
+			class="data-[state=open]:animate-in data-[state=closed]:animate-out 
+			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out 
+			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in
+			outline-hidden duration-250 
+			fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2
+			-translate-y-1/2 auto-rows-[min-content_1fr] gap-4 overflow-hidden rounded 
+			bg-white dark:bg-neutral-950"
 		>
 			<div class="text-right">
 				<Dialog.Close
@@ -28,7 +30,7 @@
 					hover:bg-neutral-950 hover:text-neutral-50 dark:bg-neutral-900
 					hover:dark:bg-neutral-50 hover:dark:text-neutral-950"
 				>
-					<XIcon class="size-3" />
+					<X class="size-3" />
 				</Dialog.Close>
 			</div>
 

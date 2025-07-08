@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Pagination } from 'bits-ui';
-	import CaretLeftIcon from './icons/CaretLeftIcon.svelte';
-	import CaretRightIcon from './icons/CaretRightIcon.svelte';
+	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
+	import CaretRight from 'phosphor-svelte/lib/CaretRight';
 
 	let { page = $bindable() } = $props();
 </script>
@@ -19,7 +19,7 @@
                     hover:bg-neutral-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:text-neutral-500 
                     hover:disabled:bg-transparent dark:hover:bg-neutral-900"
 				>
-					<CaretLeftIcon class="size-4.5" />
+					<CaretLeft />
 				</Pagination.PrevButton>
 
 				<div class="flex items-center gap-2.5">
@@ -46,7 +46,7 @@
 				<Pagination.NextButton
 					class="hover:bg-dark-10 disabled:text-muted-foreground ml-[29px] inline-flex size-7 items-center justify-center rounded bg-transparent active:scale-[0.98] disabled:cursor-not-allowed hover:disabled:bg-transparent"
 				>
-					<CaretRightIcon class="size-4.5" />
+					<CaretRight />
 				</Pagination.NextButton>
 			</div>
 		</div>

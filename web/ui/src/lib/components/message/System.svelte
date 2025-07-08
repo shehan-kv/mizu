@@ -1,7 +1,7 @@
 <script lang="ts">
-	import DownloadIcon from '../icons/DownloadIcon.svelte';
-	import FilesIcon from '../icons/FilesIcon.svelte';
-	import InvoiceIcon from '../icons/InvoiceIcon.svelte';
+	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
+	import Files from 'phosphor-svelte/lib/Files';
+	import Invoice from 'phosphor-svelte/lib/Invoice';
 
 	interface Props {
 		variant: 'file' | 'invoice';
@@ -21,9 +21,9 @@
 	>
 		<p class="inline-flex items-center gap-1.5">
 			{#if variant == 'invoice'}
-				<InvoiceIcon class="size-4.5" />
+				<Invoice />
 			{:else if variant == 'file'}
-				<FilesIcon class="size-4.5 " />
+				<Files />
 			{/if}
 			{message}
 		</p>
@@ -34,7 +34,7 @@
 				title="Download"
 				class="transition hover:text-neutral-950 dark:hover:text-neutral-50"
 			>
-				<DownloadIcon class="size-4.5 " />
+				<DownloadSimple />
 			</a>
 		{/if}
 	</div>

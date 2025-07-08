@@ -1,8 +1,9 @@
 <script lang="ts">
-	import ChatDotsIcon from './icons/ChatDotsIcon.svelte';
-	import ChatsIcon from './icons/ChatsIcon.svelte';
-	import UserIcon from './icons/UserIcon.svelte';
-	import WarningCircleIcon from './icons/WarningCircleIcon.svelte';
+	import ChatDots from 'phosphor-svelte/lib/ChatDots';
+	import Chats from 'phosphor-svelte/lib/Chats';
+	import User from 'phosphor-svelte/lib/User';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import Info from 'phosphor-svelte/lib/Info';
 
 	interface Props {
 		variant: 'user' | 'channel' | 'message' | 'info' | 'warn';
@@ -18,15 +19,15 @@
 justify-center gap-2 py-4 text-xs text-neutral-500"
 >
 	{#if variant == 'user'}
-		<UserIcon class="size-5" />
+		<User size={18} />
 	{:else if variant == 'channel'}
-		<ChatDotsIcon class="size-5" />
+		<ChatDots size={18} />
 	{:else if variant == 'message'}
-		<ChatsIcon class="size-5" />
+		<Chats size={18} />
 	{:else if variant == 'info'}
-		<ChatsIcon class="size-5" />
+		<Info size={18} />
 	{:else if variant == 'warn'}
-		<WarningCircleIcon class="size-5" />
+		<WarningCircle size={18} />
 	{/if}
 	<p>{text}</p>
 

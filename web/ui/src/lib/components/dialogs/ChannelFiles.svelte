@@ -1,7 +1,8 @@
 <script lang="ts">
+	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
+
 	import * as Table from '$lib/components/ui/table';
 	import SearchBar from '$lib/components/SearchBar.svelte';
-	import DownloadIcon from '$lib/components/icons/DownloadIcon.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import type { Channel } from '$lib/components/message/types';
@@ -290,7 +291,7 @@
 											class="block w-fit cursor-pointer px-2 text-neutral-600
 										transition hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-neutral-50"
 										>
-											<DownloadIcon class="size-4.5 " />
+											<DownloadSimple size={18} />
 										</a>
 									</Table.Cell>
 								</Table.Row>

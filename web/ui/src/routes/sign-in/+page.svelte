@@ -1,11 +1,12 @@
 <script lang="ts">
-	import ChatsIcon from '$lib/components/icons/ChatsIcon.svelte';
-	import FilesIcon from '$lib/components/icons/FilesIcon.svelte';
-	import MoonFillIcon from '$lib/components/icons/MoonFillIcon.svelte';
-	import SunFillIcon from '$lib/components/icons/SunFillIcon.svelte';
-	import TrendUpIcon from '$lib/components/icons/TrendUpIcon.svelte';
+	import TrendUp from 'phosphor-svelte/lib/TrendUp';
+
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { toggleTheme } from '$lib/utils/theme';
+	import Files from 'phosphor-svelte/lib/Files';
+	import Chats from 'phosphor-svelte/lib/Chats';
+	import Moon from 'phosphor-svelte/lib/Moon';
+	import Sun from 'phosphor-svelte/lib/Sun';
 
 	let signInForm = $state({
 		email: '',
@@ -30,7 +31,7 @@
 		<div class="@container w-full max-w-3xl rounded bg-neutral-50 p-8 dark:bg-neutral-900">
 			<div>
 				<span class="inline-block rounded-full bg-neutral-200 p-2 dark:bg-neutral-800">
-					<TrendUpIcon class="size-4" />
+					<TrendUp size={20} />
 				</span>
 				<p class="@lg:text-base mt-2 text-sm font-bold">Track Progress</p>
 				<p class="max-w-2/3 @lg:text-sm mt-1 text-xs">
@@ -44,7 +45,7 @@
 			<div class="flex gap-8">
 				<div>
 					<span class="inline-block rounded-full bg-neutral-200 p-2 dark:bg-neutral-800">
-						<FilesIcon class="size-4" />
+						<Files size={20} />
 					</span>
 					<p class="@lg:text-base mt-2 text-sm font-bold">Sign Contracts</p>
 					<p class="@lg:text-sm mt-1 mt-1 text-xs">
@@ -54,7 +55,7 @@
 				</div>
 				<div>
 					<span class="inline-block rounded-full bg-neutral-200 p-2 dark:bg-neutral-800">
-						<ChatsIcon class="size-4" />
+						<Chats size={20} />
 					</span>
 					<p class="@lg:text-base mt-2 text-sm font-bold">Unified Chat</p>
 					<p class="@lg:text-sm mt-1 mt-1 text-xs">
@@ -73,8 +74,8 @@
 				hover:text-neutral-950 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-800
 				dark:hover:text-neutral-50"
 			>
-				<MoonFillIcon class="block size-5 dark:hidden" />
-				<SunFillIcon class="hidden size-5 dark:block" />
+				<Moon weight="fill" size={20} class="block dark:hidden" />
+				<Sun weight="fill" size={20} class="hidden dark:block" />
 			</button>
 		</div>
 

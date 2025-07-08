@@ -1,12 +1,10 @@
 <script lang="ts">
+	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
+	import Envelope from 'phosphor-svelte/lib/Envelope';
+	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
+	import Checks from 'phosphor-svelte/lib/Checks';
+
 	import * as Table from '$lib/components/ui/table';
-	import CheckCircleIcon from '../icons/CheckCircleIcon.svelte';
-	import DownloadIcon from '../icons/DownloadIcon.svelte';
-	import FilesIcon from '../icons/FilesIcon.svelte';
-	import HourglassIcon from '../icons/HourglassIcon.svelte';
-	import SendIcon from '../icons/SendIcon.svelte';
-	import WarningCircleIcon from '../icons/WarningCircleIcon.svelte';
-	import XCircleIcon from '../icons/XCircleIcon.svelte';
 	import type { Channel } from '../message/types';
 	import Pagination from '../Pagination.svelte';
 	import SearchBar from '../SearchBar.svelte';
@@ -144,7 +142,7 @@
 								<Table.Cell class="flex items-center gap-1">
 									{entry.status}
 									{#if entry.status == 'Paid' || entry.status == 'Accepted'}
-										<CheckCircleIcon class="size-4 text-emerald-500" />
+										<Checks size={18} class="text-emerald-500" />
 									{/if}
 								</Table.Cell>
 								<Table.Cell>{entry.issuedOn}</Table.Cell>
@@ -154,12 +152,12 @@
 										class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
 									>
 										<button title="View">
-											<FilesIcon class="size-4.5" />
+											<ArrowRight size={18} />
 										</button>
 										<button title="Download as PDF">
-											<DownloadIcon class="size-4.5" />
+											<DownloadSimple size={18} />
 										</button>
-										<button title="Email Me"><SendIcon class="size-4.5" /></button>
+										<button title="Email Me"><Envelope size={18} /></button>
 									</div>
 								</Table.Cell>
 							</Table.Row>

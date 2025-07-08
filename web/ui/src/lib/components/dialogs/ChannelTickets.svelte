@@ -1,7 +1,8 @@
 <script lang="ts">
+	import Checks from 'phosphor-svelte/lib/Checks';
+
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import * as Table from '$lib/components/ui/table';
-	import CheckCircleIcon from '../icons/CheckCircleIcon.svelte';
 	import type { Channel } from '../message/types';
 	import Pagination from '../Pagination.svelte';
 	import SearchBar from '../SearchBar.svelte';
@@ -162,7 +163,7 @@
 								<Table.Cell class="flex items-center gap-1">
 									{entry.status}
 									{#if entry.status == 'Resolved'}
-										<CheckCircleIcon class="size-4 text-emerald-500" />
+										<Checks size={18} class="text-emerald-500" />
 									{/if}
 								</Table.Cell>
 								<Table.Cell>

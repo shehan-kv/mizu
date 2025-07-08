@@ -1,6 +1,6 @@
 <script>
+	import X from 'phosphor-svelte/lib/X';
 	import { Dialog } from 'bits-ui';
-	import XIcon from '../icons/XIcon.svelte';
 
 	let { open = $bindable(), close, projectId } = $props();
 
@@ -28,7 +28,7 @@
 					hover:bg-neutral-950 hover:text-neutral-50 dark:bg-neutral-900
 					hover:dark:bg-neutral-50 hover:dark:text-neutral-950"
 				>
-					<XIcon class="size-3" />
+					<X class="size-3" />
 				</Dialog.Close>
 			</div>
 

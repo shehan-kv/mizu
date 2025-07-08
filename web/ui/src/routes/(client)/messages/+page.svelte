@@ -1,12 +1,14 @@
 <script lang="ts">
+	import Files from 'phosphor-svelte/lib/Files';
+	import FileText from 'phosphor-svelte/lib/FileText';
+	import Invoice from 'phosphor-svelte/lib/Invoice';
+	import Kanban from 'phosphor-svelte/lib/Kanban';
+	import Ticket from 'phosphor-svelte/lib/Ticket';
+	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
+
 	import * as Message from '$lib/components/message';
 	import * as Dialog from '$lib/components/dialogs';
-	import FilesIcon from '$lib/components/icons/FilesIcon.svelte';
-	import InvoiceIcon from '$lib/components/icons/InvoiceIcon.svelte';
-	import KanbanIcon from '$lib/components/icons/KanbanIcon.svelte';
-	import ScrollIcon from '$lib/components/icons/ScrollIcon.svelte';
-	import TicketIcon from '$lib/components/icons/TicketIcon.svelte';
-	import UploadIcon from '$lib/components/icons/UploadIcon.svelte';
+
 	import type { Channel, ChannelMessage, Member, UserMessage } from '$lib/components/message/types';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import { onMount } from 'svelte';
@@ -180,19 +182,19 @@
 			*:hover:text-neutral-950 *:hover:underline *:disabled:text-neutral-400 *:disabled:hover:no-underline
 			*:dark:hover:text-neutral-50 *:dark:disabled:text-neutral-600"
 				>
-					<button onclick={fileDialog.open}><FilesIcon class="size-5" />Files</button>
+					<button onclick={fileDialog.open}><Files size={18} />Files</button>
 					<button onclick={contractDialog.open} disabled={!selectedChannel.projectId}>
-						<ScrollIcon class="size-5" />Contracts
+						<FileText size={18} />Contracts
 					</button>
 					<button onclick={invoiceDialog.open} disabled={!selectedChannel.projectId}>
-						<InvoiceIcon class="size-5" />Invoices & Quotes
+						<Invoice size={18} />Invoices & Quotes
 					</button>
 					<button onclick={kanbanDialog.open} disabled={!selectedChannel.projectId}>
-						<KanbanIcon class="size-5" />Kanban Board
+						<Kanban size={18} />Kanban Board
 					</button>
 				</div>
 				<p class="mt-3 flex items-center gap-2 text-neutral-500">
-					<TicketIcon class="size-5" />Support Tickets
+					<Ticket class="size-5" />Support Tickets
 				</p>
 				<div
 					class="mt-1.5 border-l pl-4 *:block *:w-full *:cursor-pointer *:py-1
@@ -255,7 +257,7 @@
 					>
 						<AiSuggestionsButton onclick={() => (isAiEnabled = !isAiEnabled)} {isAiEnabled} />
 						<button class="inline-flex items-center gap-1.5">
-							<UploadIcon class="size-4" />Upload File
+							<UploadSimple />Upload File
 						</button>
 					</div>
 					<div class="grid grid-cols-[1fr_min-content]">

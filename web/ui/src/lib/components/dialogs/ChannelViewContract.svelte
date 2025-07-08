@@ -1,10 +1,11 @@
 <script lang="ts">
+	import Envelope from 'phosphor-svelte/lib/Envelope';
+	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import ArrowCounterClockwise from 'phosphor-svelte/lib/ArrowCounterClockwise';
+	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
+
 	import ContractRevisions from '../ContractRevisions.svelte';
-	import ArrowCounterClockwiseIcon from '../icons/ArrowCounterClockwiseIcon.svelte';
-	import CheckCircleIcon from '../icons/CheckCircleIcon.svelte';
-	import DownloadIcon from '../icons/DownloadIcon.svelte';
-	import SendIcon from '../icons/SendIcon.svelte';
-	import WarningCircleIcon from '../icons/WarningCircleIcon.svelte';
 	import Spinner from '../Spinner.svelte';
 	import ConfirmRejectContract from './ConfirmRejectContract.svelte';
 	import ConfirmSignContract from './ConfirmSignContract.svelte';
@@ -100,11 +101,11 @@
 						<p class="text-xs">{openedVersion.version} - Created On {openedVersion.createdDate}</p>
 
 						<div
-							class="space-x-2 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
+							class="space-x-1 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
 							*:dark:hover:text-neutral-50"
 						>
-							<button title="Download Contract"><DownloadIcon class="size-4" /> </button>
-							<button title="Email Me This Version"><SendIcon class="size-4" /> </button>
+							<button title="Download Contract"><DownloadSimple size={18} /> </button>
+							<button title="Email Me This Version"><Envelope size={18} /> </button>
 						</div>
 					</div>
 					<div class="overflow-y-auto p-6">
@@ -178,7 +179,7 @@
 												class="rounded bg-neutral-800 text-neutral-50 hover:bg-neutral-950
 											dark:bg-neutral-200 dark:text-neutral-950 dark:hover:bg-neutral-50"
 											>
-												<CheckCircleIcon class="size-4.5" />
+												<CheckCircle size={18} />
 												Sign
 											</button>
 											<button
@@ -186,7 +187,7 @@
 												class="rounded hover:bg-neutral-200 dark:text-neutral-50
 											dark:hover:bg-neutral-900"
 											>
-												<WarningCircleIcon class="size-4.5" />
+												<WarningCircle size={18} />
 												Reject
 											</button>
 										</div>
@@ -194,17 +195,17 @@
 											onclick={requestRevisionDialog.open}
 											class="inline-flex cursor-pointer items-center gap-1.5 text-sm hover:underline"
 										>
-											<ArrowCounterClockwiseIcon class="size-4.5" />
+											<ArrowCounterClockwise size={18} />
 											Request Revision</button
 										>
 									</div>
 								{:else if contract.userSignedStatus == 'SIGNED'}
 									<p class="inline-flex items-center gap-1 text-sm">
-										<CheckCircleIcon class="size-5 text-emerald-500" /> You've Already Signed This Contract
+										<CheckCircle size={20} class="text-emerald-500" /> You've Already Signed This Contract
 									</p>
 								{:else if contract.userSignedStatus == 'REJECTED'}
 									<p class="inline-flex items-center gap-1 text-sm">
-										<CheckCircleIcon class="size-5 text-rose-500" /> You've Already Rejected This Contract
+										<CheckCircle size={18} class="text-rose-500" /> You've Already Rejected This Contract
 									</p>
 								{/if}
 							</div>

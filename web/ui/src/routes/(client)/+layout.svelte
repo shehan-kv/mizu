@@ -1,13 +1,13 @@
 <script>
+	import Folder from 'phosphor-svelte/lib/Folder';
+	import Chats from 'phosphor-svelte/lib/Chats';
+	import Invoice from 'phosphor-svelte/lib/Invoice';
+	import Ticket from 'phosphor-svelte/lib/Ticket';
+	import UserGear from 'phosphor-svelte/lib/UserGear';
+	import X from 'phosphor-svelte/lib/X';
+	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import { page } from '$app/state';
 	import Header from '$lib/components/Header.svelte';
-	import ChatsIcon from '$lib/components/icons/ChatsIcon.svelte';
-	import DashboardIcon from '$lib/components/icons/DashboardIcon.svelte';
-	import FolderIcon from '$lib/components/icons/FolderIcon.svelte';
-	import InvoiceIcon from '$lib/components/icons/InvoiceIcon.svelte';
-	import TicketIcon from '$lib/components/icons/TicketIcon.svelte';
-	import UserGearIcon from '$lib/components/icons/UserGearIcon.svelte';
-	import XIcon from '$lib/components/icons/XIcon.svelte';
 	import { fade, fly } from 'svelte/transition';
 
 	let { children } = $props();
@@ -28,58 +28,58 @@
 			<li>
 				<a
 					href="/"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-sky-500"
+					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname == '/'}
 					onclick={closeMobileMenu}
 				>
-					<DashboardIcon class="size-5" /> Dashboard
+					<LayoutDashboard size={20} strokeWidth={1.5} /> Dashboard
 				</a>
 			</li>
 			<li>
 				<a
 					href="/projects"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-sky-500"
+					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/projects')}
 					onclick={closeMobileMenu}
 				>
-					<FolderIcon class="size-5" /> Projects
+					<Folder size={20} /> Projects
 				</a>
 			</li>
 			<li>
 				<a
 					href="/messages"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-sky-500"
+					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/messages')}
 					onclick={closeMobileMenu}
 				>
-					<ChatsIcon class="size-5" /> Messages
+					<Chats size={20} /> Messages
 				</a>
 			</li>
 			<li>
 				<a
 					href="/invoices-and-quotes"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-sky-500"
+					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/invoices-and-quotes')}
 					onclick={closeMobileMenu}
 				>
-					<InvoiceIcon class="size-5" /> Invoices & Quotes
+					<Invoice size={20} /> Invoices & Quotes
 				</a>
 			</li>
 			<li>
 				<a
 					href="/support-tickets"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-sky-500"
+					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/support-tickets')}
 					onclick={closeMobileMenu}
 				>
-					<TicketIcon class="size-5" /> Support Tickets
+					<Ticket size={20} /> Support Tickets
 				</a>
 			</li>
 			<li class="mt-auto">
 				<button
-					class="block flex cursor-pointer items-center gap-2 border-l py-2 pl-4 hover:border-sky-500"
+					class="block flex cursor-pointer items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
 				>
-					<UserGearIcon class="size-5" /> Profile Settings
+					<UserGear size={20} /> Profile Settings
 				</button>
 			</li>
 		</ul>
@@ -118,7 +118,7 @@
 		>
 			<div class="mb-6 flex items-center justify-between">
 				<button onclick={closeMobileMenu} class="ml-auto cursor-pointer rounded-full border p-1.5">
-					<XIcon class="size-4" /></button
+					<X size={18} /></button
 				>
 			</div>
 			{@render nav()}
