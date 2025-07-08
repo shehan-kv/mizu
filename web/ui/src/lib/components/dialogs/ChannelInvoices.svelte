@@ -9,6 +9,7 @@
 	import Pagination from '../Pagination.svelte';
 	import SearchBar from '../SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
+	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 
 	interface Props {
 		open: Boolean;
@@ -18,11 +19,6 @@
 	let { open = $bindable(), close, channel }: Props = $props();
 
 	let page = $state(1);
-
-	const usdFormatter = new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD'
-	});
 
 	let invoicesAndQuotes = [
 		{
@@ -138,7 +134,7 @@
 							<Table.Row>
 								<Table.Cell>{entry.type}</Table.Cell>
 								<Table.Cell>#{entry.id}</Table.Cell>
-								<Table.Cell>{usdFormatter.format(entry.amount)}</Table.Cell>
+								<Table.Cell>{currencyFormatter('USD', entry.amount)}</Table.Cell>
 								<Table.Cell class="flex items-center gap-1">
 									{entry.status}
 									{#if entry.status == 'Paid' || entry.status == 'Accepted'}

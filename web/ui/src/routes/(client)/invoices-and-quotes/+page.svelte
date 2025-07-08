@@ -6,6 +6,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
+	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 
 	let invoicesAndQuotes = [
 		{
@@ -190,11 +191,6 @@
 		}
 	];
 	let page = $state(1);
-
-	const usdFormatter = new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD'
-	});
 </script>
 
 <svelte:head>
@@ -207,6 +203,7 @@
 			<SearchBar />
 		</div>
 	</div>
+
 	<div class="mx-auto gap-4 overflow-y-auto lg:container">
 		<div class="overflow-y-auto">
 			{#if invoicesAndQuotes.length > 0}
@@ -229,7 +226,7 @@
 								<Table.Cell>{entry.type}</Table.Cell>
 								<Table.Cell>#{entry.id}</Table.Cell>
 								<Table.Cell>{entry.projectName}</Table.Cell>
-								<Table.Cell>{usdFormatter.format(entry.amount)}</Table.Cell>
+								<Table.Cell>{currencyFormatter('USD', entry.amount)}</Table.Cell>
 								<Table.Cell class="flex items-center gap-1">
 									{entry.status}
 									{#if entry.status == 'Paid' || entry.status == 'Accepted'}
