@@ -28,7 +28,8 @@
 			<li>
 				<a
 					href="/"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
+					class="block flex items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname == '/'}
 					onclick={closeMobileMenu}
 				>
@@ -38,7 +39,8 @@
 			<li>
 				<a
 					href="/projects"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
+					class="block flex items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/projects')}
 					onclick={closeMobileMenu}
 				>
@@ -48,7 +50,8 @@
 			<li>
 				<a
 					href="/messages"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
+					class="block flex items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/messages')}
 					onclick={closeMobileMenu}
 				>
@@ -58,7 +61,8 @@
 			<li>
 				<a
 					href="/invoices-and-quotes"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
+					class="block flex items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/invoices-and-quotes')}
 					onclick={closeMobileMenu}
 				>
@@ -68,7 +72,8 @@
 			<li>
 				<a
 					href="/support-tickets"
-					class="block flex items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
+					class="block flex items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/support-tickets')}
 					onclick={closeMobileMenu}
 				>
@@ -77,7 +82,8 @@
 			</li>
 			<li class="mt-auto">
 				<button
-					class="block flex cursor-pointer items-center gap-2 border-l py-2 pl-4 hover:border-neutral-700"
+					class="block flex cursor-pointer items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
 				>
 					<UserGear size={20} /> Profile Settings
 				</button>
