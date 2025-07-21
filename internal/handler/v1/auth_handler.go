@@ -50,6 +50,7 @@ func (athHndl *AuthHandler) GetMux(lg logger.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /sign-in", mwChain.Handle(athHndl.SignIn))
+	mux.Handle("POST /sign-out", mwChain.Handle(athHndl.SignOut))
 
 	return mux
 }
@@ -92,5 +93,34 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, auth.GetAuthCookie(token, signinRequest.RememberMe))
+	w.WriteHeader(http.StatusOK)
+}
+
+// Handles user sign-out
+// Complies with the http.HandlerFunc.
+//
+// Parameters:
+//   - w: http.ResponseWriter
+//   - r: *http.Request
+func (athHndl *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
+
+	cookie, err := r.Cookie(auth.AuthCookieName)
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = athHndl.authSrv.SignOut(r.Context(), cookie)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, auth.GetAuthDeleteCookie())
 	w.WriteHeader(http.StatusOK)
 }
