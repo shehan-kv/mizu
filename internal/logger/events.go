@@ -13,7 +13,7 @@ var (
 
 	EventSessionIdCreateFailed = "session_id_create_failed"
 	EventSessionSetFailed      = "session_set_failed"
-	EventSessionGetFailed      = "session_get_failed"
+	EventSessionNotFound       = "session_not_found"
 	EventSessionRevokeFailed   = "session_revoke_failed"
 
 	EventCorrelationIdCreateFailed = "correlation_id_create_failed"
