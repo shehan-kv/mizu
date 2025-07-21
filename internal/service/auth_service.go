@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -138,4 +139,46 @@ func (authserv *AuthService) SignIn(
 		"event", logger.EventAuthUserAuthenticated,
 		"user_id", user.Id, "correlation_id", correlationId)
 	return sessionId, nil
+}
+
+// Sign-out a user
+// Revokes existing session identified by the cookie.
+// This endpoint is idempotent
+//
+// Parameters:
+//   - ctx: context for request scoping and cancellation.
+//   - cookie: the existing auth cookie to revoke old session.
+//
+// Returns:
+//   - errdefs.ErrAuthInternalError if internal errors occur
+func (authserv *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+
+	session, err := authserv.sessSt.GetSession(cookie.Value)
+	if err != nil {
+		// Consider a user is already logged out if session doesn't
+		// exist in session store
+		if errors.Is(err, errdefs.ErrSessionNotFound) {
+			authserv.lg.Warn("previous session doesn't exist",
+				"event", logger.EventSessionNotFound,
+				"correlation_id", correlationId)
+			return nil
+		}
+
+		authserv.lg.Warn("could not get previous session",
+			"event", logger.EventSessionNotFound,
+			"correlation_id", correlationId)
+		return errdefs.ErrAuthInternalError
+	}
+
+	err = authserv.sessSt.RevokeSession(cookie.Value)
+	if err != nil {
+		authserv.lg.Warn("could not revoke previous session",
+			"event", logger.EventSessionRevokeFailed,
+			"user_id", session.UserId, "correlation_id", correlationId)
+		return errdefs.ErrAuthInternalError
+	}
+
+	return nil
 }
