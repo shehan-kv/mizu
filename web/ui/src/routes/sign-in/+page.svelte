@@ -1,20 +1,35 @@
 <script lang="ts">
-	import TrendUp from 'phosphor-svelte/lib/TrendUp';
-
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-	import { toggleTheme } from '$lib/utils/theme';
 	import Files from 'phosphor-svelte/lib/Files';
 	import Chats from 'phosphor-svelte/lib/Chats';
+	import TrendUp from 'phosphor-svelte/lib/TrendUp';
 	import Moon from 'phosphor-svelte/lib/Moon';
 	import Sun from 'phosphor-svelte/lib/Sun';
+	import { toast } from 'svelte-sonner';
 
+	import { signIn } from '$lib/api/auth';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import { toggleTheme } from '$lib/utils/theme';
+	import { goto } from '$app/navigation';
+
+	let isLoading = $state(false);
 	let signInForm = $state({
 		email: '',
 		password: '',
-		remember_me: false
+		rememberMe: false
 	});
-	function signIn() {
-		// TODO: Implement sign in functionality
+
+	function onSubmit(e: SubmitEvent) {
+		e.preventDefault();
+
+		isLoading = true;
+		signIn(signInForm).then((response) => {
+			if (response.ok) {
+				goto('/');
+			} else {
+				toast.error('Sign-in Failed');
+				isLoading = false;
+			}
+		});
 	}
 </script>
 
@@ -90,7 +105,7 @@
 				<p>Please sign in to continue</p>
 			</div>
 
-			<form class="mt-10 text-sm" onsubmit={signIn}>
+			<form class="mt-10 text-sm" onsubmit={onSubmit}>
 				<div class="space-y-4">
 					<div class="space-y-1">
 						<label for="email" class="block">Email</label>
@@ -120,18 +135,19 @@
 				</div>
 
 				<div class="mt-4 flex items-center gap-2">
-					<Checkbox id="remember_me" bind:checked={signInForm.remember_me} />
+					<Checkbox id="remember_me" bind:checked={signInForm.rememberMe} />
 					<label for="remember_me">Remember Me</label>
 				</div>
 
 				<button
+					disabled={isLoading}
 					type="submit"
 					class="mt-8 w-full cursor-pointer rounded bg-neutral-950
 					py-3 text-neutral-50 transition hover:bg-neutral-200
 					hover:text-neutral-950 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-800
 					dark:hover:text-neutral-50"
 				>
-					Continue
+					{isLoading ? 'Signing in...' : 'Continue'}
 				</button>
 			</form>
 
