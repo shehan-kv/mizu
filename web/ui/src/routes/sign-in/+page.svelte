@@ -10,6 +10,7 @@
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { toggleTheme } from '$lib/utils/theme';
 	import { goto } from '$app/navigation';
+	import { json } from '@sveltejs/kit';
 
 	let isLoading = $state(false);
 	let signInForm = $state({
@@ -22,14 +23,25 @@
 		e.preventDefault();
 
 		isLoading = true;
-		signIn(signInForm).then((response) => {
-			if (response.ok) {
-				goto('/');
-			} else {
+		signIn(signInForm)
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error('request failed');
+				}
+
+				return response.json();
+			})
+			.then((data) => {
+				if (data.role == 'administrator') {
+					goto('/admin');
+				} else {
+					goto('/');
+				}
+			})
+			.catch(() => {
 				toast.error('Sign-in Failed');
 				isLoading = false;
-			}
-		});
+			});
 	}
 </script>
 
