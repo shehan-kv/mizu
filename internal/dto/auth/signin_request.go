@@ -6,7 +6,7 @@ import (
 )
 
 // Represents a user sign in request
-type UserSignInRequest struct {
+type SignInRequest struct {
 	Email      string `json:"email"`
 	Password   string `json:"password"`
 	RememberMe bool   `json:"rememberMe"`
@@ -17,7 +17,7 @@ type UserSignInRequest struct {
 //
 // Returns:
 //   - true if valid, false otherwise
-func (usr *UserSignInRequest) Validate() bool {
+func (usr *SignInRequest) Validate() bool {
 	usr.format()
 
 	_, err := mail.ParseAddress(usr.Email)
@@ -32,6 +32,6 @@ func (usr *UserSignInRequest) Validate() bool {
 	return true
 }
 
-func (usr *UserSignInRequest) format() {
+func (usr *SignInRequest) format() {
 	usr.Email = strings.ToLower(strings.TrimSpace(usr.Email))
 }

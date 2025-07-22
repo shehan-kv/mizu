@@ -57,7 +57,7 @@ func NewAuthService(lg logger.Logger, usrSt store.UserStore, sessSt session.Sess
 func (authserv *AuthService) SignIn(
 	ctx context.Context,
 	cookie *http.Cookie,
-	request *dto.UserSignInRequest) (string, error) {
+	request *dto.SignInRequest) (string, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 

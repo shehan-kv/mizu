@@ -63,7 +63,7 @@ func (athHndl *AuthHandler) GetMux(lg logger.Logger) *http.ServeMux {
 //   - r: *http.Request
 func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
-	var signinRequest dto.UserSignInRequest
+	var signinRequest dto.SignInRequest
 
 	err := json.NewDecoder(r.Body).Decode(&signinRequest)
 	if err != nil {
