@@ -6,6 +6,7 @@ var (
 	EventAuthInvalidCredentials   = "auth_invalid_credentials"
 	EventAuthAccountDisabled      = "auth_account_disabled"
 	EventAuthUserNotFound         = "auth_user_not_found"
+	EventAuthRoleNotFound         = "auth_role_not_found"
 	EventAuthInternalError        = "auth_internal_error"
 	EventAuthPasswordNotFound     = "auth_password_not_found"
 	EventAuthLastSigninNotUpdated = "auth_last_signin_not_updated"
