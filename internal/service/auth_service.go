@@ -9,7 +9,7 @@ import (
 
 	"mizu/internal/auth"
 	"mizu/internal/db/store"
-	"mizu/internal/dto"
+	dto "mizu/internal/dto/auth"
 	"mizu/internal/errdefs"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"

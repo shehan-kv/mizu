@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"mizu/internal/auth"
-	"mizu/internal/dto"
+	dto "mizu/internal/dto/auth"
 	"mizu/internal/errdefs"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
