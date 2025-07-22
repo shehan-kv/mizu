@@ -251,3 +251,17 @@ func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error
 
 	return nil
 }
+
+func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.Role, error) {
+
+	query := `SELECT id, name FROM roles WHERE id = ?`
+
+	role := models.Role{}
+
+	err := q.db.QueryRowContext(ctx, query, id).Scan(&role.Id, &role.Name)
+	if err != nil {
+		return nil, errdefs.ErrDbRecordNotFound
+	}
+
+	return &role, nil
+}

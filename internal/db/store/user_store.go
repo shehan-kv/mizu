@@ -16,4 +16,5 @@ type UserStore interface {
 	SetPasswordById(ctx context.Context, id int64, password string) error
 	DeleteById(ctx context.Context, id int64) error
 	UpdateLastLogin(ctx context.Context, id int64) error
+	GetRoleById(ctx context.Context, id int64) (*models.Role, error)
 }
