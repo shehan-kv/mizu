@@ -78,7 +78,7 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie, _ := r.Cookie(auth.AuthCookieName)
-	token, err := athHndl.authSrv.SignIn(r.Context(), cookie, &signinRequest)
+	result, err := athHndl.authSrv.SignIn(r.Context(), cookie, &signinRequest)
 
 	if err != nil {
 		if errors.Is(err, errdefs.ErrAuthUnauthorized) {
@@ -92,8 +92,10 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.SetCookie(w, auth.GetAuthCookie(token, signinRequest.RememberMe))
+	http.SetCookie(w, auth.GetAuthCookie(result.SessionId, signinRequest.RememberMe))
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.SignInResponse{Status: "success", Role: result.Role})
 }
 
 // Handles user sign-out

@@ -42,6 +42,12 @@ func NewAuthService(lg logger.Logger, usrSt store.UserStore, sessSt session.Sess
 	}
 }
 
+// Result of a successful sign-in
+type SignInResult struct {
+	SessionId string
+	Role      string
+}
+
 // Authenticates a user using an email and a password.
 // Manages session creation and revocation of existing sessions.
 //
@@ -57,7 +63,7 @@ func NewAuthService(lg logger.Logger, usrSt store.UserStore, sessSt session.Sess
 func (authserv *AuthService) SignIn(
 	ctx context.Context,
 	cookie *http.Cookie,
-	request *dto.SignInRequest) (string, error) {
+	request *dto.SignInRequest) (*SignInResult, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
@@ -68,7 +74,14 @@ func (authserv *AuthService) SignIn(
 	if err != nil {
 		authserv.lg.Warn("user not found",
 			"event", logger.EventAuthUserNotFound, "correlation_id", correlationId)
-		return "", errdefs.ErrAuthUnauthorized
+		return nil, errdefs.ErrAuthUnauthorized
+	}
+
+	role, err := authserv.usrSt.GetRoleById(ctx, user.Role)
+	if err != nil {
+		authserv.lg.Warn("role not found",
+			"event", logger.EventAuthRoleNotFound, "correlation_id", correlationId)
+		return nil, errdefs.ErrAuthUnauthorized
 	}
 
 	if !user.IsActive {
@@ -76,7 +89,7 @@ func (authserv *AuthService) SignIn(
 			"account deactivated",
 			"event", logger.EventAuthAccountDisabled,
 			"user_id", user.Id, "correlation_id", correlationId)
-		return "", errdefs.ErrAuthUnauthorized
+		return nil, errdefs.ErrAuthUnauthorized
 	}
 
 	hash, err := authserv.usrSt.GetPasswordById(ctx, user.Id)
@@ -84,7 +97,7 @@ func (authserv *AuthService) SignIn(
 		authserv.lg.Warn("password not found",
 			"event", logger.EventAuthPasswordNotFound,
 			"user_id", user.Id, "correlation_id", correlationId)
-		return "", errdefs.ErrAuthUnauthorized
+		return nil, errdefs.ErrAuthUnauthorized
 	}
 
 	isPasswordCorrect := auth.CompareHashAndPassword(hash, request.Password)
@@ -93,7 +106,7 @@ func (authserv *AuthService) SignIn(
 		authserv.lg.Warn("invalid credentials",
 			"event", logger.EventAuthInvalidCredentials,
 			"user_id", user.Id, "correlation_id", correlationId)
-		return "", errdefs.ErrAuthUnauthorized
+		return nil, errdefs.ErrAuthUnauthorized
 	}
 
 	randomUuid, err := uuid.NewRandom()
@@ -101,7 +114,7 @@ func (authserv *AuthService) SignIn(
 		authserv.lg.Warn("could not create session id",
 			"event", logger.EventSessionIdCreateFailed,
 			"user_id", user.Id, "correlation_id", correlationId)
-		return "", errdefs.ErrAuthInternalError
+		return nil, errdefs.ErrAuthInternalError
 	}
 
 	sessionId := randomUuid.String()
@@ -114,7 +127,7 @@ func (authserv *AuthService) SignIn(
 			authserv.lg.Warn("could not revoke previous session",
 				"event", logger.EventSessionRevokeFailed,
 				"user_id", user.Id, "correlation_id", correlationId)
-			return "", errdefs.ErrAuthInternalError
+			return nil, errdefs.ErrAuthInternalError
 		}
 	}
 
@@ -132,13 +145,14 @@ func (authserv *AuthService) SignIn(
 		authserv.lg.Warn("could not set session",
 			"event", logger.EventSessionSetFailed,
 			"user_id", user.Id, "correlation_id", correlationId)
-		return "", errdefs.ErrAuthInternalError
+		return nil, errdefs.ErrAuthInternalError
 	}
 
 	authserv.lg.Info("user authenticated",
 		"event", logger.EventAuthUserAuthenticated,
 		"user_id", user.Id, "correlation_id", correlationId)
-	return sessionId, nil
+
+	return &SignInResult{SessionId: sessionId, Role: role.Name}, nil
 }
 
 // Sign-out a user
