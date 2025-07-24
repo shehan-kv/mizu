@@ -123,6 +123,23 @@ func (dbs *DbConn) NewUserStore() store.UserStore {
 	}
 }
 
+// Creates a new instance of a ProjectStore.
+//
+// Returns:
+//   - a pointer to an implementation of ProjectStore
+func (dbs *DbConn) NewProjectStore() store.ProjectStore {
+	switch dbs.dbEngine {
+	case "sqlite":
+		return sqlite.NewProjectStore(dbs.sqlDb)
+
+	case "postgres":
+		return postgres.NewProjectStore(dbs.sqlDb)
+
+	default:
+		return sqlite.NewProjectStore(dbs.sqlDb)
+	}
+}
+
 // Closes the database connection
 func (dbs *DbConn) Close() {
 	dbs.sqlDb.Close()
