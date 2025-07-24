@@ -29,19 +29,23 @@ func RunServer() {
 
 	// Initialize database stores
 	userStore := db.NewUserStore()
+	projectStore := db.NewProjectStore()
 
 	// Default admin user when the database has no users
 	auth.CreateDefaultAdminUser(userStore, logger)
 
 	// Services
 	authService := service.NewAuthService(logger, userStore, sessionStore)
+	projectService := service.NewProjectService(logger, projectStore)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
+	projectMux := v1.NewProjectHandler(projectService).GetMux(logger, sessionStore, userStore)
 
 	// Server routes
 	mainMux := http.NewServeMux()
 	mainMux.Handle("/api/v1/auth/", http.StripPrefix("/api/v1/auth", authMux))
+	mainMux.Handle("/api/v1/project/", http.StripPrefix("/api/v1/project", projectMux))
 
 	// Start server
 	listenOn := os.Getenv("LISTEN_ON")
