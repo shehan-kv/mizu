@@ -1,0 +1,12 @@
+-- +goose Up
+CREATE TABLE channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER,
+    name TEXT NOT NULL UNIQUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+-- +goose Down
+DROP TABLE IF EXISTS channels;
