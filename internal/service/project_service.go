@@ -7,6 +7,7 @@ import (
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/project"
 	"mizu/internal/errdefs"
+	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
 )
@@ -50,8 +51,9 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 	signedInUser, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
 		prjSrv.lg.Warn("getting signed in user from context failed",
-			"event", logger.EventAuthInternalError,
+			"event", event.EventInternalError,
 			"correlation_id", cid,
+			"scope", "project_service",
 			"err", err)
 		return errdefs.ErrProjectInternalError
 	}
@@ -64,25 +66,28 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 	if err != nil {
 		if errors.Is(err, errdefs.ErrDbUniqueViolation) {
 			prjSrv.lg.Warn("project with the same name exists",
-				"event", logger.EventProjectAlreadyExists,
+				"event", event.EventAlreadyExists,
 				"correlation_id", cid,
 				"project_name", request.Name,
+				"scope", "project_service",
 				"err", err)
 			return errdefs.ErrAlreadyExists
 		}
 
 		prjSrv.lg.Warn("failed to create project",
-			"event", logger.EventProjectCreateFailed,
+			"event", event.EventCreateFailed,
 			"correlation_id", cid,
 			"project_name", request.Name,
+			"scope", "project_service",
 			"err", err)
 		return errdefs.ErrProjectInternalError
 	}
 
 	prjSrv.lg.Info("created project successfully",
-		"event", logger.EventProjectCreated,
+		"event", event.EventCreateSuccess,
 		"correlation_id", cid,
-		"project_name", request.Name)
+		"project_name", request.Name,
+		"scope", "project_service")
 
 	return nil
 }
