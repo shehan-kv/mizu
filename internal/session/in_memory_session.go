@@ -1,7 +1,6 @@
 package session
 
 import (
-	"mizu/internal/errdefs"
 	"sync"
 	"time"
 )
@@ -46,19 +45,19 @@ func (ims *InMemorySession) SetSession(key string, userId int64) error {
 //   - key: a string that uniquely identifies a session (ex: a UUID)
 //
 // Returns:
-//   - [Session] if session is found
-//   - [errdefs.ErrSessionNotFound] if session not found
-//   - [errdefs.ErrSessionInvalidType] if type is invalid
+//   - *Session: if session is found
+//   - ErrNotFound: if session not found
+//   - ErrInvalidType: if type is invalid
 func (ims *InMemorySession) GetSession(key string) (*Session, error) {
 
 	value, ok := ims.sessions.Load(key)
 	if !ok {
-		return &Session{}, errdefs.ErrSessionNotFound
+		return &Session{}, ErrNotFound
 	}
 
 	session, ok := value.(Session)
 	if !ok {
-		return &Session{}, errdefs.ErrSessionInvalidType
+		return &Session{}, ErrInvalidType
 	}
 
 	return &session, nil
