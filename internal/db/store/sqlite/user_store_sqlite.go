@@ -3,7 +3,6 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"mizu/internal/db/models"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -58,8 +57,10 @@ func (q *UserStoreSqlite) CreateOne(ctx context.Context, arg *params.UserCreateP
 	).Scan(&id)
 
 	if err != nil {
-		if errors.Is(err, sqlite3.ErrConstraintUnique) {
-			return 0, store.ErrUniqueViolation
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return 0, store.ErrUniqueViolation
+			}
 		}
 		return 0, store.ErrInsertFailed
 	}
