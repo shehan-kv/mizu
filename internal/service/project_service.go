@@ -6,7 +6,6 @@ import (
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/project"
-	"mizu/internal/errdefs"
 	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
@@ -42,8 +41,8 @@ func NewProjectService(lg logger.Logger, prjSt store.ProjectStore) *ProjectServi
 //   - request: a pointer to ProjectCreateRequest DTO.
 //
 // Returns:
-//   - errdefs.ErrAlreadyExists if project already exists in database.
-//   - errdefs.ErrProjectInternalError if internal errors occurs.
+//   - ErrAlreadyExists: if project already exists in database.
+//   - ErrInternalError: if internal errors occurs.
 func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.ProjectCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
@@ -55,7 +54,7 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 			"correlation_id", cid,
 			"scope", "project_service",
 			"err", err)
-		return errdefs.ErrProjectInternalError
+		return ErrInternalError
 	}
 
 	_, err = prjSrv.prjSt.CreateOne(ctx, &params.ProjectCreateParams{
@@ -64,14 +63,14 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 		Members: append(request.Members, signedInUser.Id)})
 
 	if err != nil {
-		if errors.Is(err, errdefs.ErrDbUniqueViolation) {
+		if errors.Is(err, store.ErrUniqueViolation) {
 			prjSrv.lg.Warn("project with the same name exists",
 				"event", event.EventAlreadyExists,
 				"correlation_id", cid,
 				"project_name", request.Name,
 				"scope", "project_service",
 				"err", err)
-			return errdefs.ErrAlreadyExists
+			return ErrAlreadyExists
 		}
 
 		prjSrv.lg.Warn("failed to create project",
@@ -80,7 +79,7 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 			"project_name", request.Name,
 			"scope", "project_service",
 			"err", err)
-		return errdefs.ErrProjectInternalError
+		return ErrInternalError
 	}
 
 	prjSrv.lg.Info("created project successfully",

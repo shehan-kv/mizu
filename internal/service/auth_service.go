@@ -10,7 +10,6 @@ import (
 	"mizu/internal/auth"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/auth"
-	"mizu/internal/errdefs"
 	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
@@ -58,9 +57,9 @@ type SignInResult struct {
 //   - request: a pointer to a UserSignInRequest DTO
 //
 // Returns:
-//   - session ID string upon successful authentication
-//   - errdefs.ErrAuthUnauthorized if authentication fails
-//   - errdefs.ErrAuthInternalError if internal errors occur
+//   - *SignInResult: a pointer to SignInResult
+//   - ErrUnauthorized: if authentication fails
+//   - ErrInternalError: if internal errors occur
 func (authserv *AuthService) SignIn(
 	ctx context.Context,
 	cookie *http.Cookie,
@@ -80,7 +79,7 @@ func (authserv *AuthService) SignIn(
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return nil, errdefs.ErrAuthUnauthorized
+		return nil, ErrUnauthorized
 	}
 
 	role, err := authserv.usrSt.GetRoleById(ctx, user.Role)
@@ -90,7 +89,7 @@ func (authserv *AuthService) SignIn(
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return nil, errdefs.ErrAuthUnauthorized
+		return nil, ErrUnauthorized
 	}
 
 	if !user.IsActive {
@@ -99,7 +98,7 @@ func (authserv *AuthService) SignIn(
 			"user_id", user.Id,
 			"correlation_id", correlationId,
 			"scope", "auth_service")
-		return nil, errdefs.ErrAuthUnauthorized
+		return nil, ErrUnauthorized
 	}
 
 	hash, err := authserv.usrSt.GetPasswordById(ctx, user.Id)
@@ -110,7 +109,7 @@ func (authserv *AuthService) SignIn(
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return nil, errdefs.ErrAuthUnauthorized
+		return nil, ErrUnauthorized
 	}
 
 	isPasswordCorrect := auth.CompareHashAndPassword(hash, request.Password)
@@ -121,7 +120,7 @@ func (authserv *AuthService) SignIn(
 			"user_id", user.Id,
 			"correlation_id", correlationId,
 			"scope", "auth_service")
-		return nil, errdefs.ErrAuthUnauthorized
+		return nil, ErrUnauthorized
 	}
 
 	randomUuid, err := uuid.NewRandom()
@@ -132,7 +131,7 @@ func (authserv *AuthService) SignIn(
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return nil, errdefs.ErrAuthInternalError
+		return nil, ErrInternalError
 	}
 
 	sessionId := randomUuid.String()
@@ -148,7 +147,7 @@ func (authserv *AuthService) SignIn(
 				"correlation_id", correlationId,
 				"scope", "auth_service",
 				"err", err)
-			return nil, errdefs.ErrAuthInternalError
+			return nil, ErrInternalError
 		}
 	}
 
@@ -172,7 +171,7 @@ func (authserv *AuthService) SignIn(
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return nil, errdefs.ErrAuthInternalError
+		return nil, ErrInternalError
 	}
 
 	authserv.lg.Info("user authenticated",
@@ -193,16 +192,16 @@ func (authserv *AuthService) SignIn(
 //   - cookie: the existing auth cookie to revoke old session.
 //
 // Returns:
-//   - errdefs.ErrAuthInternalError if internal errors occur
+//   - AuthInternalError: if internal errors occur
 func (authserv *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
-	session, err := authserv.sessSt.GetSession(cookie.Value)
+	existingSession, err := authserv.sessSt.GetSession(cookie.Value)
 	if err != nil {
 		// Consider a user is already logged out if session doesn't
 		// exist in session store
-		if errors.Is(err, errdefs.ErrSessionNotFound) {
+		if errors.Is(err, session.ErrNotFound) {
 			authserv.lg.Warn("previous session doesn't exist",
 				"event", event.EventNotFound,
 				"correlation_id", correlationId,
@@ -216,18 +215,18 @@ func (authserv *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) e
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return errdefs.ErrAuthInternalError
+		return ErrInternalError
 	}
 
 	err = authserv.sessSt.RevokeSession(cookie.Value)
 	if err != nil {
 		authserv.lg.Warn("could not revoke previous session",
 			"event", event.EventInternalError,
-			"user_id", session.UserId,
+			"user_id", existingSession.UserId,
 			"correlation_id", correlationId,
 			"scope", "auth_service",
 			"err", err)
-		return errdefs.ErrAuthInternalError
+		return ErrInternalError
 	}
 
 	return nil
