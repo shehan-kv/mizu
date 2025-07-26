@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"mizu/internal/db/params"
-	"mizu/internal/errdefs"
+	"mizu/internal/db/store"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -29,7 +29,7 @@ func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectC
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, errdefs.ErrDbInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	defer tx.Rollback()
@@ -45,35 +45,35 @@ func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectC
 	if err != nil {
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintUnique {
-				return 0, errdefs.ErrDbUniqueViolation
+				return 0, store.ErrUniqueViolation
 			}
 		}
 
-		return 0, errdefs.ErrDbInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	var channelId int64 = 0
 	insertChannel := `INSERT INTO channels(project_id, name) VALUES(?,?) RETURNING id`
 	if err = tx.QueryRowContext(ctx, insertChannel, projectId, arg.Name).Scan(&channelId); err != nil {
-		return 0, errdefs.ErrDbInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	insertProjectUser := `INSERT INTO project_users(user_id, project_id) VALUES(?,?)`
 	for _, memberId := range arg.Members {
 		if _, err = tx.ExecContext(ctx, insertProjectUser, memberId, projectId); err != nil {
-			return 0, errdefs.ErrDbInsertFailed
+			return 0, store.ErrInsertFailed
 		}
 	}
 
 	insertChannelUser := `INSERT INTO channel_users(channel_id, user_id) VALUES(?,?)`
 	for _, memberId := range arg.Members {
 		if _, err = tx.ExecContext(ctx, insertChannelUser, channelId, memberId); err != nil {
-			return 0, errdefs.ErrDbInsertFailed
+			return 0, store.ErrInsertFailed
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return 0, errdefs.ErrDbInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	return projectId, nil

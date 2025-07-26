@@ -3,11 +3,10 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"mizu/internal/db/params"
-	"mizu/internal/errdefs"
+	"mizu/internal/db/store"
 
-	"github.com/mattn/go-sqlite3"
+	"github.com/lib/pq"
 )
 
 // Postgres implementation of UserStore interface
@@ -42,10 +41,12 @@ func (q *ProjectStorePostgres) CreateOne(ctx context.Context, arg *params.Projec
 	).Scan(&id)
 
 	if err != nil {
-		if errors.Is(err, sqlite3.ErrConstraintUnique) {
-			return id, errdefs.ErrDbUniqueViolation
+		if err, ok := err.(*pq.Error); ok {
+			if err.Code.Name() == "unique_violation" {
+				return 0, store.ErrUniqueViolation
+			}
 		}
-		return id, errdefs.ErrDbInsertFailed
+		return id, store.ErrInsertFailed
 	}
 
 	return id, nil

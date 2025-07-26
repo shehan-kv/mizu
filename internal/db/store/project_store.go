@@ -16,7 +16,7 @@ type ProjectStore interface {
 	//
 	// Returns:
 	//   - int64: id of new project
-	//   - errdefs.ErrDbUniqueViolation if name already exists
-	//   - errdefs.ErrDbInsertFailed if create fails
+	//   - store.ErrUniqueViolation: if name already exists
+	//   - store.ErrInsertFailed: if create fails
 	CreateOne(ctx context.Context, arg *params.ProjectCreateParams) (int64, error)
 }
