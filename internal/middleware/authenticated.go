@@ -5,7 +5,6 @@ import (
 	"mizu/internal/auth"
 	"mizu/internal/db/models"
 	"mizu/internal/db/store"
-	"mizu/internal/errdefs"
 	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/session"
@@ -21,13 +20,13 @@ const userKey key = "user"
 //
 // Returns:
 //   - *models.User if a user is found in context
-//   - errdefs.ErrContextDataNotFound if not found
+//   - ErrNotFound: if not found
 func GetUserFromContext(ctx context.Context) (*models.User, error) {
 	val := ctx.Value(userKey)
 	if user, ok := val.(*models.User); ok {
 		return user, nil
 	}
-	return nil, errdefs.ErrContextDataNotFound
+	return nil, ErrNotFound
 }
 
 // Factory function that returns a middleware function that
