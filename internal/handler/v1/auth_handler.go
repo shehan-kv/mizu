@@ -5,7 +5,6 @@ import (
 	"errors"
 	"mizu/internal/auth"
 	dto "mizu/internal/dto/auth"
-	"mizu/internal/errdefs"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
 	"mizu/internal/service"
@@ -81,12 +80,12 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	result, err := athHndl.authSrv.SignIn(r.Context(), cookie, &signinRequest)
 
 	if err != nil {
-		if errors.Is(err, errdefs.ErrAuthUnauthorized) {
+		if errors.Is(err, service.ErrUnauthorized) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		if errors.Is(err, errdefs.ErrAuthInternalError) {
+		if errors.Is(err, service.ErrInternalError) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

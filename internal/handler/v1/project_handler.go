@@ -5,7 +5,6 @@ import (
 	"errors"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/project"
-	"mizu/internal/errdefs"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
 	"mizu/internal/service"
@@ -83,7 +82,7 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := prjHndl.prjSrv.CreateProject(r.Context(), &createRequest); err != nil {
-		if errors.Is(err, errdefs.ErrAlreadyExists) {
+		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
