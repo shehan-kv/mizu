@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"mizu/internal/event"
 	"mizu/internal/logger"
 	"net/http"
 
@@ -45,7 +46,9 @@ func CorrelationId(lg logger.Logger) func(http.HandlerFunc) http.HandlerFunc {
 				randomUuid, err := uuid.NewRandom()
 				if err != nil {
 					lg.Error("could not create correlation id",
-						"event", logger.EventCorrelationIdCreateFailed)
+						"event", event.EventInternalError,
+						"scope", "middleware_correlation_id",
+						"err", err)
 
 					w.WriteHeader(http.StatusInternalServerError)
 					return

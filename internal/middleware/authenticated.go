@@ -6,6 +6,7 @@ import (
 	"mizu/internal/db/models"
 	"mizu/internal/db/store"
 	"mizu/internal/errdefs"
+	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/session"
 	"net/http"
@@ -52,8 +53,10 @@ func Authenticated(lg logger.Logger, seStore session.SessionStore, usrStore stor
 			cookie, err := r.Cookie(auth.AuthCookieName)
 			if err != nil {
 				lg.Warn("unauthenticated user",
-					"event", logger.EventAuthUnauthenticatedUser,
-					"correlation_id", cid)
+					"event", event.EventUserNotAuthenticated,
+					"correlation_id", cid,
+					"scope", "middleware_authenticated",
+					"err", err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -61,8 +64,10 @@ func Authenticated(lg logger.Logger, seStore session.SessionStore, usrStore stor
 			session, err := seStore.GetSession(cookie.Value)
 			if err != nil {
 				lg.Warn("session not found",
-					"event", logger.EventSessionNotFound,
-					"correlation_id", cid)
+					"event", event.EventNotFound,
+					"correlation_id", cid,
+					"scope", "middleware_authenticated",
+					"err", err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -70,8 +75,10 @@ func Authenticated(lg logger.Logger, seStore session.SessionStore, usrStore stor
 			user, err := usrStore.GetById(r.Context(), session.UserId)
 			if err != nil {
 				lg.Warn("could not retrieve user from database",
-					"event", logger.EventAuthUserNotFound,
-					"correlation_id", cid)
+					"event", event.EventNotFound,
+					"correlation_id", cid,
+					"scope", "middleware_authenticated",
+					"err", err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
