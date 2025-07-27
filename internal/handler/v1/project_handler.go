@@ -10,6 +10,7 @@ import (
 	"mizu/internal/service"
 	"mizu/internal/session"
 	"net/http"
+	"strconv"
 )
 
 // Handles project-related HTTP requests.
@@ -57,6 +58,7 @@ func (prjHndl *ProjectHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(prjHndl.CreateProject))
+	mux.Handle("POST /{projectId}/task", mwChain.Handle(prjHndl.CreateTask))
 
 	return mux
 }
@@ -84,6 +86,56 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 	if err := prjHndl.prjSrv.CreateProject(r.Context(), &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// Handles creating a project task.
+//
+// Expects a JSON body of TaskCreateRequest DTO.
+//
+// Method: POST
+//
+// Possible Response Codes:
+//   - 400 BadRequest – Invalid input, missing fields or constraint violations
+//   - 409 Conflict - Already exists
+//   - 500 InternalServerError - Server error
+//   - 200 OK - Created successfully
+func (prjHndl *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var createRequest dto.TaskCreateRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if ok := createRequest.Validate(); !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := prjHndl.prjSrv.CreateTask(r.Context(), parsedId, &createRequest); err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
