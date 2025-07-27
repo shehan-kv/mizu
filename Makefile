@@ -33,7 +33,7 @@ endif
 # Build for current OS
 build: vet
 	@echo "Building for current platform..."
-	go build -o $(OUTPUT) ./cmd/...
+	go build -tags "sqlite_foreign_keys" -o $(OUTPUT) ./cmd/...
 
 # Cross-Compile for Windows
 build-xwin: vet
