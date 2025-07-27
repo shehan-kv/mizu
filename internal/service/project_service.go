@@ -90,3 +90,75 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 
 	return nil
 }
+
+// Creates a new project task with assigned users.
+//
+// Parameters:
+//   - ctx: context for request scoping and cancellation.
+//   - request: a pointer to TaskCreateRequest DTO.
+//
+// Returns:
+//   - ErrAlreadyExists: if task already exists in database.
+//   - ErrBadRequest: if request parameter violates constraints (eg:- a task for a project that doesn't exist).
+//   - ErrInternalError: if internal errors occurs.
+func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, request *dto.TaskCreateRequest) error {
+
+	cid := middleware.GetCorrelationID(ctx)
+
+	_, err := prjSrv.prjSt.CreateTask(ctx, &params.TaskCreateParams{
+		ProjectId:            projectId,
+		Priority:             request.Priority,
+		Status:               request.Status,
+		Name:                 request.Name,
+		Description:          request.Description,
+		EstimatedTimeMinutes: request.EstimatedTimeMinutes,
+		Assignees:            request.Assignees})
+
+	if err != nil {
+		if errors.Is(err, store.ErrUniqueViolation) {
+			prjSrv.lg.Warn("task with the same name exists in the project",
+				"event", event.EventAlreadyExists,
+				"correlation_id", cid,
+				"task_name", request.Name,
+				"scope", "project_service",
+				"err", err)
+			return ErrAlreadyExists
+		}
+
+		if errors.Is(err, store.ErrForeignKeyViolation) {
+			prjSrv.lg.Warn("task foreign key constraint violated",
+				"event", event.EventCreateFailed,
+				"correlation_id", cid,
+				"task_name", request.Name,
+				"scope", "project_service",
+				"err", err)
+			return ErrBadRequest
+		}
+
+		if errors.Is(err, store.ErrNotNullViolation) {
+			prjSrv.lg.Warn("task not-null constraint violated",
+				"event", event.EventCreateFailed,
+				"correlation_id", cid,
+				"task_name", request.Name,
+				"scope", "project_service",
+				"err", err)
+			return ErrBadRequest
+		}
+
+		prjSrv.lg.Warn("failed to create project task",
+			"event", event.EventCreateFailed,
+			"correlation_id", cid,
+			"task_name", request.Name,
+			"scope", "project_service",
+			"err", err)
+		return ErrInternalError
+	}
+
+	prjSrv.lg.Info("created task successfully",
+		"event", event.EventCreateSuccess,
+		"correlation_id", cid,
+		"task_name", request.Name,
+		"scope", "project_service")
+
+	return nil
+}
