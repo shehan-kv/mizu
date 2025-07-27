@@ -54,12 +54,20 @@ func (athHndl *AuthHandler) GetMux(lg logger.Logger) *http.ServeMux {
 	return mux
 }
 
-// Handles user sign in by email and a password.
-// Complies with the http.HandlerFunc.
+// Handles user signing-in.
 //
-// Parameters:
-//   - w: http.ResponseWriter
-//   - r: *http.Request
+// Expects a JSON body of SignInRequest DTO.
+//
+// Method: POST
+//
+// Returns:
+//   - SignInResponse DTO on successful sign-in
+//
+// Possible Response Codes:
+//   - 400 BadRequest – Invalid input or missing fields
+//   - 401 StatusUnauthorized - If user isn't permitted to sign-in
+//   - 500 InternalServerError - Server error
+//   - 200 OK - Signed-in successfully
 func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	var signinRequest dto.SignInRequest
@@ -95,12 +103,13 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.SignInResponse{Status: "success", Role: result.Role})
 }
 
-// Handles user sign-out
-// Complies with the http.HandlerFunc.
+// Handles user signing-out.
 //
-// Parameters:
-//   - w: http.ResponseWriter
-//   - r: *http.Request
+// Method: POST
+//
+// Possible Response Codes:
+//   - 500 InternalServerError - Server error
+//   - 200 OK - Signed-out successfully
 func (athHndl *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie(auth.AuthCookieName)
