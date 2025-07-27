@@ -64,14 +64,12 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	var signinRequest dto.SignInRequest
 
-	err := json.NewDecoder(r.Body).Decode(&signinRequest)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&signinRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	isValid := signinRequest.Validate()
-	if !isValid {
+	if isValid := signinRequest.Validate(); !isValid {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -116,8 +114,7 @@ func (athHndl *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = athHndl.authSrv.SignOut(r.Context(), cookie)
-	if err != nil {
+	if err = athHndl.authSrv.SignOut(r.Context(), cookie); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
