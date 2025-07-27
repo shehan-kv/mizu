@@ -83,6 +83,11 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	if ok := createRequest.Validate(); !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	if err := prjHndl.prjSrv.CreateProject(r.Context(), &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
