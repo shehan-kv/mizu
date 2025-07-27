@@ -78,3 +78,60 @@ func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectC
 
 	return projectId, nil
 }
+
+// Implementing CreateTask defined in ProjectStore interface
+func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCreateParams) (int64, error) {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, store.ErrInsertFailed
+	}
+
+	defer tx.Rollback()
+
+	insertTask := `
+	INSERT INTO tasks(project_id, priority, status, name, description, estimated_time_minutes) 
+	VALUES(?, (SELECT id FROM task_priorities WHERE name = ?), 
+	(SELECT id FROM task_statuses WHERE name = ?), ?, ?, ?) RETURNING id
+	`
+
+	var taskId int64 = 0
+	err = tx.QueryRowContext(ctx, insertTask,
+		arg.ProjectId,
+		arg.Priority,
+		arg.Status,
+		arg.Name,
+		arg.Description,
+		arg.EstimatedTimeMinutes,
+	).Scan(&taskId)
+
+	if err != nil {
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return 0, store.ErrUniqueViolation
+			}
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
+				return 0, store.ErrForeignKeyViolation
+			}
+
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+				return 0, store.ErrNotNullViolation
+			}
+		}
+
+		return 0, store.ErrInsertFailed
+	}
+
+	insertTaskAssignee := `INSERT INTO task_assignees(task_id, user_id) VALUES(?,?)`
+	for _, assignee := range arg.Assignees {
+		if _, err = tx.ExecContext(ctx, insertTaskAssignee, taskId, assignee); err != nil {
+			return 0, store.ErrInsertFailed
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return 0, store.ErrInsertFailed
+	}
+
+	return taskId, nil
+}
