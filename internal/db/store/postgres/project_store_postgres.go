@@ -29,7 +29,7 @@ func (q *ProjectStorePostgres) CreateOne(ctx context.Context, arg *params.Projec
 
 	query := `
 	INSERT INTO projects(name, status) 
-	VALUE(?, (SELECT id FROM project_statuses WHERE name = ?)) RETURNING id
+	VALUE($1, (SELECT id FROM project_statuses WHERE name = $2)) RETURNING id
 	`
 
 	var id int64 = 0
@@ -64,7 +64,8 @@ func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskC
 
 	insertTask := `
 	INSERT INTO tasks(project_id, priority, status, name, description, estimated_time_minutes) 
-	VALUES(?, (SELECT id FROM task_priorities WHERE name = ?), (SELECT id FROM task_statuses WHERE name = ?), ?, ?, ?) RETURNING id
+	VALUES($1, (SELECT id FROM task_priorities WHERE name = $2), 
+	(SELECT id FROM task_statuses WHERE name = $3), $4, $5, $6) RETURNING id
 	`
 
 	var taskId int64 = 0
@@ -94,7 +95,7 @@ func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskC
 		return 0, store.ErrInsertFailed
 	}
 
-	insertTaskAssignee := `INSERT INTO task_assignees(task_id, user_id) VALUES(?,?)`
+	insertTaskAssignee := `INSERT INTO task_assignees(task_id, user_id) VALUES($1,$2)`
 	for _, assignee := range arg.Assignees {
 		if _, err = tx.ExecContext(ctx, insertTaskAssignee, taskId, assignee); err != nil {
 			return 0, store.ErrInsertFailed

@@ -40,7 +40,7 @@ func (q *UserStorePostgres) CreateOne(ctx context.Context, arg *params.UserCreat
 
 	query := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
-	VALUES(?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
+	VALUES($1,$2,$3,$4,$5,$6, (SELECT id FROM roles WHERE name = $7)) RETURNING id
 	`
 
 	var id int64 = 0
@@ -82,7 +82,7 @@ func (q *UserStorePostgres) GetById(ctx context.Context, id int64) (*models.User
 
 	query := `
 	SELECT id, first_name, last_name, title, email, image, is_active, role, 
-	created_at, last_login FROM users WHERE id = ?
+	created_at, last_login FROM users WHERE id = $1
 	`
 
 	var user models.User
@@ -120,7 +120,7 @@ func (q *UserStorePostgres) GetByEmail(ctx context.Context, email string) (*mode
 
 	query := `
 	SELECT id, first_name, last_name, title, email, image, is_active, role, 
-	created_at, last_login FROM users WHERE email = ?
+	created_at, last_login FROM users WHERE email = $1
 	`
 
 	var user models.User
@@ -156,7 +156,7 @@ func (q *UserStorePostgres) GetByEmail(ctx context.Context, email string) (*mode
 //   - store.ErrRecordNotFound: if not found
 func (q *UserStorePostgres) GetPasswordById(ctx context.Context, id int64) (string, error) {
 
-	query := `SELECT password FROM users WHERE id = ?`
+	query := `SELECT password FROM users WHERE id = $1`
 
 	var password string
 
@@ -203,7 +203,7 @@ func (q *UserStorePostgres) CountAll(ctx context.Context) (int64, error) {
 //   - store.ErrUpdateFailed: if update fails
 func (q *UserStorePostgres) SetPasswordById(ctx context.Context, id int64, password string) error {
 
-	query := `UPDATE users SET password = ? WHERE id = ?`
+	query := `UPDATE users SET password = $1 WHERE id = $2`
 	_, err := q.db.ExecContext(ctx, query, password, id)
 
 	if err != nil {
@@ -223,7 +223,7 @@ func (q *UserStorePostgres) SetPasswordById(ctx context.Context, id int64, passw
 //   - store.ErrDeleteFailed: if delete fails
 func (q *UserStorePostgres) DeleteById(ctx context.Context, id int64) error {
 
-	query := `DELETE FROM users WHERE id = ?`
+	query := `DELETE FROM users WHERE id = $1`
 	_, err := q.db.ExecContext(ctx, query, id)
 
 	if err != nil {
@@ -243,7 +243,7 @@ func (q *UserStorePostgres) DeleteById(ctx context.Context, id int64) error {
 //   - store.ErrUpdateFailed: if update fails
 func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error {
 
-	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?`
+	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := q.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return store.ErrUpdateFailed
@@ -254,7 +254,7 @@ func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error
 
 func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.Role, error) {
 
-	query := `SELECT id, name FROM roles WHERE id = ?`
+	query := `SELECT id, name FROM roles WHERE id = $1`
 
 	role := models.Role{}
 
