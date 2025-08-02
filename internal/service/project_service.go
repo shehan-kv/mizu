@@ -100,7 +100,7 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 // Returns:
 //   - ErrAlreadyExists: if task already exists in database.
 //   - ErrBadRequest: if request parameter violates constraints (eg:- a task for a project that doesn't exist).
-//   - ErrInternalError: if internal errors occurs.
+//   - ErrInternalError: if internal errors occur.
 func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, request *dto.TaskCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
