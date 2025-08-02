@@ -140,6 +140,23 @@ func (dbs *DbConn) NewProjectStore() store.ProjectStore {
 	}
 }
 
+// Creates a new instance of a Invoicetore.
+//
+// Returns:
+//   - a pointer to an implementation of InvoiceStore
+func (dbs *DbConn) NewInvoiceStore() store.InvoiceStore {
+	switch dbs.dbEngine {
+	case "sqlite":
+		return sqlite.NewInvoiceStore(dbs.sqlDb)
+
+	case "postgres":
+		return postgres.NewInvoiceStore(dbs.sqlDb)
+
+	default:
+		return sqlite.NewInvoiceStore(dbs.sqlDb)
+	}
+}
+
 // Closes the database connection
 func (dbs *DbConn) Close() {
 	dbs.sqlDb.Close()
