@@ -9,7 +9,7 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-// SQLite implementation of UserStore interface
+// SQLite implementation of ProjectStore interface
 type ProjectStoreSqlite struct {
 	db *sql.DB
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/lib/pq"
 )
 
-// Postgres implementation of UserStore interface
+// Postgres implementation of ProjectStore interface
 type ProjectStorePostgres struct {
 	db *sql.DB
 }
