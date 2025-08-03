@@ -48,8 +48,8 @@ func RunServer() {
 	// Server routes
 	mainMux := http.NewServeMux()
 	mainMux.Handle("/api/v1/auth/", http.StripPrefix("/api/v1/auth", authMux))
-	mainMux.Handle("/api/v1/project/", http.StripPrefix("/api/v1/project", projectMux))
-	mainMux.Handle("/api/v1/invoice/", http.StripPrefix("/api/v1/invoice", invoiceMux))
+	mainMux.Handle("/api/v1/projects/", http.StripPrefix("/api/v1/projects", projectMux))
+	mainMux.Handle("/api/v1/invoices/", http.StripPrefix("/api/v1/invoices", invoiceMux))
 
 	// Start server
 	listenOn := os.Getenv("LISTEN_ON")
