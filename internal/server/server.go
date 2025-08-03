@@ -57,6 +57,6 @@ func RunServer() {
 		listenOn = ":8080"
 	}
 
-	logger.Info("server listening...", "port", "8080")
+	logger.Info("server listening...", "port", listenOn)
 	http.ListenAndServe(listenOn, mainMux)
 }
