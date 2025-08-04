@@ -279,7 +279,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 	}
 
 	invSrv.lg.Info("invoice created successfully",
-		"event", event.EventInternalError,
+		"event", event.EventCreateSuccess,
 		"correlation_id", cid,
 		"project_id", projectId,
 		"invoice_id", invoiceId,
