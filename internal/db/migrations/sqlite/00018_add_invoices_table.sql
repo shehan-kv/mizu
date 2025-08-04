@@ -15,6 +15,11 @@ CREATE TABLE invoices (
     FOREIGN KEY (status) REFERENCES invoice_statuses(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX IF NOT EXISTS idx_invoices_project_id ON invoices(project_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+
 
 -- +goose Down
+DROP INDEX IF EXISTS idx_invoices_project_id;
+DROP INDEX IF EXISTS idx_invoices_status;
 DROP TABLE IF EXISTS invoices;
