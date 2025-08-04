@@ -3,8 +3,10 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strconv"
 
 	"github.com/lib/pq"
 )
@@ -108,4 +110,123 @@ func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskC
 
 	return taskId, nil
 
+}
+
+// Implementing GetWithStats defined in ProjectStore interface
+func (q *ProjectStorePostgres) GetWithStats(
+	ctx context.Context,
+	arg *params.ProjectsSearchParams) (*aggregates.ProjectWithStatsList, error) {
+
+	query := `
+	SELECT p.id, p.name, p.created_at, ps.name AS status,
+  
+  	COALESCE(t.total_tasks, 0) AS total_tasks,
+  	COALESCE(t.completed_tasks, 0) AS tasks_completed,
+  
+  	COALESCE(i.total_invoices, 0) AS total_invoices,
+  	COALESCE(i.paid_invoices, 0) AS invoices_paid,
+   	COALESCE(i.total_quotes, 0) AS total_quotes
+
+	FROM projects p
+	JOIN project_statuses ps ON p.status = ps.id
+
+	LEFT JOIN (
+  	SELECT 
+    	t.project_id,
+    	COUNT(*) AS total_tasks,
+    	COUNT(CASE WHEN ts.name = 'completed' THEN 1 END) AS completed_tasks
+  	FROM tasks t
+  	JOIN task_statuses ts ON t.status = ts.id
+  	GROUP BY t.project_id
+	) t ON p.id = t.project_id
+
+	LEFT JOIN (
+  	SELECT
+    	i.project_id,
+    	COUNT(CASE WHEN i.is_invoice = TRUE THEN 1 END) AS total_invoices,
+		COUNT(CASE WHEN i.is_invoice = FALSE THEN 1 END) AS total_quotes,
+    	COUNT(CASE WHEN ins.name = 'paid' AND i.is_invoice = TRUE THEN 1 END) AS paid_invoices
+  	FROM invoices i
+  	JOIN invoice_statuses ins ON i.status = ins.id
+  	GROUP BY i.project_id
+	) i ON p.id = i.project_id
+
+	LEFT JOIN project_users pu ON p.id = pu.project_id
+	WHERE pu.user_id = $1
+	`
+
+	projectCount := `
+	SELECT COUNT(p.id) FROM projects p JOIN project_users pu ON p.id = pu.project_id
+	WHERE pu.user_id = $1
+	`
+
+	queryArgs := []any{arg.UserId}
+	countArgs := []any{arg.UserId}
+
+	paramCount := 1
+
+	if !(arg.Status == "") {
+		paramCount++
+		strParamCount := strconv.Itoa(paramCount)
+		query += " AND ps.name = $" + strParamCount
+		projectCount += " AND ps.name = $" + strParamCount
+		queryArgs = append(queryArgs, arg.Status)
+		countArgs = append(countArgs, arg.Status)
+	}
+
+	if !(arg.Keyword == "") {
+		paramCount++
+		strParamCount := strconv.Itoa(paramCount)
+		query += " AND p.name LIKE $" + strParamCount
+		projectCount += " AND p.name LIKE $" + strParamCount
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+		countArgs = append(countArgs, "%"+arg.Keyword+"%")
+	}
+
+	paramCount++
+	strLimitParamCount := strconv.Itoa(paramCount)
+	paramCount++
+	strOffsetParamCount := strconv.Itoa(paramCount)
+
+	query += " LIMIT $" + strLimitParamCount + " OFFSET $" + strOffsetParamCount
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query, queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	projects := []aggregates.ProjectWithStats{}
+
+	for rows.Next() {
+		var project aggregates.ProjectWithStats
+
+		err := rows.Scan(
+			&project.Id,
+			&project.Name,
+			&project.CreatedAt,
+			&project.Status,
+			&project.TotalTasks,
+			&project.TasksCompleted,
+			&project.TotalInvoices,
+			&project.InvoicesPaid,
+			&project.TotalQuotes,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		projects = append(projects, project)
+	}
+
+	var totalProjects int64
+	err = q.db.QueryRowContext(ctx, projectCount, countArgs...).Scan(&totalProjects)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	return &aggregates.ProjectWithStatsList{TotalCount: totalProjects, Projects: projects}, nil
 }
