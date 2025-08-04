@@ -4,7 +4,7 @@ CREATE TABLE invoices (
     project_id BIGINT NOT NULL,
     is_invoice BOOLEAN,
     status BIGINT NOT NULL,
-    issued_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, -- fix it 
+    issued_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, 
     due_at TIMESTAMPTZ DEFAULT NULL, 
     total DECIMAL(19,4) NOT NULL,
     discount DECIMAL(19,4) NOT NULL,
