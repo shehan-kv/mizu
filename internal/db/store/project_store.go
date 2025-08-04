@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -33,4 +34,20 @@ type ProjectStore interface {
 	//	 - store.ErrNotNullViolation: if not-null constrain violated
 	//   - store.ErrInsertFailed: if create fails
 	CreateTask(ctx context.Context, arg *params.TaskCreateParams) (int64, error)
+
+	// Gets a list of projects with:
+	// 	 - number of tasks
+	//	 - number of completed tasks
+	//	 - number of invoices
+	//	 - number of paid invoices
+	// 	 - number of quotes
+	//
+	// Parameters:
+	//   - ctx: context to execute the query
+	//   - arg: pointer to ProjectsSearchParams
+	//
+	// Returns:
+	//	 - *aggregates.ProjectWithStatsList
+	//   - store.ErrQueryFailed: if query fails
+	GetWithStats(ctx context.Context, arg *params.ProjectsSearchParams) (*aggregates.ProjectWithStatsList, error)
 }
