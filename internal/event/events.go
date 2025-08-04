@@ -20,6 +20,7 @@ const (
 const (
 	EventAlreadyExists Event = "already_exists"
 	EventCreateFailed  Event = "create_failed"
+	EventGetFailed     Event = "get_failed"
 	EventCreateSuccess Event = "create_success"
 	EventNotFound      Event = "not_found"
 )
