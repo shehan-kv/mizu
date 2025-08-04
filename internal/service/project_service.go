@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/common"
 	dto "mizu/internal/dto/project"
 	"mizu/internal/event"
 	"mizu/internal/logger"
@@ -161,4 +163,65 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 		"scope", "project_service")
 
 	return nil
+}
+
+func (prjSrv *ProjectService) GetProjects(ctx context.Context,
+	query *dto.ProjectSearchQuery) (*common.Page[[]dto.ProjectsStatsResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	user, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	projects, err := prjSrv.prjSt.GetWithStats(ctx, &params.ProjectsSearchParams{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+		UserId:  user.Id,
+	})
+
+	if err != nil {
+		prjSrv.lg.Error("could not get projects list",
+			"event", event.EventGetFailed,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", user.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	projectResponses := []dto.ProjectsStatsResponse{}
+	for _, response := range projects.Projects {
+		stat := dto.ProjectsStatsResponse{
+			Id:             response.Id,
+			Name:           response.Name,
+			Status:         response.Status,
+			CreatedAt:      response.CreatedAt,
+			TotalTasks:     response.TotalTasks,
+			TasksCompleted: response.TasksCompleted,
+			TotalInvoices:  response.TotalInvoices,
+			InvoicesPaid:   response.InvoicesPaid,
+			TotalQuotes:    response.TotalQuotes,
+		}
+
+		projectResponses = append(projectResponses, stat)
+	}
+
+	numOfPages := math.Ceil(float64(projects.TotalCount) / float64(query.Limit))
+	response := &common.Page[[]dto.ProjectsStatsResponse]{
+		CurrentPage: query.Page,
+		TotalPages:  int64(numOfPages),
+		Limit:       query.Limit,
+		Data:        projectResponses,
+	}
+
+	return response, nil
 }
