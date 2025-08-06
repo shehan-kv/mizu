@@ -17,4 +17,5 @@ type UserStore interface {
 	DeleteById(ctx context.Context, id int64) error
 	UpdateLastLogin(ctx context.Context, id int64) error
 	GetRoleById(ctx context.Context, id int64) (*models.Role, error)
+	CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreateParams) error
 }
