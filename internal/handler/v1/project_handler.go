@@ -24,7 +24,7 @@ type ProjectHandler struct {
 // Creates a new instance of ProjectHandler
 //
 // Parameters:
-//   - prjSrv: a pointer to a ProjectHandler
+//   - prjSrv: a pointer to a ProjectService
 //
 // Returns:
 //   - a pointer to a new ProjectHandler
