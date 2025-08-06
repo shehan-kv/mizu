@@ -165,6 +165,15 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 	return nil
 }
 
+// Gets a paginated list of available projects assigned to
+// the current user that meets the specified search query.
+//
+// Parameters:
+//   - ctx: context for request scoping and cancellation.
+//   - query: a pointer to ProjectSearchQuery DTO.
+//
+// Returns:
+//   - ErrInternalError: if internal errors occur.
 func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 	query *dto.ProjectSearchQuery) (*common.Page[[]dto.ProjectsStatsResponse], error) {
 
