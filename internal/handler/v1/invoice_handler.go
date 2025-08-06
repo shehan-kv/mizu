@@ -16,7 +16,7 @@ import (
 // Handles invoice-related HTTP requests.
 //
 // Uses an InvoiceService to perform
-// project operations
+// invoice operations
 type InvoiceHandler struct {
 	invSrv *service.InvoiceService
 }
@@ -24,7 +24,7 @@ type InvoiceHandler struct {
 // Creates a new instance of InvoiceHandler
 //
 // Parameters:
-//   - invSrv: a pointer to a InvoiceHandler
+//   - invSrv: a pointer to a InvoiceService
 //
 // Returns:
 //   - a pointer to a new InvoiceHandler
