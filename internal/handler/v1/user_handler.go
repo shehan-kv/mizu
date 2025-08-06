@@ -1,0 +1,99 @@
+package v1
+
+import (
+	"encoding/json"
+	"errors"
+	"mizu/internal/db/store"
+	dto "mizu/internal/dto/user"
+	"mizu/internal/logger"
+	"mizu/internal/middleware"
+	"mizu/internal/service"
+	"mizu/internal/session"
+	"net/http"
+)
+
+// Handles user-related HTTP requests.
+//
+// Uses an UserService to perform
+// user operations
+type UserHandler struct {
+	usrSrv *service.UserService
+}
+
+// Creates a new instance of UserHandler
+//
+// Parameters:
+//   - usrSrv: a pointer to a UserService
+//
+// Returns:
+//   - a pointer to a new UserHandler
+func NewUserHandler(usrSrv *service.UserService) *UserHandler {
+	return &UserHandler{
+		usrSrv: usrSrv,
+	}
+}
+
+// Creates a ServeMux for the user routes and middleware.
+// Defines the routes and handler function for each route.
+// Registers middleware for the routes.
+//
+// Parameters:
+//   - lg: an implementation of logger.Logger
+//   - seSt: an implementation of session.SessionStore
+//   - usrSt: an implementation of store.UserStore
+//
+// Returns:
+//   - a *http.ServeMux
+func (usrHndl *UserHandler) GetMux(
+	lg logger.Logger,
+	seSt session.SessionStore,
+	usrSt store.UserStore) *http.ServeMux {
+
+	mwChain := middleware.NewChain()
+	mwChain.Add(
+		middleware.CorrelationId(lg),
+		middleware.Authenticated(lg, seSt, usrSt))
+
+	mux := http.NewServeMux()
+
+	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
+
+	return mux
+}
+
+// Handles creating a user.
+//
+// Expects a JSON body of UserCreateRequest DTO.
+//
+// Method: POST
+//
+// Possible Response Codes:
+//   - 400 BadRequest – Invalid input, missing fields or constraint violations
+//   - 409 Conflict - Already exists
+//   - 500 InternalServerError - Server error
+//   - 201 OK - Created successfully
+func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+
+	var createRequest dto.UserCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !createRequest.Validate() {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := usrHndl.usrSrv.CreateUser(r.Context(), &createRequest); err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
