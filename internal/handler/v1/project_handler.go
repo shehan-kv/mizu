@@ -74,7 +74,7 @@ func (prjHndl *ProjectHandler) GetMux(
 //   - 400 BadRequest – Invalid input or missing fields
 //   - 409 Conflict - Already exists
 //   - 500 InternalServerError - Server error
-//   - 200 OK - Created successfully
+//   - 201 OK - Created successfully
 func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	var createRequest dto.ProjectCreateRequest
@@ -99,7 +99,7 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 // Handles creating a project task.
@@ -112,7 +112,7 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 //   - 400 BadRequest – Invalid input, missing fields or constraint violations
 //   - 409 Conflict - Already exists
 //   - 500 InternalServerError - Server error
-//   - 200 OK - Created successfully
+//   - 201 OK - Created successfully
 func (prjHndl *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
@@ -149,7 +149,7 @@ func (prjHndl *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 // Handles get a project with stats.
