@@ -264,3 +264,26 @@ func (q *UserStoreSqlite) GetRoleById(ctx context.Context, id int64) (*models.Ro
 
 	return &role, nil
 }
+
+// Implementation of CreateOnBoardRequest defined in UserStore interface
+func (q *UserStoreSqlite) CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreateParams) error {
+
+	query := `INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
+
+	_, err := q.db.ExecContext(ctx, query, arg.UserId, arg.Token, arg.IsValid)
+	if err != nil {
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return store.ErrUniqueViolation
+			}
+
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+				return store.ErrNotNullViolation
+			}
+		}
+
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}

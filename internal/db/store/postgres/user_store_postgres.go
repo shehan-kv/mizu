@@ -265,3 +265,26 @@ func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.
 
 	return &role, nil
 }
+
+// Implementation of CreateOnBoardRequest defined in UserStore interface
+func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreateParams) error {
+
+	query := `INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
+
+	_, err := q.db.ExecContext(ctx, query, arg.UserId, arg.Token, arg.IsValid)
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if err.Code.Name() == "unique_violation" {
+				return store.ErrUniqueViolation
+			}
+
+			if err.Code.Name() == "not_null_violation" {
+				return store.ErrNotNullViolation
+			}
+		}
+
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}
