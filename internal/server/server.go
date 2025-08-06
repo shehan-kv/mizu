@@ -3,6 +3,7 @@ package server
 import (
 	"mizu/internal/auth"
 	"mizu/internal/db"
+	"mizu/internal/email"
 	v1 "mizu/internal/handler/v1"
 	"mizu/internal/logger"
 	"mizu/internal/service"
@@ -27,6 +28,11 @@ func RunServer() {
 	sessionStore.Init()
 	defer sessionStore.Close()
 
+	// Initialize email sender
+	emailSender := email.GetEmailSender(logger)
+	emailSender.Init()
+	defer emailSender.Close()
+
 	// Initialize database stores
 	userStore := db.NewUserStore()
 	projectStore := db.NewProjectStore()
@@ -39,17 +45,20 @@ func RunServer() {
 	authService := service.NewAuthService(logger, userStore, sessionStore)
 	projectService := service.NewProjectService(logger, projectStore)
 	invoiceService := service.NewInvoiceService(logger, invoiceStore)
+	userService := service.NewUserService(logger, userStore, emailSender)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
 	projectMux := v1.NewProjectHandler(projectService).GetMux(logger, sessionStore, userStore)
 	invoiceMux := v1.NewInvoiceHandler(invoiceService).GetMux(logger, sessionStore, userStore)
+	userMux := v1.NewUserHandler(userService).GetMux(logger, sessionStore, userStore)
 
 	// Server routes
 	mainMux := http.NewServeMux()
 	mainMux.Handle("/api/v1/auth/", http.StripPrefix("/api/v1/auth", authMux))
 	mainMux.Handle("/api/v1/projects/", http.StripPrefix("/api/v1/projects", projectMux))
 	mainMux.Handle("/api/v1/invoices/", http.StripPrefix("/api/v1/invoices", invoiceMux))
+	mainMux.Handle("/api/v1/users/", http.StripPrefix("/api/v1/users", userMux))
 
 	// Start server
 	listenOn := os.Getenv("LISTEN_ON")
