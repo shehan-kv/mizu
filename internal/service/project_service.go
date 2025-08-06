@@ -44,7 +44,7 @@ func NewProjectService(lg logger.Logger, prjSt store.ProjectStore) *ProjectServi
 //
 // Returns:
 //   - ErrAlreadyExists: if project already exists in database.
-//   - ErrInternalError: if internal errors occurs.
+//   - ErrInternalError: if internal errors occur.
 func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.ProjectCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
