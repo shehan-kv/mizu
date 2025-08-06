@@ -24,3 +24,9 @@ const (
 	EventCreateSuccess Event = "create_success"
 	EventNotFound      Event = "not_found"
 )
+
+// Email events
+const (
+	EventEmailSendFailed  Event = "email_send_failed"
+	EventEmailSendSuccess Event = "email_send_success"
+)
