@@ -269,9 +269,23 @@ func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.
 // Implementation of CreateOnBoardRequest defined in UserStore interface
 func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreateParams) error {
 
-	query := `INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
 
-	_, err := q.db.ExecContext(ctx, query, arg.UserId, arg.Token, arg.IsValid)
+	defer tx.Rollback()
+
+	deleteQuery := `DELETE FROM user_onboard_requests WHERE user_id = ?`
+
+	_, err = tx.ExecContext(ctx, deleteQuery, arg.UserId)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	insertQuery := `INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
+
+	_, err = tx.ExecContext(ctx, insertQuery, arg.UserId, arg.Token, arg.IsValid)
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code.Name() == "unique_violation" {
@@ -283,6 +297,10 @@ func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *param
 			}
 		}
 
+		return store.ErrInsertFailed
+	}
+
+	if err = tx.Commit(); err != nil {
 		return store.ErrInsertFailed
 	}
 
