@@ -7,4 +7,5 @@ var (
 	ErrInternalError = errors.New("service: internal error")
 	ErrAlreadyExists = errors.New("service: already exists")
 	ErrBadRequest    = errors.New("service: bad request")
+	ErrNotFound      = errors.New("service: not found")
 )
