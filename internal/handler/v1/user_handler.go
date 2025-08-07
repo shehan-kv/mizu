@@ -10,6 +10,7 @@ import (
 	"mizu/internal/service"
 	"mizu/internal/session"
 	"net/http"
+	"strconv"
 )
 
 // Handles user-related HTTP requests.
@@ -57,6 +58,7 @@ func (usrHndl *UserHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
+	mux.Handle("POST /{userId}/onboard-request", mwChain.Handle(usrHndl.CreateOnboardRequest))
 
 	return mux
 }
@@ -88,6 +90,36 @@ func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err := usrHndl.usrSrv.CreateUser(r.Context(), &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+// Handles creating a user onboard request.
+//
+// Method: POST
+//
+// Possible Response Codes:
+//   - 400 BadRequest – Invalid input or user doesn't exist in the database
+//   - 500 InternalServerError - Server error
+//   - 201 OK - Created successfully
+func (usrHndl *UserHandler) CreateOnboardRequest(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("userId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := usrHndl.usrSrv.CreateOnboardRequest(r.Context(), parsedId); err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
