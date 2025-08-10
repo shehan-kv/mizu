@@ -305,3 +305,34 @@ func (q *UserStoreSqlite) CreateOnboardRequest(ctx context.Context, arg *params.
 
 	return nil
 }
+
+func (q *UserStoreSqlite) CreateChannelWithUsers(ctx context.Context, users []int64) error {
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	defer tx.Rollback()
+
+	insertChannelQuery := `INSERT INTO channels(name) VALUES(?) RETURNING id`
+
+	var channelId int64
+	err = tx.QueryRowContext(ctx, insertChannelQuery, "general").Scan(&channelId)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	insertUsersQuery := `INSERT INTO channel_users(channel_id, user_id) VALUES(?, ?)`
+	for _, userId := range users {
+		_, err := tx.ExecContext(ctx, insertUsersQuery, channelId, userId)
+		if err != nil {
+			return store.ErrInsertFailed
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}
