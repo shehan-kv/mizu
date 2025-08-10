@@ -54,7 +54,18 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
-	id, err := usrSrv.usrSt.CreateOne(ctx, &params.UserCreate{
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		usrSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return ErrInternalError
+	}
+
+	userId, err := usrSrv.usrSt.CreateOne(ctx, &params.UserCreate{
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Title:     sql.NullString{String: request.Title},
@@ -70,6 +81,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 				"event", event.EventAlreadyExists,
 				"correlation_id", correlationId,
 				"scope", "user_service",
+				"actor_id", actor.Id,
 				"err", err)
 			return ErrAlreadyExists
 		}
@@ -78,6 +90,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
+			"actor_id", actor.Id,
 			"err", err,
 		)
 		return ErrInternalError
@@ -87,7 +100,25 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		"event", event.EventCreateSuccess,
 		"correlation_id", correlationId,
 		"scope", "user_service",
-		"user_id", id)
+		"actor_id", actor.Id,
+		"user_id", userId)
+
+	err = usrSrv.usrSt.CreateChannelWithUsers(ctx, []int64{actor.Id, userId})
+	if err != nil {
+		usrSrv.lg.Error("could not create channel and assign users",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"user_id", userId)
+	}
+
+	usrSrv.lg.Info("channel created and assigned users",
+		"event", event.EventCreateSuccess,
+		"correlation_id", correlationId,
+		"scope", "user_service",
+		"actor_id", actor.Id,
+		"user_id", userId)
 
 	token, err := uuid.NewRandom()
 	if err != nil {
@@ -95,13 +126,14 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
+			"actor_id", actor.Id,
 			"err", err,
 		)
 		return ErrInternalError
 	}
 
 	if err := usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreate{
-		UserId:  id,
+		UserId:  userId,
 		Token:   token.String(),
 		IsValid: true,
 	}); err != nil {
@@ -110,6 +142,8 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
+			"actor_id", actor.Id,
+			"user_id", userId,
 			"err", err,
 		)
 		return ErrInternalError
@@ -119,7 +153,8 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		"event", event.EventCreateSuccess,
 		"correlation_id", correlationId,
 		"scope", "user_service",
-		"user_id", id)
+		"actor_id", actor.Id,
+		"user_id", userId)
 
 	if err := usrSrv.emlSndr.SendOnboardingRequest(ctx, &emlPrms.OnboardingRequest{
 		FirstName:     request.FirstName,
@@ -133,7 +168,8 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			"event", event.EventEmailSendFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
-			"user_id", id)
+			"actor_id", actor.Id,
+			"user_id", userId)
 		return ErrInternalError
 	}
 
