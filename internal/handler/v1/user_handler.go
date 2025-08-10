@@ -93,6 +93,11 @@ func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
