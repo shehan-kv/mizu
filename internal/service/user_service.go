@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -49,6 +48,7 @@ func NewUserService(lg logger.Logger, usrSt store.UserStore, emlSndr email.Email
 //
 // Returns:
 //   - ErrAlreadyExists: if user already exists in database.
+//   - ErrBadRequest: if required fields are missing.
 //   - ErrInternalError: if internal errors occur.
 func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCreateRequest) error {
 
@@ -60,19 +60,32 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
-			"actor_id", actor.Id,
 			"err", err)
 		return ErrInternalError
 	}
 
-	userId, err := usrSrv.usrSt.CreateOne(ctx, &params.UserCreate{
+	token, err := uuid.NewRandom()
+	if err != nil {
+		usrSrv.lg.Error("could not create user onboard request token",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+		return ErrInternalError
+	}
+
+	userId, err := usrSrv.usrSt.Onboard(ctx, &params.UserOnboard{
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
-		Title:     sql.NullString{String: request.Title},
+		Title:     request.Title,
 		Email:     request.Email,
 		Role:      request.Role,
 		IsActive:  request.IsActive,
-		Image:     sql.NullString{Valid: false},
+		Image:     nil,
+		ActorID:   actor.Id,
+		Token:     token.String(),
 	})
 
 	if err != nil {
@@ -84,6 +97,16 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 				"actor_id", actor.Id,
 				"err", err)
 			return ErrAlreadyExists
+		}
+
+		if errors.Is(err, store.ErrNotNullViolation) {
+			usrSrv.lg.Error("required field not found",
+				"event", event.EventCreateFailed,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"err", err)
+			return ErrBadRequest
 		}
 
 		usrSrv.lg.Error("could not create user",
@@ -103,59 +126,6 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		"actor_id", actor.Id,
 		"user_id", userId)
 
-	err = usrSrv.usrSt.CreateChannelWithUsers(ctx, []int64{actor.Id, userId})
-	if err != nil {
-		usrSrv.lg.Error("could not create channel and assign users",
-			"event", event.EventCreateFailed,
-			"correlation_id", correlationId,
-			"scope", "user_service",
-			"actor_id", actor.Id,
-			"user_id", userId)
-	}
-
-	usrSrv.lg.Info("channel created and assigned users",
-		"event", event.EventCreateSuccess,
-		"correlation_id", correlationId,
-		"scope", "user_service",
-		"actor_id", actor.Id,
-		"user_id", userId)
-
-	token, err := uuid.NewRandom()
-	if err != nil {
-		usrSrv.lg.Error("could not create user onboard request token",
-			"event", event.EventCreateFailed,
-			"correlation_id", correlationId,
-			"scope", "user_service",
-			"actor_id", actor.Id,
-			"err", err,
-		)
-		return ErrInternalError
-	}
-
-	if err := usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreate{
-		UserId:  userId,
-		Token:   token.String(),
-		IsValid: true,
-	}); err != nil {
-
-		usrSrv.lg.Error("could not create user onboard request",
-			"event", event.EventCreateFailed,
-			"correlation_id", correlationId,
-			"scope", "user_service",
-			"actor_id", actor.Id,
-			"user_id", userId,
-			"err", err,
-		)
-		return ErrInternalError
-	}
-
-	usrSrv.lg.Info("user onboard request created successfully",
-		"event", event.EventCreateSuccess,
-		"correlation_id", correlationId,
-		"scope", "user_service",
-		"actor_id", actor.Id,
-		"user_id", userId)
-
 	if err := usrSrv.emlSndr.SendOnboardingRequest(ctx, &emlPrms.OnboardingRequest{
 		FirstName:     request.FirstName,
 		LastName:      request.LastName,
@@ -164,13 +134,12 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		CorrelationId: correlationId,
 	}); err != nil {
 
-		usrSrv.lg.Error("failed to send onboarding request email",
+		usrSrv.lg.Warn("failed to send onboarding request email",
 			"event", event.EventEmailSendFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
 			"actor_id", actor.Id,
 			"user_id", userId)
-		return ErrInternalError
 	}
 
 	return nil
