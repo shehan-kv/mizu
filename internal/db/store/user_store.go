@@ -18,5 +18,5 @@ type UserStore interface {
 	UpdateLastLogin(ctx context.Context, id int64) error
 	GetRoleById(ctx context.Context, id int64) (*models.Role, error)
 	CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreate) error
-	CreateChannelWithUsers(ctx context.Context, users []int64) error
+	Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error)
 }
