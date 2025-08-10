@@ -59,7 +59,7 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 		return ErrInternalError
 	}
 
-	_, err = prjSrv.prjSt.CreateOne(ctx, &params.ProjectCreateParams{
+	_, err = prjSrv.prjSt.CreateOne(ctx, &params.ProjectCreate{
 		Name:    request.Name,
 		Status:  request.Status,
 		Members: append(request.Members, signedInUser.Id)})
@@ -107,7 +107,7 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 
 	cid := middleware.GetCorrelationID(ctx)
 
-	_, err := prjSrv.prjSt.CreateTask(ctx, &params.TaskCreateParams{
+	_, err := prjSrv.prjSt.CreateTask(ctx, &params.TaskCreate{
 		ProjectId:            projectId,
 		Priority:             request.Priority,
 		Status:               request.Status,
@@ -189,7 +189,7 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 		return nil, ErrInternalError
 	}
 
-	projects, err := prjSrv.prjSt.GetWithStats(ctx, &params.ProjectsSearchParams{
+	projects, err := prjSrv.prjSt.GetWithStats(ctx, &params.ProjectsSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,

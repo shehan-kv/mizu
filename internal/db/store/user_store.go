@@ -8,7 +8,7 @@ import (
 
 // Defines the behavior required for managing users
 type UserStore interface {
-	CreateOne(ctx context.Context, arg *params.UserCreateParams) (int64, error)
+	CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error)
 	GetById(ctx context.Context, id int64) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	GetPasswordById(ctx context.Context, id int64) (string, error)
@@ -17,5 +17,5 @@ type UserStore interface {
 	DeleteById(ctx context.Context, id int64) error
 	UpdateLastLogin(ctx context.Context, id int64) error
 	GetRoleById(ctx context.Context, id int64) (*models.Role, error)
-	CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreateParams) error
+	CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreate) error
 }

@@ -36,7 +36,7 @@ func NewUserStore(db *sql.DB) *UserStoreSqlite {
 //   - int64: id of new user
 //   - store.ErrUniqueViolation: if email already exists
 //   - store.ErrInsertFailed: if create fails
-func (q *UserStoreSqlite) CreateOne(ctx context.Context, arg *params.UserCreateParams) (int64, error) {
+func (q *UserStoreSqlite) CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error) {
 
 	query := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
@@ -266,7 +266,7 @@ func (q *UserStoreSqlite) GetRoleById(ctx context.Context, id int64) (*models.Ro
 }
 
 // Implementation of CreateOnBoardRequest defined in UserStore interface
-func (q *UserStoreSqlite) CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreateParams) error {
+func (q *UserStoreSqlite) CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreate) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {

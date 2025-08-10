@@ -19,7 +19,7 @@ type ProjectStore interface {
 	//   - int64: id of new project
 	//   - store.ErrUniqueViolation: if name already exists
 	//   - store.ErrInsertFailed: if create fails
-	CreateOne(ctx context.Context, arg *params.ProjectCreateParams) (int64, error)
+	CreateOne(ctx context.Context, arg *params.ProjectCreate) (int64, error)
 
 	// Creates a project task, assigns users if needed,
 	//
@@ -33,7 +33,7 @@ type ProjectStore interface {
 	//   - store.ErrForeignKeyViolation: if foreign key is invalid
 	//	 - store.ErrNotNullViolation: if not-null constrain violated
 	//   - store.ErrInsertFailed: if create fails
-	CreateTask(ctx context.Context, arg *params.TaskCreateParams) (int64, error)
+	CreateTask(ctx context.Context, arg *params.TaskCreate) (int64, error)
 
 	// Gets a list of projects with:
 	// 	 - number of tasks
@@ -49,5 +49,5 @@ type ProjectStore interface {
 	// Returns:
 	//	 - *aggregates.ProjectWithStatsList
 	//   - store.ErrQueryFailed: if query fails
-	GetWithStats(ctx context.Context, arg *params.ProjectsSearchParams) (*aggregates.ProjectWithStatsList, error)
+	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*aggregates.ProjectWithStatsList, error)
 }

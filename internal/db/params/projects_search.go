@@ -1,6 +1,6 @@
 package params
 
-type ProjectsSearchParams struct {
+type ProjectsSearch struct {
 	Keyword string
 	Status  string
 	Offset  int64

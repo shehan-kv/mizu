@@ -3,7 +3,7 @@ package params
 import "database/sql"
 
 // Parameters to create a user
-type UserCreateParams struct {
+type UserCreate struct {
 	FirstName string
 	LastName  string
 	Title     sql.NullString

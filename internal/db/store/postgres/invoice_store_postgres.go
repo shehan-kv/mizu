@@ -26,7 +26,7 @@ func NewInvoiceStore(db *sql.DB) *InvoiceStorePostgres {
 }
 
 // Implementing CreateOne defined in InvoiceStore interface
-func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, arg *params.InvoiceCreateParams) (int64, error) {
+func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, arg *params.InvoiceCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {

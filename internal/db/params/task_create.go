@@ -1,7 +1,7 @@
 package params
 
 // Parameters to create a project task
-type TaskCreateParams struct {
+type TaskCreate struct {
 	ProjectId            int64
 	Priority             string
 	Status               string

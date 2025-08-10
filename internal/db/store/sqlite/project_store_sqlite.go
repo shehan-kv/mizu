@@ -27,7 +27,7 @@ func NewProjectStore(db *sql.DB) *ProjectStoreSqlite {
 	return &ProjectStoreSqlite{db: db}
 }
 
-func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectCreateParams) (int64, error) {
+func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -82,7 +82,7 @@ func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectC
 }
 
 // Implementing CreateTask defined in ProjectStore interface
-func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCreateParams) (int64, error) {
+func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -141,7 +141,7 @@ func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCre
 // Implementing GetWithStats defined in ProjectStore interface
 func (q *ProjectStoreSqlite) GetWithStats(
 	ctx context.Context,
-	arg *params.ProjectsSearchParams) (*aggregates.ProjectWithStatsList, error) {
+	arg *params.ProjectsSearch) (*aggregates.ProjectWithStatsList, error) {
 
 	query := `
 	SELECT p.id, p.name, p.created_at, ps.name AS status,

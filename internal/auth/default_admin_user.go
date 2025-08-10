@@ -28,7 +28,7 @@ func CreateDefaultAdminUser(usrSt store.UserStore, lg logger.Logger) {
 		lg.Info("No users found in the database")
 		lg.Info("Creating default administrator account...")
 
-		user := params.UserCreateParams{
+		user := params.UserCreate{
 			FirstName: "Default",
 			LastName:  "Administrator",
 			Email:     "admin@mizu",

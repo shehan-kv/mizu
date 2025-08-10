@@ -54,7 +54,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
-	id, err := usrSrv.usrSt.CreateOne(ctx, &params.UserCreateParams{
+	id, err := usrSrv.usrSt.CreateOne(ctx, &params.UserCreate{
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Title:     sql.NullString{String: request.Title},
@@ -100,7 +100,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		return ErrInternalError
 	}
 
-	if err := usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreateParams{
+	if err := usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreate{
 		UserId:  id,
 		Token:   token.String(),
 		IsValid: true,
@@ -189,7 +189,7 @@ func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int6
 		return ErrInternalError
 	}
 
-	err = usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreateParams{
+	err = usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreate{
 		UserId:  user.Id,
 		Token:   token.String(),
 		IsValid: true,

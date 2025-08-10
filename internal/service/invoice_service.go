@@ -54,7 +54,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 
 	apdCtx := apd.BaseContext.WithPrecision(19)
 
-	var invoiceItems []params.InvoiceItemParams
+	var invoiceItems []params.InvoiceItem
 
 	for _, item := range request.Items {
 
@@ -144,7 +144,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 			return ErrInternalError
 		}
 
-		var invoiceItem params.InvoiceItemParams
+		var invoiceItem params.InvoiceItem
 		invoiceItem.Description = item.Description
 		invoiceItem.Qty = &item.Qty
 		invoiceItem.UnitPrice = &item.UnitPrice
@@ -225,7 +225,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		invoiceItems = append(invoiceItems, invoiceItem)
 	}
 
-	invoice := params.InvoiceCreateParams{
+	invoice := params.InvoiceCreate{
 		ProjectId:    projectId,
 		IsInvoice:    request.IsInvoice,
 		Status:       request.Status,

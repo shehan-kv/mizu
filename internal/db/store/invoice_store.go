@@ -19,5 +19,5 @@ type InvoiceStore interface {
 	// 	 - store.ErrForeignKeyViolation: if foreign key is invalid
 	// 	 - store.ErrNotNullViolation: if required field is missing
 	//	 - store.ErrCheckViolation: if check constraint fails
-	CreateOne(ctx context.Context, arg *params.InvoiceCreateParams) (int64, error)
+	CreateOne(ctx context.Context, arg *params.InvoiceCreate) (int64, error)
 }

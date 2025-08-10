@@ -3,7 +3,7 @@ package params
 import "github.com/cockroachdb/apd/v3"
 
 // Parameters of an invoice item
-type InvoiceItemParams struct {
+type InvoiceItem struct {
 	Description  string
 	Qty          *apd.Decimal
 	UnitPrice    *apd.Decimal
@@ -17,7 +17,7 @@ type InvoiceItemParams struct {
 }
 
 // Parameters to create an invoice
-type InvoiceCreateParams struct {
+type InvoiceCreate struct {
 	ProjectId    int64
 	IsInvoice    bool
 	Status       string
@@ -26,5 +26,5 @@ type InvoiceCreateParams struct {
 	Tax          *apd.Decimal
 	CurrencyCode string
 	Note         string
-	Items        []InvoiceItemParams
+	Items        []InvoiceItem
 }
