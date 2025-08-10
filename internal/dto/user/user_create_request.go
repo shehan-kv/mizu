@@ -7,12 +7,12 @@ import (
 
 // Represents a user create create request
 type UserCreateRequest struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"email"`
-	Title     string `json:"title"`
-	Role      string `json:"role"`
-	IsActive  bool   `json:"isActive"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Email     string  `json:"email"`
+	Title     *string `json:"title"`
+	Role      string  `json:"role"`
+	IsActive  bool    `json:"isActive"`
 }
 
 // Validates the request against a set of acceptable
@@ -47,6 +47,9 @@ func (r *UserCreateRequest) format() {
 	r.FirstName = strings.TrimSpace(r.FirstName)
 	r.LastName = strings.TrimSpace(r.LastName)
 	r.Email = strings.ToLower(strings.TrimSpace(r.Email))
-	r.Title = strings.TrimSpace(r.Title)
+	if r.Title != nil {
+		trimmed := strings.TrimSpace(*r.Title)
+		r.Title = &trimmed
+	}
 	r.Role = strings.ToLower(strings.TrimSpace(r.Role))
 }
