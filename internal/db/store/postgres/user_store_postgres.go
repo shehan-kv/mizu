@@ -307,33 +307,59 @@ func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *param
 	return nil
 }
 
-func (q *UserStorePostgres) CreateChannelWithUsers(ctx context.Context, users []int64) error {
+func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error) {
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
-		return store.ErrInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	defer tx.Rollback()
+
+	insertUserQuery := `
+	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
+	VALUES($1, $2, $3, $4, $5, $6, (SELECT id FROM roles WHERE name = $7)) RETURNING id
+	`
+
+	var userId int64
+	err = tx.QueryRowContext(ctx, insertUserQuery,
+		arg.FirstName,
+		arg.LastName,
+		arg.Title,
+		arg.Email,
+		arg.Image,
+		arg.IsActive,
+		arg.Role).Scan(&userId)
+	if err != nil {
+		return 0, store.ErrInsertFailed
+	}
+
+	insertOnboardRequestQuery := `
+	INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES($1, $2, $3)
+	`
+	_, err = tx.ExecContext(ctx, insertOnboardRequestQuery, userId, arg.Token, true)
+	if err != nil {
+		return 0, store.ErrInsertFailed
+	}
 
 	insertChannelQuery := `INSERT INTO channels(name) VALUES($1) RETURNING id`
 
 	var channelId int64
 	err = tx.QueryRowContext(ctx, insertChannelQuery, "general").Scan(&channelId)
 	if err != nil {
-		return store.ErrInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	insertUsersQuery := `INSERT INTO channel_users(channel_id, user_id) VALUES($1, $2)`
-	for _, userId := range users {
+	for _, userId := range []int64{arg.ActorID, userId} {
 		_, err := tx.ExecContext(ctx, insertUsersQuery, channelId, userId)
 		if err != nil {
-			return store.ErrInsertFailed
+			return 0, store.ErrInsertFailed
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return store.ErrInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
-	return nil
+	return userId, nil
 }

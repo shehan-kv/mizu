@@ -306,33 +306,81 @@ func (q *UserStoreSqlite) CreateOnboardRequest(ctx context.Context, arg *params.
 	return nil
 }
 
-func (q *UserStoreSqlite) CreateChannelWithUsers(ctx context.Context, users []int64) error {
+func (q *UserStoreSqlite) Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error) {
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
-		return store.ErrInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	defer tx.Rollback()
+
+	insertUserQuery := `
+	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
+	VALUES(?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
+	`
+
+	var userId int64
+	err = tx.QueryRowContext(ctx, insertUserQuery,
+		arg.FirstName,
+		arg.LastName,
+		arg.Title,
+		arg.Email,
+		arg.Image,
+		arg.IsActive,
+		arg.Role).Scan(&userId)
+	if err != nil {
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintUnique {
+				return 0, store.ErrUniqueViolation
+			}
+
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+				return 0, store.ErrNotNullViolation
+			}
+		}
+
+		return 0, store.ErrInsertFailed
+	}
+
+	insertOnboardRequestQuery := `
+	INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)
+	`
+	_, err = tx.ExecContext(ctx, insertOnboardRequestQuery, userId, arg.Token, true)
+	if err != nil {
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+				return 0, store.ErrNotNullViolation
+			}
+		}
+
+		return 0, store.ErrInsertFailed
+	}
 
 	insertChannelQuery := `INSERT INTO channels(name) VALUES(?) RETURNING id`
 
 	var channelId int64
 	err = tx.QueryRowContext(ctx, insertChannelQuery, "general").Scan(&channelId)
 	if err != nil {
-		return store.ErrInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
 	insertUsersQuery := `INSERT INTO channel_users(channel_id, user_id) VALUES(?, ?)`
-	for _, userId := range users {
+	for _, userId := range []int64{arg.ActorID, userId} {
 		_, err := tx.ExecContext(ctx, insertUsersQuery, channelId, userId)
 		if err != nil {
-			return store.ErrInsertFailed
+			if sqlite3Err, ok := err.(sqlite3.Error); ok {
+				if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+					return 0, store.ErrNotNullViolation
+				}
+			}
+
+			return 0, store.ErrInsertFailed
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
-		return store.ErrInsertFailed
+		return 0, store.ErrInsertFailed
 	}
 
-	return nil
+	return userId, nil
 }
