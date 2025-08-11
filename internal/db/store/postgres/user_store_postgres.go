@@ -266,8 +266,8 @@ func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.
 	return &role, nil
 }
 
-// Implementation of CreateOnBoardRequest defined in UserStore interface
-func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *params.UserOnboardRequestCreate) error {
+// Implementation of CreateVerifyRequest defined in UserStore interface
+func (q *UserStorePostgres) CreateVerifyRequest(ctx context.Context, arg *params.UserVerifyRequestCreate) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -276,14 +276,14 @@ func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *param
 
 	defer tx.Rollback()
 
-	deleteQuery := `DELETE FROM user_onboard_requests WHERE user_id = ?`
+	deleteQuery := `DELETE FROM user_verify_requests WHERE user_id = ?`
 
 	_, err = tx.ExecContext(ctx, deleteQuery, arg.UserId)
 	if err != nil {
 		return store.ErrInsertFailed
 	}
 
-	insertQuery := `INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
+	insertQuery := `INSERT INTO user_verify_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
 
 	_, err = tx.ExecContext(ctx, insertQuery, arg.UserId, arg.Token, arg.IsValid)
 	if err != nil {
@@ -307,6 +307,7 @@ func (q *UserStorePostgres) CreateOnboardRequest(ctx context.Context, arg *param
 	return nil
 }
 
+// Implementation of Onboard defined in UserStore interface
 func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error) {
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -334,7 +335,7 @@ func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard
 	}
 
 	insertOnboardRequestQuery := `
-	INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES($1, $2, $3)
+	INSERT INTO user_verify_requests(user_id, token, is_valid) VALUES($1, $2, $3)
 	`
 	_, err = tx.ExecContext(ctx, insertOnboardRequestQuery, userId, arg.Token, true)
 	if err != nil {
