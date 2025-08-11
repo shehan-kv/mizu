@@ -421,3 +421,30 @@ func (q *UserStoreSqlite) DeleteVerifyRequestById(ctx context.Context, id int64)
 
 	return nil
 }
+
+// Implementation of OnboardVerify defined in UserStore interface
+func (q *UserStoreSqlite) OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return store.ErrQueryFailed
+	}
+
+	defer tx.Rollback()
+
+	setPasswordQuery := `UPDATE users SET password = ? WHERE id = ?`
+	if _, err := tx.ExecContext(ctx, setPasswordQuery, arg.HashedPassword, arg.UserId); err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	deleteTokenQuery := `DELETE FROM user_verify_requests WHERE user_id = ?`
+	if _, err := tx.ExecContext(ctx, deleteTokenQuery, arg.UserId); err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	if err = tx.Commit(); err != nil {
+		return store.ErrQueryFailed
+	}
+
+	return nil
+}
