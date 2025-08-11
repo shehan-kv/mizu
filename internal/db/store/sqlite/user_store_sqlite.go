@@ -409,3 +409,15 @@ func (q *UserStoreSqlite) GetVerifyRequestByToken(ctx context.Context, token str
 
 	return &verifyRequest, nil
 }
+
+// Implementation of DeleteVerifyRequestById defined in UserStore interface
+func (q *UserStoreSqlite) DeleteVerifyRequestById(ctx context.Context, id int64) error {
+
+	query := `DELETE FROM user_verify_requests WHERE id = ?`
+
+	if _, err := q.db.ExecContext(ctx, query, id); err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}
