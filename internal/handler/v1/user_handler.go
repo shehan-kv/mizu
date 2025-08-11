@@ -58,7 +58,7 @@ func (usrHndl *UserHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
-	mux.Handle("POST /{userId}/onboard-request", mwChain.Handle(usrHndl.CreateOnboardRequest))
+	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(usrHndl.CreateVerifyRequest))
 
 	return mux
 }
@@ -105,7 +105,7 @@ func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// Handles creating a user onboard request.
+// Handles creating a user verify request.
 //
 // Method: POST
 //
@@ -113,7 +113,7 @@ func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 //   - 400 BadRequest – Invalid input or user doesn't exist in the database
 //   - 500 InternalServerError - Server error
 //   - 201 OK - Created successfully
-func (usrHndl *UserHandler) CreateOnboardRequest(w http.ResponseWriter, r *http.Request) {
+func (usrHndl *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("userId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -122,7 +122,7 @@ func (usrHndl *UserHandler) CreateOnboardRequest(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if err := usrHndl.usrSrv.CreateOnboardRequest(r.Context(), parsedId); err != nil {
+	if err := usrHndl.usrSrv.CreateVerifyRequest(r.Context(), parsedId); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
