@@ -145,8 +145,8 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 	return nil
 }
 
-// Creates a new user onboarding request and
-// sends an email. Replaces the onboarding request
+// Creates a new user verify request and
+// sends an email. Replaces the verify request
 // if one already exists.
 //
 // Parameters:
@@ -155,7 +155,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 //
 // Returns:
 //   - ErrInternalError: if internal errors occur.
-func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int64) error {
+func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
@@ -172,7 +172,7 @@ func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int6
 
 	user, err := usrSrv.usrSt.GetById(ctx, userId)
 	if err != nil {
-		usrSrv.lg.Error("user not found to create onboard request",
+		usrSrv.lg.Error("user not found to create verify request",
 			"event", event.EventNotFound,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -184,7 +184,7 @@ func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int6
 
 	token, err := uuid.NewRandom()
 	if err != nil {
-		usrSrv.lg.Error("could not create user onboard request token",
+		usrSrv.lg.Error("could not create user verify request token",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -194,13 +194,13 @@ func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int6
 		return ErrInternalError
 	}
 
-	err = usrSrv.usrSt.CreateOnboardRequest(ctx, &params.UserOnboardRequestCreate{
+	err = usrSrv.usrSt.CreateVerifyRequest(ctx, &params.UserVerifyRequestCreate{
 		UserId:  user.Id,
 		Token:   token.String(),
 		IsValid: true,
 	})
 	if err != nil {
-		usrSrv.lg.Error("could not create user onboard request",
+		usrSrv.lg.Error("could not create user verify request",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -210,7 +210,7 @@ func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int6
 		return ErrInternalError
 	}
 
-	usrSrv.lg.Info("user onboard request created successfully",
+	usrSrv.lg.Info("user verify request created successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", correlationId,
 		"scope", "user_service",
@@ -225,14 +225,13 @@ func (usrSrv *UserService) CreateOnboardRequest(ctx context.Context, userId int6
 		CorrelationId: correlationId,
 	}); err != nil {
 
-		usrSrv.lg.Error("failed to send onboarding request email",
+		usrSrv.lg.Error("failed to send verify request email",
 			"event", event.EventEmailSendFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
 			"user_id", user.Id,
 			"actor_id", actor.Id,
 			"err", err)
-		return ErrInternalError
 	}
 
 	return nil
