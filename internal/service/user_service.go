@@ -155,6 +155,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 //
 // Returns:
 //   - ErrInternalError: if internal errors occur.
+//   - ErrBadRequest: if user not found.
 func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
