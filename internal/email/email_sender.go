@@ -7,6 +7,6 @@ import (
 
 type EmailSender interface {
 	Init()
-	SendOnboardingRequest(ctx context.Context, arg *params.OnboardingRequest) error
+	SendVerifyRequest(ctx context.Context, arg *params.VerifyRequest) error
 	Close()
 }

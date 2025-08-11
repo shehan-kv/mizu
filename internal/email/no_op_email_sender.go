@@ -28,9 +28,9 @@ func NewNoOpEmailSender(lg logger.Logger) *NoOpEmailSender {
 func (s *NoOpEmailSender) Init() {
 }
 
-// Impementation of SendOnboardingRequest of EmailSender interface
+// Impementation of SendVerifyRequest of EmailSender interface
 // Logs a WARN message with correlation ID
-func (s *NoOpEmailSender) SendOnboardingRequest(ctx context.Context, arg *params.OnboardingRequest) error {
+func (s *NoOpEmailSender) SendVerifyRequest(ctx context.Context, arg *params.VerifyRequest) error {
 
 	s.lg.Warn("no-op email sender configured, onboarding email not sent",
 		"event", event.EventEmailSendFailed,
