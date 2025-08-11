@@ -3,12 +3,10 @@ package email
 import (
 	"context"
 	"mizu/internal/email/params"
-	"mizu/internal/event"
-	"mizu/internal/logger"
 )
 
+// Remove dependency on logger
 type NoOpEmailSender struct {
-	lg logger.Logger
 }
 
 // Creates a new instance of NoOpEmailSender.
@@ -18,8 +16,8 @@ type NoOpEmailSender struct {
 //
 // Returns:
 //   - a pointer to a NoOpEmailSender struct
-func NewNoOpEmailSender(lg logger.Logger) *NoOpEmailSender {
-	return &NoOpEmailSender{lg: lg}
+func NewNoOpEmailSender() *NoOpEmailSender {
+	return &NoOpEmailSender{}
 }
 
 // Not-implemented.
@@ -32,11 +30,7 @@ func (s *NoOpEmailSender) Init() {
 // Logs a WARN message with correlation ID
 func (s *NoOpEmailSender) SendVerifyRequest(ctx context.Context, arg *params.VerifyRequest) error {
 
-	s.lg.Warn("no-op email sender configured, onboarding email not sent",
-		"event", event.EventEmailSendFailed,
-		"scope", "no_op_email_sender",
-		"correlation_id", arg.CorrelationId)
-	return nil
+	return ErrEmailSendFailed
 }
 
 // Not-implemented.
