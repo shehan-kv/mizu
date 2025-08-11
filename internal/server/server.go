@@ -29,7 +29,7 @@ func RunServer() {
 	defer sessionStore.Close()
 
 	// Initialize email sender
-	emailSender := email.GetEmailSender(logger)
+	emailSender := email.GetEmailSender()
 	emailSender.Init()
 	defer emailSender.Close()
 
