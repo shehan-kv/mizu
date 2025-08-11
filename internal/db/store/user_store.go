@@ -21,4 +21,5 @@ type UserStore interface {
 	Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error)
 	GetVerifyRequestByToken(ctx context.Context, token string) (*models.UserVerifyRequest, error)
 	DeleteVerifyRequestById(ctx context.Context, id int64) error
+	OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error
 }
