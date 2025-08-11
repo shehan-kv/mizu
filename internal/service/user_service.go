@@ -39,7 +39,7 @@ func NewUserService(lg logger.Logger, usrSt store.UserStore, emlSndr email.Email
 	}
 }
 
-// Creates a new user, an onboarding request and
+// Creates a new user, a user verify request and
 // sends an email
 //
 // Parameters:
@@ -66,7 +66,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 
 	token, err := uuid.NewRandom()
 	if err != nil {
-		usrSrv.lg.Error("could not create user onboard request token",
+		usrSrv.lg.Error("could not create user verify request token",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -126,7 +126,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		"actor_id", actor.Id,
 		"user_id", userId)
 
-	if err := usrSrv.emlSndr.SendOnboardingRequest(ctx, &emlPrms.OnboardingRequest{
+	if err := usrSrv.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
 		FirstName:     request.FirstName,
 		LastName:      request.LastName,
 		Email:         request.Email,
@@ -134,7 +134,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		CorrelationId: correlationId,
 	}); err != nil {
 
-		usrSrv.lg.Warn("failed to send onboarding request email",
+		usrSrv.lg.Warn("failed to send user verify request email",
 			"event", event.EventEmailSendFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -217,7 +217,7 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 		"user_id", user.Id,
 		"actor_id", actor.Id)
 
-	if err := usrSrv.emlSndr.SendOnboardingRequest(ctx, &emlPrms.OnboardingRequest{
+	if err := usrSrv.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		Email:         user.Email,
