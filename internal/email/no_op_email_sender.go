@@ -11,9 +11,6 @@ type NoOpEmailSender struct {
 
 // Creates a new instance of NoOpEmailSender.
 //
-// Parameters:
-//   - lg: an implementation of logger.Logger interface
-//
 // Returns:
 //   - a pointer to a NoOpEmailSender struct
 func NewNoOpEmailSender() *NoOpEmailSender {
