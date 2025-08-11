@@ -127,11 +127,10 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		"user_id", userId)
 
 	if err := usrSrv.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
-		FirstName:     request.FirstName,
-		LastName:      request.LastName,
-		Email:         request.Email,
-		Token:         token.String(),
-		CorrelationId: correlationId,
+		FirstName: request.FirstName,
+		LastName:  request.LastName,
+		Email:     request.Email,
+		Token:     token.String(),
 	}); err != nil {
 
 		usrSrv.lg.Warn("failed to send user verify request email",
@@ -139,7 +138,8 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			"correlation_id", correlationId,
 			"scope", "user_service",
 			"actor_id", actor.Id,
-			"user_id", userId)
+			"user_id", userId,
+			"err", err)
 	}
 
 	return nil
@@ -218,11 +218,10 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 		"actor_id", actor.Id)
 
 	if err := usrSrv.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
-		FirstName:     user.FirstName,
-		LastName:      user.LastName,
-		Email:         user.Email,
-		Token:         token.String(),
-		CorrelationId: correlationId,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Token:     token.String(),
 	}); err != nil {
 
 		usrSrv.lg.Error("failed to send verify request email",
