@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"mizu/internal/auth"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/user"
@@ -232,6 +233,81 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 			"user_id", user.Id,
 			"actor_id", actor.Id,
 			"err", err)
+	}
+
+	return nil
+}
+
+// Verifies a newly onboarded user, sets the password and deletes the
+// exisisting verification token. The current verfication step requires
+// the user to provide a password and confirmation.
+//
+// Parameters:
+//   - ctx: context for request scoping and cancellation.
+//   - request: a pointer to UserVerifyRequest DTO.
+//
+// Returns:
+//   - ErrInternalError: if internal errors occur.
+//   - ErrBadRequest: if user not found.
+func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, request *dto.UserOnboardVerifyRequest) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		usrSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return ErrInternalError
+	}
+
+	existingToken, err := usrSrv.usrSt.GetVerifyRequestByToken(ctx, token)
+	if err != nil {
+		if errors.Is(err, store.ErrRecordNotFound) {
+			usrSrv.lg.Error("verification request token does not exist in database",
+				"event", event.EventNotFound,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"err", err)
+			return ErrBadRequest
+		}
+
+		usrSrv.lg.Error("could not get verification request by token",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return ErrInternalError
+	}
+
+	hashedPassword, err := auth.HashPassword(request.Password)
+	if err != nil {
+		usrSrv.lg.Error("could not hash password",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"user_id", existingToken.UserId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = usrSrv.usrSt.OnboardVerify(ctx, &params.UserOnboardVerify{
+		UserId:         existingToken.UserId,
+		HashedPassword: hashedPassword})
+	if err != nil {
+		usrSrv.lg.Error("could not verify user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"user_id", existingToken.UserId,
+			"err", err)
+		return ErrInternalError
 	}
 
 	return nil
