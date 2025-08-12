@@ -5,7 +5,6 @@ import (
 	"mizu/internal/email/params"
 )
 
-// Remove dependency on logger
 type NoOpEmailSender struct {
 }
 
