@@ -27,16 +27,7 @@ func NewUserStore(db *sql.DB) *UserStorePostgres {
 	return &UserStorePostgres{db: db}
 }
 
-// Creates one user
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - arg: pointer to UserCreateParams
-//
-// Returns:
-//   - int64: id of new user
-//   - store.ErrUniqueViolation: if email already exists
-//   - store.ErrInsertFailed: if create fails
+// Implementation of CreateOne defined in UserStore interface
 func (q *UserStorePostgres) CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error) {
 
 	query := `
@@ -70,15 +61,7 @@ func (q *UserStorePostgres) CreateOne(ctx context.Context, arg *params.UserCreat
 	return id, nil
 }
 
-// Gets a user by id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - *models.User: reference to a models.User instace
-//   - store.ErrRecordNotFound: if not found
+// Implementation of GetById defined in UserStore interface
 func (q *UserStorePostgres) GetById(ctx context.Context, id int64) (*models.User, error) {
 
 	query := `
@@ -108,15 +91,7 @@ func (q *UserStorePostgres) GetById(ctx context.Context, id int64) (*models.User
 	return &user, nil
 }
 
-// Gets a user by email
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - email: email of the user
-//
-// Returns:
-//   - *models.User: reference to a models.User instace
-//   - store.ErrRecordNotFound: if not found
+// Implementation of GetByEmail defined in UserStore interface
 func (q *UserStorePostgres) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	query := `
@@ -146,15 +121,7 @@ func (q *UserStorePostgres) GetByEmail(ctx context.Context, email string) (*mode
 	return &user, nil
 }
 
-// Gets user password id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - string: user's password
-//   - store.ErrRecordNotFound: if not found
+// Implementation of GetPasswordById defined in UserStore interface
 func (q *UserStorePostgres) GetPasswordById(ctx context.Context, id int64) (string, error) {
 
 	query := `SELECT password FROM users WHERE id = $1`
@@ -170,15 +137,7 @@ func (q *UserStorePostgres) GetPasswordById(ctx context.Context, id int64) (stri
 	return password, nil
 }
 
-// Counts all users
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - int64: number of users
-//   - store.ErrQueryFailed: if query fails
+// Implementation of CountAll defined in UserStore interface
 func (q *UserStorePostgres) CountAll(ctx context.Context) (int64, error) {
 
 	query := `SELECT COUNT(*) FROM users`
@@ -193,15 +152,7 @@ func (q *UserStorePostgres) CountAll(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-// Sets password by user id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//   - password: new password to set
-//
-// Returns:
-//   - store.ErrUpdateFailed: if update fails
+// Implementation of SetPasswordById defined in UserStore interface
 func (q *UserStorePostgres) SetPasswordById(ctx context.Context, id int64, password string) error {
 
 	query := `UPDATE users SET password = $1 WHERE id = $2`
@@ -214,14 +165,7 @@ func (q *UserStorePostgres) SetPasswordById(ctx context.Context, id int64, passw
 	return nil
 }
 
-// Deletes user by id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - store.ErrDeleteFailed: if delete fails
+// Implementation of DeleteById defined in UserStore interface
 func (q *UserStorePostgres) DeleteById(ctx context.Context, id int64) error {
 
 	query := `DELETE FROM users WHERE id = $1`
@@ -234,14 +178,7 @@ func (q *UserStorePostgres) DeleteById(ctx context.Context, id int64) error {
 	return nil
 }
 
-// Updates last login by user id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - store.ErrUpdateFailed: if update fails
+// Implementation of UpdateLastLogin defined in UserStore interface
 func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error {
 
 	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1`
@@ -253,6 +190,7 @@ func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error
 	return nil
 }
 
+// Implementation of GetRoleById defined in UserStore interface
 func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.Role, error) {
 
 	query := `SELECT id, name FROM roles WHERE id = $1`

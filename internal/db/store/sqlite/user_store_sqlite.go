@@ -27,16 +27,7 @@ func NewUserStore(db *sql.DB) *UserStoreSqlite {
 	return &UserStoreSqlite{db: db}
 }
 
-// Creates one user
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - arg: pointer to UserCreateParams
-//
-// Returns:
-//   - int64: id of new user
-//   - store.ErrUniqueViolation: if email already exists
-//   - store.ErrInsertFailed: if create fails
+// Implementation of CreateOne defined in UserStore interface
 func (q *UserStoreSqlite) CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error) {
 
 	query := `
@@ -69,15 +60,7 @@ func (q *UserStoreSqlite) CreateOne(ctx context.Context, arg *params.UserCreate)
 	return id, nil
 }
 
-// Gets a user by id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - *models.User: reference to a models.User instace
-//   - store.ErrRecordNotFound: if not found
+// Implementation of GetById defined in UserStore interface
 func (q *UserStoreSqlite) GetById(ctx context.Context, id int64) (*models.User, error) {
 
 	query := `
@@ -107,15 +90,7 @@ func (q *UserStoreSqlite) GetById(ctx context.Context, id int64) (*models.User, 
 	return &user, nil
 }
 
-// Gets a user by email
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - email: email of the user
-//
-// Returns:
-//   - *models.User: reference to a models.User instace
-//   - store.ErrRecordNotFound: if not found
+// Implementation of GetByEmail defined in UserStore interface
 func (q *UserStoreSqlite) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	query := `
@@ -145,15 +120,7 @@ func (q *UserStoreSqlite) GetByEmail(ctx context.Context, email string) (*models
 	return &user, nil
 }
 
-// Gets user password id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - string: user's password
-//   - store.ErrRecordNotFound: if not found
+// Implementation of GetPasswordById defined in UserStore interface
 func (q *UserStoreSqlite) GetPasswordById(ctx context.Context, id int64) (string, error) {
 
 	query := `SELECT password FROM users WHERE id = ?`
@@ -169,15 +136,7 @@ func (q *UserStoreSqlite) GetPasswordById(ctx context.Context, id int64) (string
 	return password, nil
 }
 
-// Counts all users
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - int64: number of users
-//   - store.ErrQueryFailed: if query fails
+// Implementation of CountAll defined in UserStore interface
 func (q *UserStoreSqlite) CountAll(ctx context.Context) (int64, error) {
 
 	query := `SELECT COUNT(*) FROM users`
@@ -192,15 +151,7 @@ func (q *UserStoreSqlite) CountAll(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-// Sets password by user id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//   - password: new password to set
-//
-// Returns:
-//   - store.ErrUpdateFailed: if update fails
+// Implementation of SetPasswordById defined in UserStore interface
 func (q *UserStoreSqlite) SetPasswordById(ctx context.Context, id int64, password string) error {
 
 	query := `UPDATE users SET password = ? WHERE id = ?`
@@ -213,14 +164,7 @@ func (q *UserStoreSqlite) SetPasswordById(ctx context.Context, id int64, passwor
 	return nil
 }
 
-// Deletes user by id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - store.ErrDeleteFailed: if delete fails
+// Implementation of DeleteById defined in UserStore interface
 func (q *UserStoreSqlite) DeleteById(ctx context.Context, id int64) error {
 
 	query := `DELETE FROM users WHERE id = ?`
@@ -233,14 +177,7 @@ func (q *UserStoreSqlite) DeleteById(ctx context.Context, id int64) error {
 	return nil
 }
 
-// Updates last login by user id
-//
-// Parameters:
-//   - ctx: context to execute the query
-//   - id: id of the user
-//
-// Returns:
-//   - store.ErrUpdateFailed: if update fails
+// Implementation of UpdateLastLogin defined in UserStore interface
 func (q *UserStoreSqlite) UpdateLastLogin(ctx context.Context, id int64) error {
 
 	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?`
@@ -252,6 +189,7 @@ func (q *UserStoreSqlite) UpdateLastLogin(ctx context.Context, id int64) error {
 	return nil
 }
 
+// Implementation of GetRoleById defined in UserStore interface
 func (q *UserStoreSqlite) GetRoleById(ctx context.Context, id int64) (*models.Role, error) {
 
 	query := `SELECT id, name FROM roles WHERE id = ?`
