@@ -58,6 +58,7 @@ func (usrHndl *UserHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
+	mux.Handle("POST /verify/onboard/{token}", mwChain.Handle(usrHndl.OnboardVerify))
 	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(usrHndl.CreateVerifyRequest))
 
 	return mux
@@ -133,4 +134,43 @@ func (usrHndl *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+// Handles verifying a newly onboarded user account.
+// Currently the user has to provide a password
+// and password confirmation during the verification step
+//
+// Method: POST
+//
+// Possible Response Codes:
+//   - 400 BadRequest – Invalid input or user doesn't exist in the database
+//   - 500 InternalServerError - Server error
+//   - 200 OK - Verified successfully
+func (usrHndl *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request) {
+
+	token := r.PathValue("token")
+
+	var verifyRequest dto.UserOnboardVerifyRequest
+	if err := json.NewDecoder(r.Body).Decode(&verifyRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if !verifyRequest.Validate() {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err := usrHndl.usrSrv.OnboardVerify(r.Context(), token, &verifyRequest)
+	if err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
