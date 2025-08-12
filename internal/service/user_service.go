@@ -263,7 +263,7 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 		return ErrInternalError
 	}
 
-	existingToken, err := usrSrv.usrSt.GetVerifyRequestByToken(ctx, token)
+	existingToken, err := usrSrv.usrSt.GetOnboardReqByToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, store.ErrRecordNotFound) {
 			usrSrv.lg.Error("verification request token does not exist in database",
