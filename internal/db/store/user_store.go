@@ -17,7 +17,7 @@ type UserStore interface {
 	DeleteById(ctx context.Context, id int64) error
 	UpdateLastLogin(ctx context.Context, id int64) error
 	GetRoleById(ctx context.Context, id int64) (*models.Role, error)
-	CreateVerifyRequest(ctx context.Context, arg *params.UserVerifyRequestCreate) error
+	CreateVerifyRequest(ctx context.Context, arg *params.UserOnboardReqCreate) error
 	Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error)
 	GetVerifyRequestByToken(ctx context.Context, token string) (*models.UserOnboardRequest, error)
 	DeleteVerifyRequestById(ctx context.Context, id int64) error

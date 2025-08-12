@@ -268,7 +268,7 @@ func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.
 }
 
 // Implementation of CreateVerifyRequest defined in UserStore interface
-func (q *UserStorePostgres) CreateVerifyRequest(ctx context.Context, arg *params.UserVerifyRequestCreate) error {
+func (q *UserStorePostgres) CreateVerifyRequest(ctx context.Context, arg *params.UserOnboardReqCreate) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
