@@ -19,7 +19,7 @@ type UserStore interface {
 	GetRoleById(ctx context.Context, id int64) (*models.Role, error)
 	CreateOnboardReq(ctx context.Context, arg *params.UserOnboardReqCreate) error
 	Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error)
-	GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardRequest, error)
+	GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardReq, error)
 	DeleteOnboardReqById(ctx context.Context, id int64) error
 	OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error
 }

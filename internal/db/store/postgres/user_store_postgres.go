@@ -367,11 +367,11 @@ func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard
 }
 
 // Implementation of GetOnboardReqByToken defined in UserStore interface
-func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardRequest, error) {
+func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardReq, error) {
 
 	query := `SELECT id, user_id, token, issued_at, is_valid FROM user_onboard_reqs WHERE token = $1`
 
-	var verifyRequest models.UserOnboardRequest
+	var verifyRequest models.UserOnboardReq
 	if err := q.db.QueryRowContext(ctx, query, token).Scan(
 		&verifyRequest.Id,
 		&verifyRequest.UserId,
