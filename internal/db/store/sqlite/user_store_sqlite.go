@@ -387,8 +387,8 @@ func (q *UserStoreSqlite) Onboard(ctx context.Context, arg *params.UserOnboard) 
 	return userId, nil
 }
 
-// Implementation of GetVerifyRequest defined in UserStore interface
-func (q *UserStoreSqlite) GetVerifyRequestByToken(ctx context.Context, token string) (*models.UserOnboardRequest, error) {
+// Implementation of GetOnboardReqByToken defined in UserStore interface
+func (q *UserStoreSqlite) GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardRequest, error) {
 
 	query := `SELECT id, user_id, token, issued_at, is_valid FROM user_onboard_requests WHERE token = ?`
 
