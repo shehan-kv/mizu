@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE user_onboard_requests (
+CREATE TABLE user_onboard_reqs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     token TEXT NOT NULL UNIQUE,
@@ -8,9 +8,9 @@ CREATE TABLE user_onboard_requests (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_onboard_requests_token ON user_onboard_requests(token);
+CREATE INDEX IF NOT EXISTS idx_user_onboard_reqs_token ON user_onboard_reqs(token);
 
 
 -- +goose Down
-DROP INDEX IF EXISTS idx_user_onboard_requests_token;
-DROP TABLE IF EXISTS user_onboard_requests;
+DROP INDEX IF EXISTS idx_user_onboard_reqs_token;
+DROP TABLE IF EXISTS user_onboard_reqs;

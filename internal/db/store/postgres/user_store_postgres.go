@@ -277,14 +277,14 @@ func (q *UserStorePostgres) CreateOnboardReq(ctx context.Context, arg *params.Us
 
 	defer tx.Rollback()
 
-	deleteQuery := `DELETE FROM user_onboard_requests WHERE user_id = ?`
+	deleteQuery := `DELETE FROM user_onboard_reqs WHERE user_id = ?`
 
 	_, err = tx.ExecContext(ctx, deleteQuery, arg.UserId)
 	if err != nil {
 		return store.ErrInsertFailed
 	}
 
-	insertQuery := `INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES(?, ?, ?)`
+	insertQuery := `INSERT INTO user_onboard_reqs(user_id, token, is_valid) VALUES(?, ?, ?)`
 
 	_, err = tx.ExecContext(ctx, insertQuery, arg.UserId, arg.Token, arg.IsValid)
 	if err != nil {
@@ -336,7 +336,7 @@ func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard
 	}
 
 	insertOnboardRequestQuery := `
-	INSERT INTO user_onboard_requests(user_id, token, is_valid) VALUES($1, $2, $3)
+	INSERT INTO user_onboard_reqs(user_id, token, is_valid) VALUES($1, $2, $3)
 	`
 	_, err = tx.ExecContext(ctx, insertOnboardRequestQuery, userId, arg.Token, true)
 	if err != nil {
@@ -369,7 +369,7 @@ func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard
 // Implementation of GetOnboardReqByToken defined in UserStore interface
 func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardRequest, error) {
 
-	query := `SELECT id, user_id, token, issued_at, is_valid FROM user_onboard_requests WHERE token = $1`
+	query := `SELECT id, user_id, token, issued_at, is_valid FROM user_onboard_reqs WHERE token = $1`
 
 	var verifyRequest models.UserOnboardRequest
 	if err := q.db.QueryRowContext(ctx, query, token).Scan(
@@ -392,7 +392,7 @@ func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token stri
 // Implementation of DeleteOnboardReqById defined in UserStore interface
 func (q *UserStorePostgres) DeleteOnboardReqById(ctx context.Context, id int64) error {
 
-	query := `DELETE FROM user_onboard_requests WHERE id = $1`
+	query := `DELETE FROM user_onboard_reqs WHERE id = $1`
 
 	if _, err := q.db.ExecContext(ctx, query, id); err != nil {
 		return store.ErrDeleteFailed
@@ -416,7 +416,7 @@ func (q *UserStorePostgres) OnboardVerify(ctx context.Context, arg *params.UserO
 		return store.ErrUpdateFailed
 	}
 
-	deleteTokenQuery := `DELETE FROM user_onboard_requests WHERE user_id = $1`
+	deleteTokenQuery := `DELETE FROM user_onboard_reqs WHERE user_id = $1`
 	if _, err := tx.ExecContext(ctx, deleteTokenQuery, arg.UserId); err != nil {
 		return store.ErrDeleteFailed
 	}
