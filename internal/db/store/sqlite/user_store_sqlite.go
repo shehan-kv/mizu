@@ -266,8 +266,8 @@ func (q *UserStoreSqlite) GetRoleById(ctx context.Context, id int64) (*models.Ro
 	return &role, nil
 }
 
-// Implementation of CreateVerifyRequest defined in UserStore interface
-func (q *UserStoreSqlite) CreateVerifyRequest(ctx context.Context, arg *params.UserOnboardReqCreate) error {
+// Implementation of CreateOnboardReq defined in UserStore interface
+func (q *UserStoreSqlite) CreateOnboardReq(ctx context.Context, arg *params.UserOnboardReqCreate) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
