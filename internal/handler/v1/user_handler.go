@@ -58,6 +58,7 @@ func (usrHndl *UserHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
+	mux.Handle("GET /self", mwChain.Handle(usrHndl.GetSelf))
 	mux.Handle("POST /verify/onboard/{token}", mwChain.Handle(usrHndl.OnboardVerify))
 	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(usrHndl.CreateVerifyRequest))
 
@@ -173,4 +174,23 @@ func (usrHndl *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// Handles getting current signed-in user information
+//
+// Method: GET
+//
+// Possible Response Codes:
+//   - 500 InternalServerError - Server error
+//   - 200 OK - Verified successfully
+func (usrHndl *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
+
+	resp, err := usrHndl.usrSrv.GetSelf(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
