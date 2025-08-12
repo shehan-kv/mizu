@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type UserVerifyRequest struct {
+type UserOnboardRequest struct {
 	Id       int64
 	UserId   int64
 	Token    string
