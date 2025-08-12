@@ -410,8 +410,8 @@ func (q *UserStoreSqlite) GetOnboardReqByToken(ctx context.Context, token string
 	return &verifyRequest, nil
 }
 
-// Implementation of DeleteVerifyRequestById defined in UserStore interface
-func (q *UserStoreSqlite) DeleteVerifyRequestById(ctx context.Context, id int64) error {
+// Implementation of DeleteOnboardReqById defined in UserStore interface
+func (q *UserStoreSqlite) DeleteOnboardReqById(ctx context.Context, id int64) error {
 
 	query := `DELETE FROM user_onboard_requests WHERE id = ?`
 

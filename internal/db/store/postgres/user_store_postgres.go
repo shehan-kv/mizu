@@ -389,8 +389,8 @@ func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token stri
 	return &verifyRequest, nil
 }
 
-// Implementation of DeleteVerifyRequestById defined in UserStore interface
-func (q *UserStorePostgres) DeleteVerifyRequestById(ctx context.Context, id int64) error {
+// Implementation of DeleteOnboardReqById defined in UserStore interface
+func (q *UserStorePostgres) DeleteOnboardReqById(ctx context.Context, id int64) error {
 
 	query := `DELETE FROM user_onboard_requests WHERE id = $1`
 
