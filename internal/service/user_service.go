@@ -312,3 +312,51 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 
 	return nil
 }
+
+// Gets current signed-in user information.
+//
+// Parameters:
+//   - ctx: context for request scoping and cancellation.
+//
+// Returns:
+//   - *dto.UserSelfResponse
+//   - ErrInternalError: if internal errors occur.
+func (usrSrv *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	user, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		usrSrv.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"err", err,
+		)
+
+		return nil, ErrInternalError
+	}
+
+	role, err := usrSrv.usrSt.GetRoleById(ctx, user.Role)
+	if err != nil {
+		usrSrv.lg.Error("could not get user role",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", user.Id,
+			"err", err,
+		)
+
+		return nil, ErrInternalError
+	}
+
+	selfResponse := dto.UserSelfResponse{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Title:     user.Title.String,
+		Image:     user.Image.String,
+		Role:      role.Name,
+	}
+
+	return &selfResponse, nil
+}
