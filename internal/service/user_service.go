@@ -196,7 +196,7 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 		return ErrInternalError
 	}
 
-	err = usrSrv.usrSt.CreateVerifyRequest(ctx, &params.UserVerifyRequestCreate{
+	err = usrSrv.usrSt.CreateOnboardReq(ctx, &params.UserOnboardReqCreate{
 		UserId:  user.Id,
 		Token:   token.String(),
 		IsValid: true,
