@@ -157,6 +157,23 @@ func (dbs *DbConn) NewInvoiceStore() store.InvoiceStore {
 	}
 }
 
+// Creates a new instance of a MessageStore.
+//
+// Returns:
+//   - a pointer to an implementation of MessageStore
+func (dbs *DbConn) NewMessagetore() store.MessageStore {
+	switch dbs.dbEngine {
+	case "sqlite":
+		return sqlite.NewMessageStore(dbs.sqlDb)
+
+	case "postgres":
+		return postgres.NewMessageStore(dbs.sqlDb)
+
+	default:
+		return sqlite.NewMessageStore(dbs.sqlDb)
+	}
+}
+
 // Closes the database connection
 func (dbs *DbConn) Close() {
 	dbs.sqlDb.Close()
