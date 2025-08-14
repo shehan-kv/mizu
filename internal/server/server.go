@@ -37,6 +37,7 @@ func RunServer() {
 	userStore := db.NewUserStore()
 	projectStore := db.NewProjectStore()
 	invoiceStore := db.NewInvoiceStore()
+	messageStore := db.NewMessagetore()
 
 	// Default admin user when the database has no users
 	auth.CreateDefaultAdminUser(userStore, logger)
@@ -46,12 +47,14 @@ func RunServer() {
 	projectService := service.NewProjectService(logger, projectStore)
 	invoiceService := service.NewInvoiceService(logger, invoiceStore)
 	userService := service.NewUserService(logger, userStore, emailSender)
+	messageService := service.NewMessageService(logger, messageStore)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
 	projectMux := v1.NewProjectHandler(projectService).GetMux(logger, sessionStore, userStore)
 	invoiceMux := v1.NewInvoiceHandler(invoiceService).GetMux(logger, sessionStore, userStore)
 	userMux := v1.NewUserHandler(userService).GetMux(logger, sessionStore, userStore)
+	messageMux := v1.NewMessageHandler(messageService).GetMux(logger, sessionStore, userStore)
 
 	// Server routes
 	mainMux := http.NewServeMux()
@@ -59,6 +62,7 @@ func RunServer() {
 	mainMux.Handle("/api/v1/projects/", http.StripPrefix("/api/v1/projects", projectMux))
 	mainMux.Handle("/api/v1/invoices/", http.StripPrefix("/api/v1/invoices", invoiceMux))
 	mainMux.Handle("/api/v1/users/", http.StripPrefix("/api/v1/users", userMux))
+	mainMux.Handle("/api/v1/messages/", http.StripPrefix("/api/v1/messages", messageMux))
 
 	// Start server
 	listenOn := os.Getenv("LISTEN_ON")
