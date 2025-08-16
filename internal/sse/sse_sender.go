@@ -71,3 +71,55 @@ func (s *SseSender) RemoveClient(id string, userId int64) {
 	delete(s.clients, id)
 	delete(s.byClient[userId], id)
 }
+
+// Send a message to a list of specific clients
+// identified by their user-Ids.
+// This method if thread-safe.
+//
+// Parameters:
+//   - event: event name
+//   - msg: message to send
+//   - to: a list of user-Ids to send the message to
+func (s *SseSender) SendTo(event string, msg []byte, to []int64) {
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, id := range to {
+
+		connections, ok := s.byClient[id]
+		if !ok {
+			continue
+		}
+
+		for _, client := range connections {
+			client.SendQueue <- buildMessage(event, msg)
+		}
+
+	}
+
+}
+
+// Builds the server sent event message
+//
+// Parameters:
+//   - event: event name
+//   - msg: message to send
+//
+// Returns:
+//   - []byte: server sent event to send
+func buildMessage(event string, msg []byte) []byte {
+
+	bytesToAllocate := len("event: \n") + len(event) + len("data: \n\n") + len(msg)
+
+	buf := make([]byte, bytesToAllocate)
+
+	buf = append(buf, "event: "...)
+	buf = append(buf, event...)
+	buf = append(buf, '\n')
+	buf = append(buf, "data: "...)
+	buf = append(buf, msg...)
+	buf = append(buf, '\n', '\n')
+
+	return buf
+}
