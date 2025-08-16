@@ -57,3 +57,17 @@ func (s *SseSender) AddClient(connId string, userId int64) <-chan []byte {
 
 	return client.SendQueue
 }
+
+// Removes client.
+// This method if thread-safe.
+//
+// Parameters:
+//   - id: connected client's unique id
+//   - userId: id of the user
+func (s *SseSender) RemoveClient(id string, userId int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.clients, id)
+	delete(s.byClient[userId], id)
+}
