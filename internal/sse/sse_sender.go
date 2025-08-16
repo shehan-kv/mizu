@@ -100,6 +100,23 @@ func (s *SseSender) SendTo(event string, msg []byte, to []int64) {
 
 }
 
+// Broadcasts a message to all connected users.
+// This method if thread-safe.
+//
+// Parameters:
+//   - event: event name
+//   - msg: message to send
+func (s *SseSender) SendAll(event string, msg []byte) {
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, client := range s.clients {
+		client.SendQueue <- buildMessage(event, msg)
+	}
+
+}
+
 // Builds the server sent event message
 //
 // Parameters:
