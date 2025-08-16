@@ -30,3 +30,9 @@ const (
 	EventEmailSendFailed  Event = "email_send_failed"
 	EventEmailSendSuccess Event = "email_send_success"
 )
+
+// Notification events
+const (
+	EventNotification Event = "notification"
+	EventMessage      Event = "message"
+)
