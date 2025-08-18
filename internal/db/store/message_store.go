@@ -19,4 +19,15 @@ type MessageStore interface {
 	//   - *aggregates.MessageWithUser
 	//   - store.ErrInsertFailed: if create fails
 	CreateOne(ctx context.Context, arg *params.MessageCreate) (*aggregates.MessageWithUser, error)
+
+	// Gets IDs of all channels by user ID
+	//
+	// Parameters:
+	//   - ctx: context to execute the query
+	//   - userId: id of the user
+	//
+	// Returns:
+	//   - []int64: array of channel ids
+	//   - store.ErrQueryFailed: if query fails
+	GetChannelsByUserId(ctx context.Context, userId int64) ([]int64, error)
 }
