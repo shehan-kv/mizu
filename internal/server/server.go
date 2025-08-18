@@ -4,6 +4,7 @@ import (
 	"mizu/internal/auth"
 	"mizu/internal/db"
 	"mizu/internal/email"
+	"mizu/internal/event"
 	v1 "mizu/internal/handler/v1"
 	"mizu/internal/logger"
 	"mizu/internal/service"
@@ -43,14 +44,15 @@ func RunServer() {
 	// Default admin user when the database has no users
 	auth.CreateDefaultAdminUser(userStore, logger)
 
+	sseSender := sse.NewSseSender()
+	eventSender := event.NewEventSender(sseSender)
+
 	// Services
 	authService := service.NewAuthService(logger, userStore, sessionStore)
 	projectService := service.NewProjectService(logger, projectStore)
 	invoiceService := service.NewInvoiceService(logger, invoiceStore)
 	userService := service.NewUserService(logger, userStore, emailSender)
-	messageService := service.NewMessageService(logger, messageStore)
-
-	sseSender := sse.NewSseSender()
+	messageService := service.NewMessageService(logger, eventSender, messageStore)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
