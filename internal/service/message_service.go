@@ -1,14 +1,22 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	dto "mizu/internal/dto/message"
+	"mizu/internal/event"
 	"mizu/internal/logger"
+	"mizu/internal/middleware"
 )
 
 // Handles message related operations.
 type MessageService struct {
-	lg    logger.Logger
-	msgSt store.MessageStore
+	lg      logger.Logger
+	evtSndr *event.EventSender
+	msgSt   store.MessageStore
 }
 
 // Creates a new instance of MessageService.
@@ -20,9 +28,155 @@ type MessageService struct {
 //
 // Returns:
 //   - a pointer to a new MessageService
-func NewMessageService(lg logger.Logger, msgSt store.MessageStore) *MessageService {
+func NewMessageService(lg logger.Logger, evtSndr *event.EventSender, msgSt store.MessageStore) *MessageService {
 	return &MessageService{
-		lg:    lg,
-		msgSt: msgSt,
+		lg:      lg,
+		evtSndr: evtSndr,
+		msgSt:   msgSt,
 	}
+}
+
+// CreateMessage creates a new message in a specified channel and
+// returns a pointer to a dto.MessageResponse struct.
+// Checks if the sending user has access to the specified channel.
+// Sends message to all other users in the specified channel
+// using event.EventSender.
+//
+// If the sending user doesn't have access to the channel, it returns service.ErrUnauthorized.
+// If a required field is missing, it returns service.ErrBadRequest.
+// if a foreign key violation occurs, it returns service.ErrBadRequest.
+// If any internal errors occur, it returns service.ErrInternalError.
+func (msgSrv *MessageService) CreateMessage(
+	ctx context.Context,
+	channelId int64,
+	request *dto.MessageCreateRequest) (*dto.MessageResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		msgSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"channel_id", channelId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	channels, err := msgSrv.msgSt.GetChannelsByUserId(ctx, actor.Id)
+	if err != nil {
+		msgSrv.lg.Error("could not get channels",
+			"event", event.EventGetFailed,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"channel_id", channelId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	users, err := msgSrv.msgSt.GetUsersByChannelId(ctx, channelId)
+	if err != nil {
+		msgSrv.lg.Error("could not get users by channel",
+			"event", event.EventGetFailed,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"channel_id", channelId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	// removing sender id from users list
+	// to send message created event to
+	for i, id := range users {
+		if id == actor.Id {
+			users = append(users[:i], users[i+1:]...)
+			break
+		}
+	}
+
+	isChannelValid := false
+	for _, channel := range channels {
+		if channel == channelId {
+			isChannelValid = true
+		}
+	}
+
+	if !isChannelValid {
+		msgSrv.lg.Error("actor does not have access to channel",
+			"event", event.EventUserUnauthorized,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"channel_id", channelId,
+			"err", err)
+		return nil, ErrUnauthorized
+	}
+
+	message, err := msgSrv.msgSt.CreateOne(ctx, &params.MessageCreate{
+		ChannelId: channelId,
+		UserId:    actor.Id,
+		Type:      params.MessageUser,
+		Message:   request.Message,
+	})
+	if err != nil {
+		if errors.Is(err, store.ErrForeignKeyViolation) {
+			msgSrv.lg.Error("message foreign key constraint violated",
+				"event", event.EventCreateFailed,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"channel_id", channelId,
+				"err", err)
+			return nil, ErrBadRequest
+		}
+
+		if errors.Is(err, store.ErrNotNullViolation) {
+			msgSrv.lg.Error("message required field missing",
+				"event", event.EventCreateFailed,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"channel_id", channelId,
+				"err", err)
+			return nil, ErrBadRequest
+		}
+
+		msgSrv.lg.Error("could not create message",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"channel_id", channelId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	msgBytes, err := json.Marshal(message)
+	if err != nil {
+		msgSrv.lg.Error("could not marshal message into json",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"channel_id", channelId,
+			"err", err)
+	}
+
+	msgSrv.evtSndr.SendTo(string(event.EventMessage), msgBytes, users)
+
+	resp := dto.MessageResponse{
+		UserId:    message.UserId,
+		MessageId: message.MessageId,
+		Message:   message.Message,
+		FirstName: message.FirstName,
+		LastName:  message.LastName,
+		Role:      message.Role,
+		Title:     message.Title,
+		Image:     message.Image,
+		CreatedAt: message.CreatedAt,
+	}
+
+	return &resp, nil
 }
