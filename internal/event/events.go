@@ -9,6 +9,7 @@ const (
 	EventAccountDisabled      Event = "account_disabled"
 	EventUserAuthenticated    Event = "user_authenticated"
 	EventUserNotAuthenticated Event = "user_not_authenticated"
+	EventUserUnauthorized     Event = "user_unauthorized"
 )
 
 // System events
