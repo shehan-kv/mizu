@@ -55,6 +55,7 @@ func (msgHndl *MessageHandler) GetMux(lg logger.Logger,
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /{channelId}", mwChain.Handle(msgHndl.CreateMessage))
+	mux.Handle("GET /{channelId}", mwChain.Handle(msgHndl.GetMessages))
 
 	return mux
 }
@@ -110,5 +111,69 @@ func (msgHndl *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetMessages handles HTTP GET requests to retrieve a paginated list of
+// messages of a specified channel.
+// The channel ID is expected as a path parameter, eg: messages/{channelId}.
+// If the channel ID is valid, a JSON-encoded, paginated list of messages is
+// returned with HTTP 200 OK status.
+//
+// If the channelId is missing or invalid, HTTP 400 BadRequest is returned.
+// If user doesn't have access to channel, HTTP 401 Unauthorized is returned.
+// If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (msgHndl *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
+
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 30
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	channelId := r.PathValue("channelId")
+	parsedChId, err := strconv.ParseInt(channelId, 10, 64)
+	if err != nil || parsedChId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := msgHndl.msgSrv.GetMessages(r.Context(), parsedChId, &dto.MessageSearchQuery{
+		Page:  page,
+		Limit: limit,
+	})
+
+	if err != nil {
+		if errors.Is(err, service.ErrUnauthorized) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 }
