@@ -9,6 +9,7 @@ type MessageResponse struct {
 	Message   string
 	FirstName string
 	LastName  string
+	Type      string
 	Role      string
 	Title     string
 	Image     *string
