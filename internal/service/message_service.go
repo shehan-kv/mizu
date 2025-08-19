@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/common"
 	dto "mizu/internal/dto/message"
 	"mizu/internal/event"
 	"mizu/internal/logger"
@@ -176,6 +178,123 @@ func (msgSrv *MessageService) CreateMessage(
 		Title:     message.Title,
 		Image:     message.Image,
 		CreatedAt: message.CreatedAt,
+	}
+
+	return &resp, nil
+}
+
+// GetMessages returns a paginated list of MessageResponse DTOs.
+// Checks if the sending user has access to the specified channel.
+//
+// If the requesting user doesn't have access to the channel, it returns service.ErrUnauthorized.
+// If any internal errors occur, it returns service.ErrInternalError.
+func (msgSrv *MessageService) GetMessages(
+	ctx context.Context,
+	channelId int64,
+	query *dto.MessageSearchQuery) (*common.Page[[]dto.MessageResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		msgSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "message_service",
+			"channel_id", channelId,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	channels, err := msgSrv.msgSt.GetChannelsByUserId(ctx, actor.Id)
+	if err != nil {
+		msgSrv.lg.Error("could not get channels",
+			"event", event.EventGetFailed,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"channel_id", channelId,
+			"actor_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	isChannelValid := false
+	for _, channel := range channels {
+		if channel == channelId {
+			isChannelValid = true
+		}
+	}
+
+	if !isChannelValid {
+		msgSrv.lg.Error("actor does not have access to channel",
+			"event", event.EventUserUnauthorized,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"channel_id", channelId,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrUnauthorized
+	}
+
+	msgList, err := msgSrv.msgSt.GetByChannelId(ctx, channelId, &params.MessageSearch{
+		Offset: (query.Page - 1) * query.Limit,
+		Limit:  query.Limit,
+	})
+	if err != nil {
+		msgSrv.lg.Error("could not get messages",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "message_service",
+			"channel_id", channelId,
+			"actor_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	count, err := msgSrv.msgSt.CountByChannelId(ctx, channelId)
+	if err != nil {
+		msgSrv.lg.Error("could not get messages count",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "message_service",
+			"channel_id", channelId,
+			"actor_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	msgResponses := make([]dto.MessageResponse, len(msgList))
+	for i, msg := range msgList {
+		resp := dto.MessageResponse{
+			UserId:    msg.UserId,
+			MessageId: msg.MessageId,
+			FirstName: msg.FirstName,
+			LastName:  msg.LastName,
+			Role:      msg.Role,
+			Type:      msg.Type,
+			Title:     msg.Title,
+			Image:     msg.Image,
+			CreatedAt: msg.CreatedAt,
+			Message:   msg.Message,
+		}
+		msgResponses[i] = resp
+	}
+
+	numOfPages := math.Ceil(float64(count) / float64(query.Limit))
+	resp := common.Page[[]dto.MessageResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  int64(numOfPages),
+		Data:        msgResponses,
 	}
 
 	return &resp, nil
