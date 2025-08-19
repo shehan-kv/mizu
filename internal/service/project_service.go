@@ -185,6 +185,8 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
+			"page", query.Page,
+			"limit", query.Limit,
 			"err", err)
 		return nil, ErrInternalError
 	}
@@ -203,6 +205,8 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 			"scope", "project_service",
 			"correlation_id", correlationId,
 			"user_id", user.Id,
+			"page", query.Page,
+			"limit", query.Limit,
 			"err", err)
 		return nil, ErrInternalError
 	}
