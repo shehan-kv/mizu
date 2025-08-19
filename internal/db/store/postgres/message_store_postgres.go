@@ -142,3 +142,51 @@ func (q *MessageStorePostgres) GetUsersByChannelId(ctx context.Context, channelI
 
 	return users, nil
 }
+
+// GetByChannelId is an implementation of the GetByChannelId function
+// defined in MessageStore interface. It returns an array of
+// aggregates.MessageWithUser structs.
+// Returns store.ErrQueryFailed if an error occurs.
+func (q *MessageStorePostgres) GetByChannelId(
+	ctx context.Context,
+	channelId int64,
+	arg *params.MessageSearch) ([]aggregates.MessageWithUser, error) {
+
+	messageQuery := `
+	SELECT m.id, m.message, m.user_id, m.created_at, t.name, u.first_name, 
+	u.last_name, u.title, u.image, r.name FROM messages m
+	LEFT JOIN message_types t ON m.type = t.id
+	LEFT JOIN users u ON m.user_id = u.id
+	LEFT JOIN roles r ON u.role = r.id
+	WHERE m.channel_id = $1
+	LIMIT $2 OFFSET $3
+	`
+
+	rows, err := q.db.QueryContext(ctx, messageQuery, channelId, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	var msgs []aggregates.MessageWithUser
+	for rows.Next() {
+		var msg aggregates.MessageWithUser
+		rows.Scan(
+			&msg.MessageId,
+			&msg.Message,
+			&msg.UserId,
+			&msg.CreatedAt,
+			&msg.Type,
+			&msg.FirstName,
+			&msg.LastName,
+			&msg.Title,
+			&msg.Image,
+			&msg.Role,
+		)
+
+		msgs = append(msgs, msg)
+	}
+
+	return msgs, nil
+}
