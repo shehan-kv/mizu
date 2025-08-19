@@ -46,4 +46,9 @@ type MessageStore interface {
 	// for messages in a specified channel.
 	// If an error occurs, it returns store.ErrQueryFailed.
 	GetByChannelId(ctx context.Context, channelId int64, arg *params.MessageSearch) ([]aggregates.MessageWithUser, error)
+
+	// CountByChannelId returns the total number of
+	// messages in a specified channel.
+	// If an error occurs, it returns store.ErrQueryFailed.
+	CountByChannelId(ctx context.Context, channelId int64) (int64, error)
 }
