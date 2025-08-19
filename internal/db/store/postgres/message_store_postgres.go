@@ -190,3 +190,19 @@ func (q *MessageStorePostgres) GetByChannelId(
 
 	return msgs, nil
 }
+
+// CountByChannelId is an implementation of the CountByChannelId function
+// defined in MessageStore interface. It returns the number of messages
+// in the specified channel.
+// Returns store.ErrQueryFailed if an error occurs.
+func (q *MessageStorePostgres) CountByChannelId(ctx context.Context, channelId int64) (int64, error) {
+
+	query := `SELECT COUNT(id) FROM messages WHERE channel_id = $1`
+
+	var count int64
+	if err := q.db.QueryRowContext(ctx, query, channelId).Scan(&count); err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}
