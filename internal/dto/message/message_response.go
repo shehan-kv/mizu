@@ -5,6 +5,7 @@ import "time"
 // Represents a message response with sender information
 type MessageResponse struct {
 	UserId    int64
+	ChannelId int64
 	MessageId int64
 	Message   string
 	FirstName string
