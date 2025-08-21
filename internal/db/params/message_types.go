@@ -5,4 +5,5 @@ const (
 	MessageTypeQuote      = "quote"
 	MessageTypeInvoice    = "invoice"
 	MessageTypeFileUpload = "file-upload"
+	MessageTypeContract   = "contract"
 )
