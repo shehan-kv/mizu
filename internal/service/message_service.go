@@ -119,7 +119,7 @@ func (msgSrv *MessageService) CreateMessage(
 	message, err := msgSrv.msgSt.CreateOne(ctx, &params.MessageCreate{
 		ChannelId: channelId,
 		UserId:    actor.Id,
-		Type:      params.MessageUser,
+		Type:      params.MessageTypeUser,
 		Message:   request.Message,
 	})
 	if err != nil {
