@@ -55,7 +55,6 @@ func (q *MessageStoreSqlite) CreateOne(
 		arg.Type).Scan(&messageWithUser.MessageId, &messageWithUser.CreatedAt)
 
 	if err != nil {
-		log.Println(err)
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
 				return nil, store.ErrForeignKeyViolation
