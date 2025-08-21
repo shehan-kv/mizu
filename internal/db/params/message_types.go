@@ -1,8 +1,8 @@
 package params
 
 const (
-	MessageUser       = "user"
-	MessageQuote      = "quote"
-	MessageInvoice    = "invoice"
-	MessageFileUpload = "file-upload"
+	MessageTypeUser       = "user"
+	MessageTypeQuote      = "quote"
+	MessageTypeInvoice    = "invoice"
+	MessageTypeFileUpload = "file-upload"
 )
