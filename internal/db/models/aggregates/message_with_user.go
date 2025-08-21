@@ -5,6 +5,7 @@ import "time"
 type MessageWithUser struct {
 	UserId    int64
 	MessageId int64
+	ChannelId int64
 	Message   string
 	FirstName string
 	LastName  string
