@@ -2,7 +2,7 @@
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    user_id INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     message TEXT NOT NULL,
     type INTEGER NOT NULL, 
