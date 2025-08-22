@@ -6,7 +6,7 @@ CREATE TABLE contract_versions (
     signed_at TIMESTAMPTZ,
     version TEXT NOT NULL UNIQUE,
     contract TEXT NOT NULL,
-    FOREIGN KEY (contract_id) REFERENCES contracts(contract_id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_contract_versions_contract_id ON contract_versions(contract_id);
