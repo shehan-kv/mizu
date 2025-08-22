@@ -3,7 +3,8 @@ CREATE TABLE contracts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    UNIQUE (project_id, name),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
