@@ -48,6 +48,8 @@ func (contHndl *ContractHandler) GetMux(
 
 	mux := http.NewServeMux()
 
+	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
+
 	return mux
 }
 
