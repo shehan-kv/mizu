@@ -174,6 +174,23 @@ func (dbs *DbConn) NewMessagetore() store.MessageStore {
 	}
 }
 
+// Creates a new instance of a ContractStore.
+//
+// Returns:
+//   - a pointer to an implementation of ContractStore
+func (dbs *DbConn) NewContractStore() store.ContractStore {
+	switch dbs.dbEngine {
+	case "sqlite":
+		return sqlite.NewContractStore(dbs.sqlDb)
+
+	case "postgres":
+		return postgres.NewContractStore(dbs.sqlDb)
+
+	default:
+		return sqlite.NewContractStore(dbs.sqlDb)
+	}
+}
+
 // Closes the database connection
 func (dbs *DbConn) Close() {
 	dbs.sqlDb.Close()
