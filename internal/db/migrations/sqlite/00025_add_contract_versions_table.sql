@@ -3,7 +3,7 @@ CREATE TABLE contract_versions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     contract_id INTEGER NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    signed_at DATETIME,
+    status TEXT NOT NULL,
     version TEXT NOT NULL UNIQUE,
     contract TEXT NOT NULL,
     FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE ON UPDATE CASCADE
