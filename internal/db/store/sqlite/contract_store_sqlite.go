@@ -71,11 +71,18 @@ func (q *ContractStoreSqlite) CreateOne(
 	}
 
 	insertVersionQuery := `
-	INSERT INTO contract_versions(contract_id, version, contract)
-	VALUES(?, ?, ?)
+	INSERT INTO contract_versions(contract_id, version, status, contract)
+	VALUES(?, ?, (SELECT id FROM contract_statuses WHERE name = ?), ?)
 	`
 
-	if _, err := tx.ExecContext(ctx, insertVersionQuery, contractId, arg.Version, arg.Contract); err != nil {
+	if _, err := tx.ExecContext(
+		ctx,
+		insertVersionQuery,
+		contractId,
+		arg.Version,
+		params.ContractStatusPending,
+		arg.Contract); err != nil {
+
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
 				return nil, store.ErrForeignKeyViolation

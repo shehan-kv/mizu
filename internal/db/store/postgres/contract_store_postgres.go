@@ -71,11 +71,18 @@ func (q *ContractStorePostgres) CreateOne(
 	}
 
 	insertVersionQuery := `
-	INSERT INTO contract_versions(contract_id, version, contract)
-	VALUES($1, $2, $3)
+	INSERT INTO contract_versions(contract_id, version, status, contract)
+	VALUES($1, $2, (SELECT id FROM contract_statuses WHERE name = $3), $4)
 	`
 
-	if _, err := tx.ExecContext(ctx, insertVersionQuery, contractId, arg.Version, arg.Contract); err != nil {
+	if _, err := tx.ExecContext(
+		ctx,
+		insertVersionQuery,
+		contractId,
+		arg.Version,
+		params.ContractStatusPending,
+		arg.Contract); err != nil {
+
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code.Name() == "foreign_key_violation" {
 				return nil, store.ErrForeignKeyViolation
