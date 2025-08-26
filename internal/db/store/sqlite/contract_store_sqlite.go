@@ -199,3 +199,180 @@ func (q *ContractStoreSqlite) CreateOne(
 
 	return &result, nil
 }
+
+// SignVersion adds a signature for the given contract version and user.
+// It checks if the user is attempting to sign a
+// contract/version that's already been signed/rejected.
+// It returns a boolean, distinguishing between
+// a newly created signature and existing signatures.
+//
+// If the contract or version was already signed, the method returns true.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStoreSqlite) SignVersion(ctx context.Context, versionId int64, userId int64) (bool, error) {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, store.ErrInsertFailed
+	}
+
+	defer tx.Rollback()
+
+	// The signature could be added to the database
+	// safely without trying to check status first.
+	// But this method has to distinguish between a new
+	// signature and an existing signature in the database.
+	// So, the method checks if the specified contract version
+	// is already signed or rejected.
+
+	signed, err := q.isContractSignedOrRejected(ctx, tx, versionId)
+	if err != nil {
+		return false, err
+	}
+
+	if signed {
+		return true, nil
+	}
+
+	usrSigned, err := q.hasUserSignedOrRejected(ctx, tx, versionId, userId)
+	if err != nil {
+		return false, err
+	}
+
+	if usrSigned {
+		return true, nil
+	}
+
+	// If the user has not signed or rejected,
+	// insert a new signature record.
+
+	insertSignatureQuery := `
+	INSERT OR IGNORE INTO contract_signatures(version_id, user_id, status)
+	VALUES(?, ?, (SELECT id FROM contract_statuses WHERE name = ?))
+	`
+
+	if _, err := tx.ExecContext(
+		ctx,
+		insertSignatureQuery,
+		versionId,
+		userId,
+		params.ContractStatusSigned,
+	); err != nil {
+
+		return false, store.ErrInsertFailed
+	}
+
+	// Mark version as signed if the user is the last user to sign the contract.
+	setVersionStatusQuery := `
+	UPDATE contract_versions
+    SET status = (SELECT id FROM contract_statuses WHERE name = ?)
+    WHERE id = ?
+    AND NOT EXISTS (
+    	SELECT 1
+        FROM project_users pu
+        LEFT JOIN contract_signatures cs
+        ON cs.user_id = pu.user_id
+        AND cs.version_id = ?
+        WHERE pu.project_id = (
+        SELECT c.project_id FROM contracts c WHERE c.id = ?
+    	)
+    	AND cs.user_id IS NULL
+    );
+	`
+
+	if _, err := tx.ExecContext(
+		ctx,
+		setVersionStatusQuery,
+		params.ContractStatusSigned,
+		versionId,
+		versionId, // cs.version_id
+		versionId, // c.id for project lookup
+	); err != nil {
+
+		return false, store.ErrInsertFailed
+	}
+
+	if err = tx.Commit(); err != nil {
+		return false, store.ErrInsertFailed
+	}
+
+	return false, nil
+}
+
+// isContractSignedOrRejected is helper method that checks
+// if any contract version is signed or rejected.
+// Considers a contract is signed/rejected if any version
+// is signed/rejected.
+//
+//   - It returns true if the contract has been signed already.
+//   - If an error occurs, store.ErrQueryFailed is returned.
+func (q *ContractStoreSqlite) isContractSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64) (bool, error) {
+
+	isContractSignedQuery := `
+	SELECT
+  		CASE
+    		WHEN COUNT(*) > 0 THEN TRUE
+    		ELSE FALSE
+  		END AS is_signed
+	FROM contract_versions cv
+	JOIN contract_versions cv2
+  	ON cv2.contract_id = cv.contract_id
+	JOIN contract_statuses cs
+  	ON cv2.status = cs.id
+	WHERE cv.id = ?
+  	AND cs.name = ? OR cs.name = ?
+	`
+
+	var isContractSigned bool
+	if err := tx.QueryRowContext(
+		ctx,
+		isContractSignedQuery,
+		versionId,
+		params.ContractStatusSigned,
+		params.ContractStatusRejected,
+	).Scan(&isContractSigned); err != nil {
+
+		return false, store.ErrQueryFailed
+	}
+
+	if isContractSigned {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// hasUserSignedOrRejected is a helper method that checks
+// if a contract and version is signed or rejected by the
+// specified user.
+//
+//   - It returns true if the contract has been signed already
+//     by the specified user.
+//   - If an error occurs, store.ErrQueryFailed is returned.
+func (q *ContractStoreSqlite) hasUserSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64, userId int64) (bool, error) {
+
+	userSignedVersionQuery := `
+	SELECT CASE
+    		WHEN COUNT(*) > 0 THEN TRUE
+    		ELSE FALSE
+  		END AS has_signed
+	FROM contract_signatures
+	WHERE version_id = ? AND user_id = ?
+	`
+
+	var hasUserSigned bool
+	if err := tx.QueryRowContext(
+		ctx, userSignedVersionQuery,
+		versionId,
+		userId,
+	).Scan(&hasUserSigned); err != nil {
+
+		return false, store.ErrQueryFailed
+	}
+
+	if hasUserSigned {
+		return true, nil
+	}
+
+	return false, nil
+}
