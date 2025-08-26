@@ -20,7 +20,6 @@ import (
 type ContractService struct {
 	lg      logger.Logger
 	evtSndr *event.EventSender
-	usrSt   store.UserStore
 	contSt  store.ContractStore
 	emlSndr email.EmailSender
 }
@@ -31,14 +30,12 @@ type ContractService struct {
 func NewContractService(
 	lg logger.Logger,
 	evtSndr *event.EventSender,
-	usrSt store.UserStore,
 	contSt store.ContractStore,
 	emlSndr email.EmailSender) *ContractService {
 
 	return &ContractService{
 		lg:      lg,
 		evtSndr: evtSndr,
-		usrSt:   usrSt,
 		contSt:  contSt,
 		emlSndr: emlSndr,
 	}
