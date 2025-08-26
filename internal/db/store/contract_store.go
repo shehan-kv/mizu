@@ -21,4 +21,15 @@ type ContractStore interface {
 	//   - If a not-null constraint violation occurs, it returns store.ErrNotNullViolation.
 	//   - If any other errors occur, it returns store.ErrInsertFailed
 	CreateOne(ctx context.Context, projectId int64, arg *params.ContractCreate) (*aggregates.ContractCreateResult, error)
+
+	// SignVersion adds a signature for the given contract version and user.
+	// It checks if the user is attempting to sign a
+	// contract/version that's already been signed/rejected.
+	// It returns a boolean, distinguishing between
+	// a newly created signature and existing signatures.
+	//
+	// If the contract or version was already signed, the method returns true.
+	//
+	// If any error occurs, store.ErrInsertFailed is returned.
+	SignVersion(ctx context.Context, versionId int64, userId int64) (bool, error)
 }
