@@ -32,4 +32,11 @@ type ContractStore interface {
 	//
 	// If any error occurs, store.ErrInsertFailed is returned.
 	SignVersion(ctx context.Context, versionId int64, userId int64) (bool, error)
+
+	// GetUsersWithSignature retrieves the contract metadata and every project-user’s
+	// signature for the given contract version. It returns a pointer to
+	// an *aggregates.ContractUserSignatures struct with the metadata and signatures.
+	//
+	//   - If an error occurs, store.ErrQueryFailed is returned.
+	GetUsersWithSignature(ctx context.Context, versionId int64) (*aggregates.ContractUserSignatures, error)
 }
