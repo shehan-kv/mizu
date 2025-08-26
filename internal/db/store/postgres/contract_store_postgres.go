@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -375,4 +376,75 @@ func (q *ContractStorePostgres) hasUserSignedOrRejected(ctx context.Context, tx 
 	}
 
 	return false, nil
+}
+
+func (q *ContractStorePostgres) GetUsersWithSignature(
+	ctx context.Context,
+	versionId int64) (*aggregates.ContractUserSignatures, error) {
+
+	contractQuery := `
+	SELECT c.name, cv.version, cv.contract FROM contract_versions cv
+	JOIN contracts c ON c.id = cv.contract_id
+	WHERE cv.id = $1
+	`
+
+	var contractUsrSigns aggregates.ContractUserSignatures
+	if err := q.db.QueryRowContext(
+		ctx,
+		contractQuery,
+		versionId,
+	).Scan(
+		&contractUsrSigns.ContractName,
+		&contractUsrSigns.ContractVersion,
+		&contractUsrSigns.ContractText); err != nil {
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, store.ErrRecordNotFound
+		}
+
+		return nil, store.ErrQueryFailed
+	}
+
+	signaturesQuery := `
+	SELECT 
+	u.first_name, 
+	u.last_name, 
+	u.email,
+	cs.created_at AS signed_date,
+	COALESCE(c_stat.name, 'pending') as status 
+	FROM contract_versions cv
+	JOIN contracts c ON c.id = cv.contract_id
+	JOIN project_users pu ON pu.project_id = c.project_id
+	JOIN users u ON u.id = pu.user_id
+	LEFT JOIN contract_signatures cs ON cs.user_id = u.id AND cs.version_id = cv.id
+	LEFT JOIN contract_statuses c_stat ON c_stat.id = cs.status
+	WHERE cv.id = $1
+	`
+
+	rows, err := q.db.QueryContext(ctx, signaturesQuery, versionId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	contractUsrSigns.Signatures = make([]aggregates.ContractSignature, 0)
+
+	for rows.Next() {
+
+		var usrSign aggregates.ContractSignature
+		if err := rows.Scan(
+			&usrSign.FirstName,
+			&usrSign.LastName,
+			&usrSign.Email,
+			&usrSign.SignedAt,
+			&usrSign.Status,
+		); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		contractUsrSigns.Signatures = append(contractUsrSigns.Signatures, usrSign)
+	}
+
+	return &contractUsrSigns, nil
 }
