@@ -49,6 +49,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
+	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
 
 	return mux
 }
@@ -100,4 +101,40 @@ func (contHndl *ContractHandler) CreateContract(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+// SignContractVersion handles signing of a contract version.
+// The version ID is expected as a path parameter, eg: sign/{versionId}.
+// If contract is successfully created, it returns HTTP 200 OK response.
+// This function expects middleware to properly authorize requests.
+//
+//   - If versionId is missing or invalid, HTTP 400 BadRequest is returned
+//   - If contract version already signed, HTTP 409 Conflict is returned
+//   - If contract version is rejected, HTTP 409 Conflict is returned
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned
+func (contHndl *ContractHandler) SignContractVersion(w http.ResponseWriter, r *http.Request) {
+
+	versionId := r.PathValue("versionId")
+	parsedVerId, err := strconv.ParseInt(versionId, 10, 64)
+	if err != nil || parsedVerId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := contHndl.contSrv.SignContractVersion(r.Context(), parsedVerId); err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
