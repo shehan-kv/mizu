@@ -29,6 +29,11 @@ func (s *NoOpEmailSender) SendVerifyRequest(ctx context.Context, arg *params.Ver
 	return ErrEmailSendFailed
 }
 
+func (s *NoOpEmailSender) SendContractSigned(ctx context.Context, arg *params.ContractSignedRequest) error {
+
+	return ErrEmailSendFailed
+}
+
 // Not-implemented.
 // Not required for the no-op email sender
 // Added to comply with the interface
