@@ -54,7 +54,7 @@ func RunServer() {
 	invoiceService := service.NewInvoiceService(logger, invoiceStore)
 	userService := service.NewUserService(logger, userStore, emailSender)
 	messageService := service.NewMessageService(logger, eventSender, messageStore)
-	contractService := service.NewContractService(logger, eventSender, userStore, contractStore, emailSender)
+	contractService := service.NewContractService(logger, eventSender, contractStore, emailSender)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
