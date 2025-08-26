@@ -7,6 +7,8 @@ import (
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/contract"
+	"mizu/internal/email"
+	emlPrms "mizu/internal/email/params"
 	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
@@ -20,6 +22,7 @@ type ContractService struct {
 	evtSndr *event.EventSender
 	usrSt   store.UserStore
 	contSt  store.ContractStore
+	emlSndr email.EmailSender
 }
 
 // NewContractService constructs a ContractService that
@@ -29,13 +32,15 @@ func NewContractService(
 	lg logger.Logger,
 	evtSndr *event.EventSender,
 	usrSt store.UserStore,
-	contSt store.ContractStore) *ContractService {
+	contSt store.ContractStore,
+	emlSndr email.EmailSender) *ContractService {
 
 	return &ContractService{
 		lg:      lg,
 		evtSndr: evtSndr,
 		usrSt:   usrSt,
 		contSt:  contSt,
+		emlSndr: emlSndr,
 	}
 }
 
@@ -151,6 +156,85 @@ func (contSrv *ContractService) CreateContract(
 		"project_id", projectId,
 		"contract_id", result.ContractId,
 		"actor_id", actor.Id)
+
+	return nil
+}
+
+// SignContract method attempts to sign a contract version.
+// If the contract version hasn't been signed by the requesting user,
+// it sends a contract-signed email to relevant users.
+//
+//   - If the contract version is already signed, it returns service.ErrAlreadyExists
+//   - If an error occurs, it returns service.ErrInternalError
+func (contSrv *ContractService) SignContractVersion(ctx context.Context, versionId int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	isAlreadySigned, err := contSrv.contSt.SignVersion(ctx, versionId, actor.Id)
+	if err != nil {
+		contSrv.lg.Error("failed to sign contract version",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if isAlreadySigned {
+		return ErrAlreadyExists
+	}
+
+	// Send contract-signed emails for new signs.
+	signs, err := contSrv.contSt.GetUsersWithSignature(ctx, versionId)
+	if err != nil {
+		contSrv.lg.Error("failed get users with signatures for contract version",
+			"event", event.EventGetFailed,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+	}
+
+	if signs != nil {
+
+		emailParams := emlPrms.ContractSignedRequest{
+			ContractName:    signs.ContractName,
+			ContractVersion: signs.ContractVersion,
+			ContractText:    signs.ContractText,
+			Signatures:      make([]emlPrms.UserSignature, 0),
+		}
+
+		for _, sign := range signs.Signatures {
+			emailParams.Signatures = append(emailParams.Signatures, emlPrms.UserSignature{
+				FirstName: sign.FirstName,
+				LastName:  sign.LastName,
+				Email:     sign.Email,
+				SignedAt:  sign.SignedAt,
+				Status:    sign.Status,
+			})
+		}
+
+		if err := contSrv.emlSndr.SendContractSigned(ctx, &emailParams); err != nil {
+			contSrv.lg.Warn("failed to send contract signed email",
+				"event", event.EventEmailSendFailed,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"version_id", versionId,
+				"err", err)
+		}
+	}
 
 	return nil
 }
