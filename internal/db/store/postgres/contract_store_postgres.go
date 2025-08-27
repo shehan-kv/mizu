@@ -448,3 +448,81 @@ func (q *ContractStorePostgres) GetUsersWithSignature(
 
 	return &contractUsrSigns, nil
 }
+
+// RejectVersion adds a rejected signature for the given contract version and user.
+// It checks if the user is attempting to reject a
+// contract/version that's already been signed/rejected.
+// It returns a boolean, distinguishing between
+// a newly rejected signature and existing signatures.
+//
+// If the contract or version was already rejected or signed, the method returns true.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStorePostgres) RejectVersion(ctx context.Context, versionId int64, userId int64) (bool, error) {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, store.ErrInsertFailed
+	}
+
+	defer tx.Rollback()
+
+	signed, err := q.isContractSignedOrRejected(ctx, tx, versionId)
+	if err != nil {
+		return false, err
+	}
+
+	if signed {
+		return true, nil
+	}
+
+	usrSigned, err := q.hasUserSignedOrRejected(ctx, tx, versionId, userId)
+	if err != nil {
+		return false, err
+	}
+
+	if usrSigned {
+		return true, nil
+	}
+
+	// If the user has not signed or rejected,
+	// insert a new signature record.
+
+	insertSignatureQuery := `
+	INSERT OR IGNORE INTO contract_signatures(version_id, user_id, status)
+	VALUES($1, $2, (SELECT id FROM contract_statuses WHERE name = $3))
+	`
+
+	if _, err := tx.ExecContext(
+		ctx,
+		insertSignatureQuery,
+		versionId,
+		userId,
+		params.ContractStatusRejected,
+	); err != nil {
+
+		return false, store.ErrInsertFailed
+	}
+
+	setVersionStatusQuery := `
+	UPDATE contract_versions
+    SET status = (SELECT id FROM contract_statuses WHERE name = $1)
+    WHERE id = $2
+	`
+
+	if _, err := tx.ExecContext(
+		ctx,
+		setVersionStatusQuery,
+		params.ContractStatusRejected,
+		versionId,
+	); err != nil {
+
+		return false, store.ErrInsertFailed
+	}
+
+	if err = tx.Commit(); err != nil {
+		return false, store.ErrInsertFailed
+	}
+
+	return false, nil
+}
