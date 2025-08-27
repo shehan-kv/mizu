@@ -235,3 +235,82 @@ func (contSrv *ContractService) SignContractVersion(ctx context.Context, version
 
 	return nil
 }
+
+// RejectContractVersion method attempts to reject a contract version.
+// If the contract version hasn't been rejected by the requesting user,
+// it sends a contract-rejected email to relevant users.
+//
+//   - If the contract version is already signed/rejected, it returns service.ErrAlreadyExists
+//   - If an error occurs, it returns service.ErrInternalError
+func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versionId int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	isAlreadySigned, err := contSrv.contSt.RejectVersion(ctx, versionId, actor.Id)
+	if err != nil {
+		contSrv.lg.Error("failed to reject contract version",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if isAlreadySigned {
+		return ErrAlreadyExists
+	}
+
+	// Send contract-signed emails for new rejections.
+	signs, err := contSrv.contSt.GetUsersWithSignature(ctx, versionId)
+	if err != nil {
+		contSrv.lg.Error("failed get users with signatures for contract version",
+			"event", event.EventGetFailed,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+	}
+
+	if signs != nil {
+
+		emailParams := emlPrms.ContractRejectedRequest{
+			ContractName:    signs.ContractName,
+			ContractVersion: signs.ContractVersion,
+			ContractText:    signs.ContractText,
+			Signatures:      make([]emlPrms.UserSignature, 0),
+		}
+
+		for _, sign := range signs.Signatures {
+			emailParams.Signatures = append(emailParams.Signatures, emlPrms.UserSignature{
+				FirstName: sign.FirstName,
+				LastName:  sign.LastName,
+				Email:     sign.Email,
+				SignedAt:  sign.SignedAt,
+				Status:    sign.Status,
+			})
+		}
+
+		if err := contSrv.emlSndr.SendContractRejected(ctx, &emailParams); err != nil {
+			contSrv.lg.Warn("failed to send contract rejected email",
+				"event", event.EventEmailSendFailed,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"version_id", versionId,
+				"err", err)
+		}
+	}
+
+	return nil
+}
