@@ -39,4 +39,15 @@ type ContractStore interface {
 	//
 	//   - If an error occurs, store.ErrQueryFailed is returned.
 	GetUsersWithSignature(ctx context.Context, versionId int64) (*aggregates.ContractUserSignatures, error)
+
+	// RejectVersion adds a rejected signature for the given contract version and user.
+	// It checks if the user is attempting to reject a
+	// contract/version that's already been signed/rejected.
+	// It returns a boolean, distinguishing between
+	// a newly rejected signature and existing signatures.
+	//
+	// If the contract or version was already rejected or signed, the method returns true.
+	//
+	// If any error occurs, store.ErrInsertFailed is returned.
+	RejectVersion(ctx context.Context, versionId int64, userId int64) (bool, error)
 }
