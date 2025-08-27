@@ -50,6 +50,7 @@ func (contHndl *ContractHandler) GetMux(
 
 	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
 	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
+	mux.Handle("POST /reject/{versionId}", mwChain.Handle(contHndl.RejectContractVersion))
 
 	return mux
 }
@@ -122,6 +123,42 @@ func (contHndl *ContractHandler) SignContractVersion(w http.ResponseWriter, r *h
 	}
 
 	if err := contHndl.contSrv.SignContractVersion(r.Context(), parsedVerId); err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// RejectContractVersion handles rejecting a contract version.
+// The version ID is expected as a path parameter, eg: sign/{versionId}.
+// If contract is successfully rejected, it returns HTTP 200 OK response.
+// This function expects middleware to properly authorize requests.
+//
+//   - If versionId is missing or invalid, HTTP 400 BadRequest is returned
+//   - If contract version already signed, HTTP 409 Conflict is returned
+//   - If contract version is already rejected, HTTP 409 Conflict is returned
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned
+func (contHndl *ContractHandler) RejectContractVersion(w http.ResponseWriter, r *http.Request) {
+
+	versionId := r.PathValue("versionId")
+	parsedVerId, err := strconv.ParseInt(versionId, 10, 64)
+	if err != nil || parsedVerId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := contHndl.contSrv.RejectContractVersion(r.Context(), parsedVerId); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
