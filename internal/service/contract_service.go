@@ -314,3 +314,71 @@ func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versi
 
 	return nil
 }
+
+// CreateRevision creates a contract revision for the specified contract.
+// This method expects middleware to properly authorize requests.
+//
+//   - If request is considered invalid, it returns service.ErrBadRequest
+//   - If an error occurs, it returns service.ErrInternalError
+func (contSrv *ContractService) CreateRevision(
+	ctx context.Context,
+	contractId int64,
+	request *dto.RevisionCreateRequest) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"contract_id", contractId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = contSrv.contSt.CreateRevision(ctx, &params.ContractRevisionCreate{
+		ContractId:  contractId,
+		UserId:      actor.Id,
+		Title:       request.Title,
+		Description: request.Description,
+	})
+
+	if err != nil {
+		if errors.Is(err, store.ErrForeignKeyViolation) {
+			contSrv.lg.Error("contract revision foreign key violated",
+				"event", event.EventCreateFailed,
+				"correlation_id", correlationId,
+				"scope", "contract_service",
+				"contract_id", contractId,
+				"actor_id", actor.Id,
+				"err", err)
+			return ErrBadRequest
+		}
+
+		if errors.Is(err, store.ErrNotNullViolation) {
+			if errors.Is(err, store.ErrNotNullViolation) {
+				contSrv.lg.Error("contract revision not-null constraint violated",
+					"event", event.EventCreateFailed,
+					"correlation_id", correlationId,
+					"scope", "contract_service",
+					"contract_id", contractId,
+					"actor_id", actor.Id,
+					"err", err)
+				return ErrBadRequest
+			}
+		}
+
+		contSrv.lg.Error("failed to create contract revision",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"contract_id", contractId,
+			"actor_id", actor.Id,
+			"err", err)
+		return ErrInternalError
+
+	}
+
+	return nil
+}
