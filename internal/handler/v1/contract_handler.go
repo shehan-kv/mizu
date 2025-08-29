@@ -51,6 +51,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
 	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
 	mux.Handle("POST /reject/{versionId}", mwChain.Handle(contHndl.RejectContractVersion))
+	mux.Handle("POST /revision/{contractId}", mwChain.Handle(contHndl.CreateContractRevision))
 
 	return mux
 }
@@ -174,4 +175,49 @@ func (contHndl *ContractHandler) RejectContractVersion(w http.ResponseWriter, r 
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// CreateContractRevision handles creating a contract revision.
+// The contract ID is expected as a path parameter, eg: {contractId}.
+// If contract is successfully rejected, it returns HTTP 201 Created response.
+// This method expects middleware to properly authorize requests.
+//
+//   - If contractId is missing or invalid, HTTP 400 BadRequest is returned
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned
+func (contHndl *ContractHandler) CreateContractRevision(w http.ResponseWriter, r *http.Request) {
+	contractId := r.PathValue("contractId")
+	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
+	if err != nil || parsedContractId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var createRequest dto.RevisionCreateRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if ok := createRequest.Validate(); !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = contHndl.contSrv.CreateRevision(
+		r.Context(),
+		parsedContractId,
+		&createRequest)
+
+	if err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
