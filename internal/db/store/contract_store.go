@@ -50,4 +50,9 @@ type ContractStore interface {
 	//
 	// If any error occurs, store.ErrInsertFailed is returned.
 	RejectVersion(ctx context.Context, versionId int64, userId int64) (bool, error)
+
+	// CreateRevision creates a contract revision request for a specified contract.
+	//
+	// If any error occurs, store.ErrInsertFailed is returned.
+	CreateRevision(ctx context.Context, arg *params.ContractRevisionCreate) error
 }
