@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -530,4 +531,46 @@ func (q *ContractStoreSqlite) RejectVersion(ctx context.Context, versionId int64
 	}
 
 	return false, nil
+}
+
+// CreateRevision creates a contract revision request for a specified contract.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStoreSqlite) CreateRevision(ctx context.Context, arg *params.ContractRevisionCreate) error {
+
+	// TODO: set contract status to revision-requested or something similar.
+	// Check if the contract is already signed or rejected.
+	// If signed or rejected, deny revision.
+
+	query := `
+	INSERT INTO contract_revisions(contract_id, req_user_id, title, description, status)
+	VALUES(?, ?, ?, ?, (SELECT id FROM contract_revision_statuses WHERE name = ?))
+	`
+
+	_, err := q.db.ExecContext(
+		ctx,
+		query,
+		arg.ContractId,
+		arg.UserId,
+		arg.Title,
+		arg.Description,
+		params.ContractRevisionPending,
+	)
+
+	if err != nil {
+		log.Println(err)
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
+				return store.ErrForeignKeyViolation
+			}
+
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+				return store.ErrNotNullViolation
+			}
+		}
+
+		return store.ErrInsertFailed
+	}
+
+	return nil
 }

@@ -526,3 +526,45 @@ func (q *ContractStorePostgres) RejectVersion(ctx context.Context, versionId int
 
 	return false, nil
 }
+
+// CreateRevision creates a contract revision request for a specified contract.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStorePostgres) CreateRevision(ctx context.Context, arg *params.ContractRevisionCreate) error {
+
+	// TODO: set contract status to revision-requested or something similar.
+	// Check if the contract is already signed or rejected.
+	// If signed or rejected, deny revision.
+
+	query := `
+	INSERT INTO contract_revisions(contract_id, req_user_id, title, description, status)
+	VALUES($1, $2, $3, $4, (SELECT id FROM contract_revision_statuses WHERE name = $5))
+	`
+
+	_, err := q.db.ExecContext(
+		ctx,
+		query,
+		arg.ContractId,
+		arg.UserId,
+		arg.Title,
+		arg.Description,
+		params.ContractRevisionPending,
+	)
+
+	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if err.Code.Name() == "foreign_key_violation" {
+				return store.ErrForeignKeyViolation
+			}
+
+			if err.Code.Name() == "not_null_violation" {
+				return store.ErrNotNullViolation
+			}
+
+		}
+
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}
