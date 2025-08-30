@@ -69,4 +69,16 @@ type ContractStore interface {
 	//
 	// If any error occurs, store.ErrInsertFailed is returned.
 	RejectRevision(ctx context.Context, revisionId int64, userId int64) error
+
+	// GetRevisions returns the total number of revisions found and
+	// a list of contract revision information with user data for
+	// a specified contract using the contract ID.
+	// The search criteria parameter can be used to filter results
+	// by a keyword, limit and offset results.
+	//
+	// If any error occurs, store.ErrQueryFailed is returned.
+	GetRevisions(
+		ctx context.Context,
+		contractId int64,
+		arg *params.ContractRevisionSearch) (*aggregates.WithCount[aggregates.ContractRevisionWithUser], error)
 }
