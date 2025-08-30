@@ -578,6 +578,14 @@ func (q *ContractStorePostgres) AcceptRevision(ctx context.Context, revisionId i
 	return q.setRevisionStatus(ctx, revisionId, userId, params.ContractRevisionAccepted)
 }
 
+// RejectRevision sets contract revision status to the "rejected" state
+// regardless of the previously set state.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStorePostgres) RejectRevision(ctx context.Context, revisionId int64, userId int64) error {
+	return q.setRevisionStatus(ctx, revisionId, userId, params.ContractRevisionRejected)
+}
+
 // setRevisionStatus is a private method that sets the status
 // of a specified contract revision. This method sets the state
 // regardless of the previous state of the contract revision.
