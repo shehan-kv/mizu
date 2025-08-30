@@ -574,3 +574,39 @@ func (q *ContractStoreSqlite) CreateRevision(ctx context.Context, arg *params.Co
 
 	return nil
 }
+
+// AcceptRevision sets contract revision status to the "accepted" state
+// regardless of the previously set state.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStoreSqlite) AcceptRevision(ctx context.Context, revisionId int64, userId int64) error {
+
+	return q.setRevisionStatus(ctx, revisionId, userId, params.ContractRevisionAccepted)
+}
+
+// setRevisionStatus is a private method that sets the status
+// of a specified contract revision. This method sets the state
+// regardless of the previous state of the contract revision.
+//
+// If any error occurs, store.ErrInsertFailed is returned.
+func (q *ContractStoreSqlite) setRevisionStatus(
+	ctx context.Context,
+	revisionId int64,
+	userId int64,
+	status string) error {
+
+	query := `
+	UPDATE contract_revisions 
+	SET res_user_id = ?, 
+	updated_at = CURRENT_TIMESTAMP, 
+	status = (SELECT id FROM contract_revision_statuses WHERE name = ?)
+	WHERE id = ?
+	`
+
+	_, err := q.db.ExecContext(ctx, query, userId, status, revisionId)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}
