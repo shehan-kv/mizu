@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -20,7 +20,7 @@ type ContractStore interface {
 	//   - If a unique constraint violation occurs, it returns store.ErrUniqueViolation.
 	//   - If a not-null constraint violation occurs, it returns store.ErrNotNullViolation.
 	//   - If any other errors occur, it returns store.ErrInsertFailed
-	CreateOne(ctx context.Context, projectId int64, arg *params.ContractCreate) (*aggregates.ContractCreateResult, error)
+	CreateOne(ctx context.Context, projectId int64, arg *params.ContractCreate) (*agg.ContractCreateResult, error)
 
 	// SignVersion adds a signature for the given contract version and user.
 	// It checks if the user is attempting to sign a
@@ -38,7 +38,7 @@ type ContractStore interface {
 	// an *aggregates.ContractUserSignatures struct with the metadata and signatures.
 	//
 	//   - If an error occurs, store.ErrQueryFailed is returned.
-	GetUsersWithSignature(ctx context.Context, versionId int64) (*aggregates.ContractUserSignatures, error)
+	GetUsersWithSignature(ctx context.Context, versionId int64) (*agg.ContractUserSignatures, error)
 
 	// RejectVersion adds a rejected signature for the given contract version and user.
 	// It checks if the user is attempting to reject a
@@ -80,5 +80,5 @@ type ContractStore interface {
 	GetRevisions(
 		ctx context.Context,
 		contractId int64,
-		arg *params.ContractRevisionSearch) (*aggregates.WithCount[aggregates.ContractRevisionWithUser], error)
+		arg *params.ContractRevisionSearch) (*agg.WithCount[agg.ContractRevisionWithUser], error)
 }
