@@ -55,4 +55,11 @@ type ContractStore interface {
 	//
 	// If any error occurs, store.ErrInsertFailed is returned.
 	CreateRevision(ctx context.Context, arg *params.ContractRevisionCreate) error
+
+	// AcceptRevision marks a contract revision as accepted.
+	// If the contract revision is already marked as accepted,
+	// it doesn't make any changes.
+	//
+	// If any error occurs, store.ErrInsertFailed is returned.
+	AcceptRevision(ctx context.Context, revisionId int64, userId int64) error
 }
