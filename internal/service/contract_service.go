@@ -382,3 +382,36 @@ func (contSrv *ContractService) CreateRevision(
 
 	return nil
 }
+
+// AcceptRevision accepts a contract revision specified by the revisionId parameter.
+// Requesting user is assigned as the revision accepting user.
+// This method expects middleware to properly authorize requests.
+//
+//   - If an error occurs, it returns service.ErrInternalError
+func (contSrv *ContractService) AcceptRevision(ctx context.Context, revisionId int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"revision_id", revisionId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if err := contSrv.contSt.AcceptRevision(ctx, revisionId, actor.Id); err != nil {
+		contSrv.lg.Error("failed to accept contract revision",
+			"event", event.EventCreateFailed,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"revision_id", revisionId,
+			"actor_id", actor.Id,
+			"err", err)
+		return ErrInternalError
+	}
+
+	return nil
+}
