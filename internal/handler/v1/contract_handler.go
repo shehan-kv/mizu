@@ -53,6 +53,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux.Handle("POST /reject/{versionId}", mwChain.Handle(contHndl.RejectContractVersion))
 	mux.Handle("POST /revision/{contractId}", mwChain.Handle(contHndl.CreateContractRevision))
 	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(contHndl.AcceptRevision))
+	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(contHndl.RejectRevision))
 
 	return mux
 }
@@ -240,6 +241,30 @@ func (contHndl *ContractHandler) AcceptRevision(w http.ResponseWriter, r *http.R
 	}
 
 	if err := contHndl.contSrv.AcceptRevision(r.Context(), parsedRevisionId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// RejectRevision handles HTTP POST requests for rejecting
+// a contract revision by the user making the request.
+// The revision ID is expected as a path parameter, eg: {revisionId}.
+// This method expects middleware to properly authorize requests.
+//
+//   - If contract revision is successfully rejected, HTTP 200 is returned.
+//   - If revisionId is missing or invalid, HTTP 400 BadRequest is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (contHndl *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.Request) {
+	revisionId := r.PathValue("revisionId")
+	parsedRevisionId, err := strconv.ParseInt(revisionId, 10, 64)
+	if err != nil || parsedRevisionId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := contHndl.contSrv.RejectRevision(r.Context(), parsedRevisionId); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
