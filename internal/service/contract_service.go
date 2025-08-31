@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/common"
 	dto "mizu/internal/dto/contract"
 	"mizu/internal/email"
 	emlPrms "mizu/internal/email/params"
@@ -446,4 +448,89 @@ func (contSrv *ContractService) RejectRevision(ctx context.Context, revisionId i
 	}
 
 	return nil
+}
+
+// GetRevisions retrieves a paginated list of revisions for the specified contract.
+// The contract is specified by the ID.
+// It supports keyword and status filtering,
+// and returns results wrapped in a common.Page payload.
+// This method expects middleware to properly authorize requests.
+//
+//   - If an error occurs, it returns service.ErrInternalError
+func (contSrv *ContractService) GetRevisions(
+	ctx context.Context,
+	contractId int64,
+	query *dto.RevisionSearchQuery) (*common.Page[[]dto.RevisionResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"contract_id", contractId,
+			"keyword", query.Keyword,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	revisions, err := contSrv.contSt.GetRevisions(ctx, contractId, &params.ContractRevisionSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		contSrv.lg.Error("could not get projects list",
+			"event", event.EventGetFailed,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"keyword", query.Keyword,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	revResp := make([]dto.RevisionResponse, len(revisions.Items))
+
+	for i, revision := range revisions.Items {
+		revResp[i] = dto.RevisionResponse{
+			Id:          revision.Id,
+			ContractId:  revision.ContractId,
+			Title:       revision.Title,
+			Description: revision.Description,
+			CreatedAt:   revision.CreatedAt,
+			UpdatedAt:   revision.UpdatedAt,
+			Status:      revision.Status,
+			ReqUser: dto.RevisionUser{
+				FirstName: revision.ReqUserFirstName,
+				LastName:  revision.ReqUserLastName,
+			},
+		}
+
+		if revision.ResUserFirstName != nil && revision.ResUserLastName != nil {
+			revResp[i].ResUser = &dto.RevisionUser{
+				FirstName: *revision.ResUserFirstName,
+				LastName:  *revision.ResUserLastName,
+			}
+		}
+	}
+
+	numOfPages := math.Ceil(float64(revisions.Total) / float64(query.Limit))
+	resp := common.Page[[]dto.RevisionResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  int64(numOfPages),
+		Data:        revResp,
+	}
+
+	return &resp, nil
 }
