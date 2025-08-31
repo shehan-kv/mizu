@@ -7,7 +7,7 @@ type ContractRevisionWithUser struct {
 	ContractId       int64
 	Title            string
 	Description      string
-	CreatedAt        *time.Time
+	CreatedAt        time.Time
 	UpdatedAt        *time.Time
 	Status           string
 	ReqUserFirstName string
