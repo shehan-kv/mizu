@@ -9,6 +9,7 @@ import (
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -617,4 +618,112 @@ func (q *ContractStoreSqlite) setRevisionStatus(
 	}
 
 	return nil
+}
+
+// GetRevisions returns the total number of revisions found and
+// a list of contract revision information with user data for
+// a specified contract using the contract ID.
+// The search criteria parameter can be used to filter results
+// by a keyword, limit and offset results.
+//
+// If any error occurs, store.ErrQueryFailed is returned.
+func (q *ContractStoreSqlite) GetRevisions(
+	ctx context.Context,
+	contractId int64,
+	arg *params.ContractRevisionSearch) (*aggregates.WithCount[aggregates.ContractRevisionWithUser], error) {
+
+	var revisionQuery strings.Builder
+	revisionQuery.WriteString(`
+	SELECT 
+		cr.id, 
+		cr.contract_id, 
+		cr.created_at,
+		cr.updated_at, 
+		cr.title, 
+		cr.description,
+		crs.name,
+		req_u.first_name AS req_first_name,
+		req_u.last_name AS req_last_name,
+		res_u.first_name AS res_first_name,
+		res_u.last_name AS res_last_name
+	FROM contract_revisions cr
+	JOIN contract_revision_statuses crs ON crs.id = cr.status
+	LEFT JOIN users req_u ON req_u.id = cr.req_user_id
+	LEFT JOIN users res_u ON res_u.id = cr.res_user_id 
+	WHERE cr.contract_id = ?
+	`)
+
+	var revisionCountQuery strings.Builder
+	revisionCountQuery.WriteString(`
+	SELECT COUNT(cr.id) FROM contract_revisions cr
+	JOIN contract_revision_statuses crs ON crs.id = cr.status
+	WHERE cr.contract_id = ?
+	`)
+
+	revisionQueryArgs := []any{contractId}
+	revisionCountArgs := []any{contractId}
+
+	if len(arg.Keyword) != 0 {
+		revisionQuery.WriteString(" AND ( cr.title LIKE ? OR cr.description LIKE ? )")
+		revisionCountQuery.WriteString(" AND ( cr.title LIKE ? OR cr.description LIKE ? )")
+
+		revisionQueryArgs = append(revisionQueryArgs, "%"+arg.Keyword+"%", "%"+arg.Keyword+"%")
+		revisionCountArgs = append(revisionCountArgs, "%"+arg.Keyword+"%", "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) != 0 {
+		revisionQuery.WriteString(" AND crs.name = ?")
+		revisionCountQuery.WriteString(" AND crs.name = ?")
+
+		revisionQueryArgs = append(revisionQueryArgs, arg.Status)
+		revisionCountArgs = append(revisionCountArgs, arg.Status)
+	}
+
+	revisionQuery.WriteString(" ORDER BY cr.created_at DESC")
+	revisionQuery.WriteString(" LIMIT ? OFFSET ?")
+	revisionQueryArgs = append(revisionQueryArgs, arg.Limit, arg.Offset)
+
+	var totalRevisions int64
+	err := q.db.QueryRowContext(ctx, revisionCountQuery.String(), revisionCountArgs...).Scan(&totalRevisions)
+
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	rows, err := q.db.QueryContext(ctx, revisionQuery.String(), revisionQueryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := aggregates.WithCount[aggregates.ContractRevisionWithUser]{
+		Total: totalRevisions,
+		Items: make([]aggregates.ContractRevisionWithUser, 0),
+	}
+
+	for rows.Next() {
+		var row aggregates.ContractRevisionWithUser
+		err := rows.Scan(
+			&row.Id,
+			&row.ContractId,
+			&row.CreatedAt,
+			&row.UpdatedAt,
+			&row.Title,
+			&row.Description,
+			&row.Status,
+			&row.ReqUserFirstName,
+			&row.ReqUserLastName,
+			&row.ResUserFirstName,
+			&row.ResUserLastName,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result.Items = append(result.Items, row)
+	}
+
+	return &result, nil
 }

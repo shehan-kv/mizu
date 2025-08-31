@@ -8,6 +8,7 @@ import (
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -611,4 +612,141 @@ func (q *ContractStorePostgres) setRevisionStatus(
 	}
 
 	return nil
+}
+
+// GetRevisions returns the total number of revisions found and
+// a list of contract revision information with user data for
+// a specified contract using the contract ID.
+// The search criteria parameter can be used to filter results
+// by a keyword, limit and offset results.
+//
+// If any error occurs, store.ErrQueryFailed is returned.
+func (q *ContractStorePostgres) GetRevisions(
+	ctx context.Context,
+	contractId int64,
+	arg *params.ContractRevisionSearch) (*aggregates.WithCount[aggregates.ContractRevisionWithUser], error) {
+
+	var revisionQuery strings.Builder
+	revisionQuery.WriteString(`
+	SELECT 
+		cr.id, 
+		cr.contract_id, 
+		cr.created_at,
+		cr.updated_at, 
+		cr.title, 
+		cr.description,
+		crs.name,
+		req_u.first_name AS req_first_name,
+		req_u.last_name AS req_last_name,
+		res_u.first_name AS res_first_name,
+		res_u.last_name AS res_last_name
+	FROM contract_revisions cr
+	JOIN contract_revision_statuses crs ON crs.id = cr.status
+	LEFT JOIN users req_u ON req_u.id = cr.req_user_id
+	LEFT JOIN users res_u ON res_u.id = cr.res_user_id 
+	WHERE cr.contract_id = $1
+	`)
+
+	var revisionCountQuery strings.Builder
+	revisionCountQuery.WriteString(`
+	SELECT COUNT(cr.id) FROM contract_revisions cr
+	JOIN contract_revision_statuses crs ON crs.id = cr.status
+	WHERE cr.contract_id = $1
+	`)
+
+	revisionQueryArgs := []any{contractId}
+	revisionCountArgs := []any{contractId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramPosition := paramCount + 1
+
+		revisionQuery.WriteString(" AND ( cr.title LIKE $")
+		revisionQuery.WriteString(strconv.Itoa(paramPosition))
+
+		revisionQuery.WriteString(" OR cr.description LIKE $")
+		revisionQuery.WriteString(strconv.Itoa(paramPosition + 1))
+		revisionQuery.WriteString(" )")
+
+		revisionCountQuery.WriteString(" AND ( cr.title LIKE $")
+		revisionQuery.WriteString(strconv.Itoa(paramPosition))
+
+		revisionQuery.WriteString(" OR cr.description LIKE $")
+		revisionQuery.WriteString(strconv.Itoa(paramPosition + 1))
+		revisionQuery.WriteString(" )")
+
+		revisionQueryArgs = append(revisionQueryArgs, "%"+arg.Keyword+"%", "%"+arg.Keyword+"%")
+		revisionCountArgs = append(revisionCountArgs, "%"+arg.Keyword+"%", "%"+arg.Keyword+"%")
+
+		paramCount += 2
+	}
+
+	if len(arg.Status) != 0 {
+		paramCount++
+		revisionQuery.WriteString(" AND crs.name = $")
+		revisionQuery.WriteString(strconv.Itoa(paramCount))
+
+		revisionCountQuery.WriteString(" AND crs.name = $")
+		revisionCountQuery.WriteString(strconv.Itoa(paramCount))
+
+		revisionQueryArgs = append(revisionQueryArgs, arg.Status)
+		revisionCountArgs = append(revisionCountArgs, arg.Status)
+	}
+
+	revisionQuery.WriteString(" ORDER BY cr.created_at DESC")
+
+	paramCount++
+	revisionQuery.WriteString(" LIMIT $")
+	revisionQuery.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	revisionQuery.WriteString(" OFFSET $")
+	revisionQuery.WriteString(strconv.Itoa(paramCount))
+
+	revisionQueryArgs = append(revisionQueryArgs, arg.Limit, arg.Offset)
+
+	var totalRevisions int64
+	err := q.db.QueryRowContext(ctx, revisionCountQuery.String(), revisionCountArgs...).Scan(&totalRevisions)
+
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	rows, err := q.db.QueryContext(ctx, revisionQuery.String(), revisionQueryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := aggregates.WithCount[aggregates.ContractRevisionWithUser]{
+		Total: totalRevisions,
+		Items: make([]aggregates.ContractRevisionWithUser, 0),
+	}
+
+	for rows.Next() {
+		var row aggregates.ContractRevisionWithUser
+		err := rows.Scan(
+			&row.Id,
+			&row.ContractId,
+			&row.CreatedAt,
+			&row.UpdatedAt,
+			&row.Title,
+			&row.Description,
+			&row.Status,
+			&row.ReqUserFirstName,
+			&row.ReqUserLastName,
+			&row.ResUserFirstName,
+			&row.ResUserLastName,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result.Items = append(result.Items, row)
+	}
+
+	return &result, nil
 }
