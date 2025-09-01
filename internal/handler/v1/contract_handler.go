@@ -52,6 +52,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
 	mux.Handle("POST /reject/{versionId}", mwChain.Handle(contHndl.RejectContractVersion))
 	mux.Handle("POST /revision/{contractId}", mwChain.Handle(contHndl.CreateContractRevision))
+	mux.Handle("GET /revision/{contractId}", mwChain.Handle(contHndl.GetRevisions))
 	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(contHndl.AcceptRevision))
 	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(contHndl.RejectRevision))
 
@@ -270,4 +271,76 @@ func (contHndl *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.R
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// GetRevisions handles HTTP GET requests for getting a paginated
+// list of contract revisions for a specified contract.
+// The contract ID is expected as a path parameter, eg: {contractId}.
+// Supports query parameters for pagination and
+// filtering results by a search term and status, eg: ?q=keyword&page=1.
+// This method expects middleware to properly authorize requests.
+//
+// Supported query parameters:
+//   - q: a term to filter results by
+//   - status: status of revisions to filter by
+//   - page: the page number requested
+//   - limit: the number of results per page
+//
+// HTTP responses:
+//   - If the request is successful, HTTP 200 is returned.
+//   - If contractId is missing or invalid, HTTP 400 BadRequest is returned.
+//   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (contHndl *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Request) {
+	contractId := r.PathValue("contractId")
+	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
+	if err != nil || parsedContractId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	keyword := r.URL.Query().Get("q")
+	status := r.URL.Query().Get("status")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	result, err := contHndl.contSrv.GetRevisions(r.Context(), parsedContractId, &dto.RevisionSearchQuery{
+		Keyword: keyword,
+		Status:  status,
+		Page:    page,
+		Limit:   limit,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
 }
