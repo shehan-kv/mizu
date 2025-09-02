@@ -534,3 +534,74 @@ func (contSrv *ContractService) GetRevisions(
 
 	return &resp, nil
 }
+
+// GetContractsByProject retrieves a paginated list of contracts for
+// the specified project. The project is specified by the ID.
+// It supports keyword and status filtering,
+// and returns results wrapped in a common.Page payload.
+// This method expects middleware to properly authorize requests.
+//
+//   - If an error occurs, it returns service.ErrInternalError
+func (contSrv *ContractService) GetContractsByProject(
+	ctx context.Context,
+	projectId int64,
+	query *dto.ContractSearchQuery) (*common.Page[[]dto.ContractStatsResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"project_id", projectId,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	contracts, err := contSrv.contSt.GetContractStatsByProject(ctx, projectId, &params.ContractSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		contSrv.lg.Error("could not get contracts list",
+			"event", event.EventGetFailed,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"project_id", projectId,
+			"actor_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	contractResp := make([]dto.ContractStatsResponse, len(contracts.Items))
+
+	for i, contract := range contracts.Items {
+		contractResp[i] = dto.ContractStatsResponse{
+			Id:                contract.Id,
+			Name:              contract.Name,
+			Status:            contract.Status,
+			CreatedAt:         contract.CreatedAt,
+			Versions:          contract.Versions,
+			Revisions:         contract.Revisions,
+			AcceptedRevisions: contract.AcceptedRevisions,
+		}
+	}
+
+	numOfPages := math.Ceil(float64(contracts.Total) / float64(query.Limit))
+	resp := common.Page[[]dto.ContractStatsResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  int64(numOfPages),
+		Data:        contractResp,
+	}
+
+	return &resp, nil
+}
