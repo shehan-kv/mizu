@@ -81,4 +81,16 @@ type ContractStore interface {
 		ctx context.Context,
 		contractId int64,
 		arg *params.ContractRevisionSearch) (*agg.WithCount[agg.ContractRevisionWithUser], error)
+
+	// GetContractStatsByProject returns the total number of contracts found and
+	// a list of contract with metrics such as number of versions and revisions
+	// for a specified project.
+	// The search criteria parameter can be used to filter results
+	// by a keyword, limit and offset results.
+	//
+	// If any error occurs, store.ErrQueryFailed is returned.
+	GetContractStatsByProject(
+		ctx context.Context,
+		projectId int64,
+		arg *params.ContractSearch) (*agg.WithCount[agg.ContractWithStats], error)
 }
