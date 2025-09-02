@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"strconv"
@@ -43,7 +43,7 @@ func NewContractStore(db *sql.DB) *ContractStoreSqlite {
 func (q *ContractStoreSqlite) CreateOne(
 	ctx context.Context,
 	projectId int64,
-	arg *params.ContractCreate) (*aggregates.ContractCreateResult, error) {
+	arg *params.ContractCreate) (*agg.ContractCreateResult, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -52,10 +52,20 @@ func (q *ContractStoreSqlite) CreateOne(
 
 	defer tx.Rollback()
 
-	insertContractQuery := `INSERT INTO contracts(project_id, name) VALUES(?, ?) RETURNING id`
+	insertContractQuery := `
+	INSERT INTO contracts(project_id, name, status) 
+	VALUES(?, ?, (SELECT id FROM contract_statuses WHERE name = ?)) RETURNING id
+	`
 
 	var contractId int64
-	if err := tx.QueryRowContext(ctx, insertContractQuery, projectId, arg.Name).Scan(&contractId); err != nil {
+	if err := tx.QueryRowContext(
+		ctx,
+		insertContractQuery,
+		projectId,
+		arg.Name,
+		params.ContractStatusPending,
+	).Scan(&contractId); err != nil {
+
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
 				return nil, store.ErrForeignKeyViolation
@@ -75,7 +85,7 @@ func (q *ContractStoreSqlite) CreateOne(
 
 	insertVersionQuery := `
 	INSERT INTO contract_versions(contract_id, version, status, contract)
-	VALUES(?, ?, (SELECT id FROM contract_statuses WHERE name = ?), ?)
+	VALUES(?, ?, (SELECT id FROM contract_version_statuses WHERE name = ?), ?)
 	`
 
 	if _, err := tx.ExecContext(
@@ -122,10 +132,10 @@ func (q *ContractStoreSqlite) CreateOne(
 		channelIds = append(channelIds, id)
 	}
 
-	result := aggregates.ContractCreateResult{
+	result := agg.ContractCreateResult{
 		ContractId: contractId,
 		Version:    arg.Version,
-		Messages:   make(map[int64]aggregates.MessageWithUser),
+		Messages:   make(map[int64]agg.MessageWithUser),
 		UserIds:    make(map[int64][]int64),
 	}
 
@@ -179,7 +189,7 @@ func (q *ContractStoreSqlite) CreateOne(
 			return nil, store.ErrInsertFailed
 		}
 
-		msg := aggregates.MessageWithUser{
+		msg := agg.MessageWithUser{
 			UserId:    0,
 			MessageId: msgId,
 			ChannelId: channelId,
@@ -251,7 +261,7 @@ func (q *ContractStoreSqlite) SignVersion(ctx context.Context, versionId int64, 
 
 	insertSignatureQuery := `
 	INSERT OR IGNORE INTO contract_signatures(version_id, user_id, status)
-	VALUES(?, ?, (SELECT id FROM contract_statuses WHERE name = ?))
+	VALUES(?, ?, (SELECT id FROM contract_signature_statuses WHERE name = ?))
 	`
 
 	if _, err := tx.ExecContext(
@@ -268,7 +278,7 @@ func (q *ContractStoreSqlite) SignVersion(ctx context.Context, versionId int64, 
 	// Mark version as signed if the user is the last user to sign the contract.
 	setVersionStatusQuery := `
 	UPDATE contract_versions
-    SET status = (SELECT id FROM contract_statuses WHERE name = ?)
+    SET status = (SELECT id FROM contract_version_statuses WHERE name = ?)
     WHERE id = ?
     AND NOT EXISTS (
     	SELECT 1
@@ -311,38 +321,30 @@ func (q *ContractStoreSqlite) SignVersion(ctx context.Context, versionId int64, 
 //   - If an error occurs, store.ErrQueryFailed is returned.
 func (q *ContractStoreSqlite) isContractSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64) (bool, error) {
 
-	isContractSignedQuery := `
-	SELECT
-  		CASE
-    		WHEN COUNT(*) > 0 THEN TRUE
-    		ELSE FALSE
-  		END AS is_signed
+	query := `
+	SELECT 
+		CASE 
+			WHEN cs.name IN (?, ?) 
+			THEN 1 ELSE 0 
+		END
 	FROM contract_versions cv
-	JOIN contract_versions cv2
-  	ON cv2.contract_id = cv.contract_id
-	JOIN contract_statuses cs
-  	ON cv2.status = cs.id
+	JOIN contracts c ON c.id = cv.contract_id
+	JOIN contract_statuses cs ON cs.id = c.status
 	WHERE cv.id = ?
-  	AND cs.name = ? OR cs.name = ?
 	`
 
-	var isContractSigned bool
+	var isSignedOrRejected bool
 	if err := tx.QueryRowContext(
 		ctx,
-		isContractSignedQuery,
-		versionId,
+		query,
 		params.ContractStatusSigned,
 		params.ContractStatusRejected,
-	).Scan(&isContractSigned); err != nil {
+		versionId,
+	).Scan(&isSignedOrRejected); err != nil {
 
 		return false, store.ErrQueryFailed
 	}
-
-	if isContractSigned {
-		return true, nil
-	}
-
-	return false, nil
+	return isSignedOrRejected, nil
 }
 
 // hasUserSignedOrRejected is a helper method that checks
@@ -387,7 +389,7 @@ func (q *ContractStoreSqlite) hasUserSignedOrRejected(ctx context.Context, tx *s
 //   - If an error occurs, store.ErrQueryFailed is returned.
 func (q *ContractStoreSqlite) GetUsersWithSignature(
 	ctx context.Context,
-	versionId int64) (*aggregates.ContractUserSignatures, error) {
+	versionId int64) (*agg.ContractUserSignatures, error) {
 
 	contractQuery := `
 	SELECT c.name, cv.version, cv.contract FROM contract_versions cv
@@ -395,7 +397,7 @@ func (q *ContractStoreSqlite) GetUsersWithSignature(
 	WHERE cv.id = ?
 	`
 
-	var contractUsrSigns aggregates.ContractUserSignatures
+	var contractUsrSigns agg.ContractUserSignatures
 	if err := q.db.QueryRowContext(
 		ctx,
 		contractQuery,
@@ -424,7 +426,7 @@ func (q *ContractStoreSqlite) GetUsersWithSignature(
 	JOIN project_users pu ON pu.project_id = c.project_id
 	JOIN users u ON u.id = pu.user_id
 	LEFT JOIN contract_signatures cs ON cs.user_id = u.id AND cs.version_id = cv.id
-	LEFT JOIN contract_statuses c_stat ON c_stat.id = cs.status
+	LEFT JOIN contract_signature_statuses c_stat ON c_stat.id = cs.status
 	WHERE cv.id = ?
 	`
 
@@ -435,11 +437,11 @@ func (q *ContractStoreSqlite) GetUsersWithSignature(
 
 	defer rows.Close()
 
-	contractUsrSigns.Signatures = make([]aggregates.ContractSignature, 0)
+	contractUsrSigns.Signatures = make([]agg.ContractSignature, 0)
 
 	for rows.Next() {
 
-		var usrSign aggregates.ContractSignature
+		var usrSign agg.ContractSignature
 		if err := rows.Scan(
 			&usrSign.FirstName,
 			&usrSign.LastName,
@@ -497,7 +499,7 @@ func (q *ContractStoreSqlite) RejectVersion(ctx context.Context, versionId int64
 
 	insertSignatureQuery := `
 	INSERT OR IGNORE INTO contract_signatures(version_id, user_id, status)
-	VALUES(?, ?, (SELECT id FROM contract_statuses WHERE name = ?))
+	VALUES(?, ?, (SELECT id FROM contract_signature_statuses WHERE name = ?))
 	`
 
 	if _, err := tx.ExecContext(
@@ -513,7 +515,7 @@ func (q *ContractStoreSqlite) RejectVersion(ctx context.Context, versionId int64
 
 	setVersionStatusQuery := `
 	UPDATE contract_versions
-    SET status = (SELECT id FROM contract_statuses WHERE name = ?)
+    SET status = (SELECT id FROM contract_version_statuses WHERE name = ?)
     WHERE id = ?
 	`
 
@@ -630,7 +632,7 @@ func (q *ContractStoreSqlite) setRevisionStatus(
 func (q *ContractStoreSqlite) GetRevisions(
 	ctx context.Context,
 	contractId int64,
-	arg *params.ContractRevisionSearch) (*aggregates.WithCount[aggregates.ContractRevisionWithUser], error) {
+	arg *params.ContractRevisionSearch) (*agg.WithCount[agg.ContractRevisionWithUser], error) {
 
 	var revisionQuery strings.Builder
 	revisionQuery.WriteString(`
@@ -697,13 +699,13 @@ func (q *ContractStoreSqlite) GetRevisions(
 
 	defer rows.Close()
 
-	result := aggregates.WithCount[aggregates.ContractRevisionWithUser]{
+	result := agg.WithCount[agg.ContractRevisionWithUser]{
 		Total: totalRevisions,
-		Items: make([]aggregates.ContractRevisionWithUser, 0),
+		Items: make([]agg.ContractRevisionWithUser, 0),
 	}
 
 	for rows.Next() {
-		var row aggregates.ContractRevisionWithUser
+		var row agg.ContractRevisionWithUser
 		err := rows.Scan(
 			&row.Id,
 			&row.ContractId,
@@ -719,6 +721,128 @@ func (q *ContractStoreSqlite) GetRevisions(
 		)
 
 		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result.Items = append(result.Items, row)
+	}
+
+	return &result, nil
+}
+
+// GetContractStatsByProject returns the total number of contracts found and
+// a list of contract with metrics such as number of versions and revisions
+// for a specified project.
+// The search criteria parameter can be used to filter results
+// by a keyword, limit and offset results.
+//
+// If any error occurs, store.ErrQueryFailed is returned.
+func (q *ContractStoreSqlite) GetContractStatsByProject(
+	ctx context.Context,
+	projectId int64,
+	arg *params.ContractSearch) (*agg.WithCount[agg.ContractWithStats], error) {
+
+	var query strings.Builder
+	var countQuery strings.Builder
+	query.WriteString(`
+	WITH version_counts AS (
+  		SELECT
+    		contract_id,
+    		COUNT(*) AS versions
+  		FROM contract_versions
+  		GROUP BY contract_id
+	),
+	revision_counts AS (
+  		SELECT
+    		contract_id,
+    		COUNT(*) AS revisions
+  		FROM contract_revisions
+  		GROUP BY contract_id
+	),
+	accepted_revisions AS (
+		SELECT 
+			cr.contract_id AS contract_id,
+			COUNT(*) AS accepted
+		FROM contract_revisions cr
+		JOIN contract_revision_statuses crs ON crs.id = cr.status
+		WHERE crs.name = ?
+		GROUP BY cr.contract_id
+	)
+
+	SELECT
+  		c.id,
+  		c.name,
+  		cs.name AS status,
+  		c.created_at,
+  		COALESCE(v.versions,  0) AS versions,
+  		COALESCE(r.revisions, 0) AS revisions,
+  		COALESCE(ar.accepted, 0) AS accepted_revisions
+	FROM contracts c
+	JOIN contract_statuses cs ON cs.id = c.status
+	LEFT JOIN version_counts v ON v.contract_id = c.id
+	LEFT JOIN revision_counts r ON r.contract_id = c.id
+	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id
+	WHERE c.project_id = ?
+	`)
+
+	countQuery.WriteString(`
+	SELECT COUNT(c.id) FROM contracts c
+	JOIN contract_statuses cs ON cs.id = c.status
+	WHERE c.project_id = ?
+	`)
+
+	queryArgs := []any{params.ContractRevisionAccepted, projectId}
+	countQueryArgs := []any{projectId}
+
+	if len(arg.Keyword) > 0 {
+		query.WriteString(" AND c.name LIKE ?")
+		countQuery.WriteString(" AND c.name LIKE ?")
+
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+		countQueryArgs = append(countQueryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) > 0 {
+		query.WriteString(" AND cs.name = ?")
+		countQuery.WriteString(" AND cs.name = ?")
+
+		queryArgs = append(queryArgs, arg.Status)
+		countQueryArgs = append(countQueryArgs, arg.Status)
+	}
+
+	query.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	var totalContracts int64
+	err := q.db.QueryRowContext(ctx, countQuery.String(), countQueryArgs...).Scan(&totalContracts)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := agg.WithCount[agg.ContractWithStats]{
+		Total: totalContracts,
+		Items: make([]agg.ContractWithStats, 0),
+	}
+
+	for rows.Next() {
+
+		var row agg.ContractWithStats
+		if err := rows.Scan(
+			&row.Id,
+			&row.Name,
+			&row.Status,
+			&row.CreatedAt,
+			&row.Versions,
+			&row.Revisions,
+			&row.AcceptedRevisions,
+		); err != nil {
 			return nil, store.ErrQueryFailed
 		}
 
