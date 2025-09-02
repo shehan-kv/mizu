@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -49,5 +49,5 @@ type ProjectStore interface {
 	// Returns:
 	//	 - *aggregates.ProjectWithStatsList
 	//   - store.ErrQueryFailed: if query fails
-	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*aggregates.ProjectWithStatsList, error)
+	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*agg.ProjectWithStatsList, error)
 }

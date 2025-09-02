@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 
@@ -29,7 +29,7 @@ func NewMessageStore(db *sql.DB) *MessageStorePostgres {
 // Implementation of CreateOne defined in MessageStore interface
 func (q *MessageStorePostgres) CreateOne(
 	ctx context.Context,
-	arg *params.MessageCreate) (*aggregates.MessageWithUser, error) {
+	arg *params.MessageCreate) (*agg.MessageWithUser, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -43,7 +43,7 @@ func (q *MessageStorePostgres) CreateOne(
 	VALUES($1, $2, $3, (SELECT id FROM message_types WHERE name = $4)) RETURNING id, created_at
 	`
 
-	var messageWithUser aggregates.MessageWithUser
+	var messageWithUser agg.MessageWithUser
 	messageWithUser.UserId = arg.UserId
 
 	err = tx.QueryRowContext(ctx, insertMsgQuery,
@@ -150,7 +150,7 @@ func (q *MessageStorePostgres) GetUsersByChannelId(ctx context.Context, channelI
 func (q *MessageStorePostgres) GetByChannelId(
 	ctx context.Context,
 	channelId int64,
-	arg *params.MessageSearch) ([]aggregates.MessageWithUser, error) {
+	arg *params.MessageSearch) ([]agg.MessageWithUser, error) {
 
 	messageQuery := `
 	SELECT m.id, m.message, m.user_id, m.created_at, t.name, u.first_name, 
@@ -169,9 +169,9 @@ func (q *MessageStorePostgres) GetByChannelId(
 
 	defer rows.Close()
 
-	var msgs []aggregates.MessageWithUser
+	var msgs []agg.MessageWithUser
 	for rows.Next() {
-		var msg aggregates.MessageWithUser
+		var msg agg.MessageWithUser
 		rows.Scan(
 			&msg.MessageId,
 			&msg.Message,

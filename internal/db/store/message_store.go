@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -18,7 +18,7 @@ type MessageStore interface {
 	// Returns:
 	//   - *aggregates.MessageWithUser
 	//   - store.ErrInsertFailed: if create fails
-	CreateOne(ctx context.Context, arg *params.MessageCreate) (*aggregates.MessageWithUser, error)
+	CreateOne(ctx context.Context, arg *params.MessageCreate) (*agg.MessageWithUser, error)
 
 	// Gets IDs of all channels by user ID
 	//
@@ -45,7 +45,7 @@ type MessageStore interface {
 	// GetByChannelId returns an array of MessageWithuser aggregate structs
 	// for messages in a specified channel.
 	// If an error occurs, it returns store.ErrQueryFailed.
-	GetByChannelId(ctx context.Context, channelId int64, arg *params.MessageSearch) ([]aggregates.MessageWithUser, error)
+	GetByChannelId(ctx context.Context, channelId int64, arg *params.MessageSearch) ([]agg.MessageWithUser, error)
 
 	// CountByChannelId returns the total number of
 	// messages in a specified channel.

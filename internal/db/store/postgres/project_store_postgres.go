@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"strconv"
@@ -115,7 +115,7 @@ func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskC
 // Implementing GetWithStats defined in ProjectStore interface
 func (q *ProjectStorePostgres) GetWithStats(
 	ctx context.Context,
-	arg *params.ProjectsSearch) (*aggregates.ProjectWithStatsList, error) {
+	arg *params.ProjectsSearch) (*agg.ProjectWithStatsList, error) {
 
 	query := `
 	SELECT p.id, p.name, p.created_at, ps.name AS status,
@@ -198,10 +198,10 @@ func (q *ProjectStorePostgres) GetWithStats(
 
 	defer rows.Close()
 
-	projects := []aggregates.ProjectWithStats{}
+	projects := []agg.ProjectWithStats{}
 
 	for rows.Next() {
-		var project aggregates.ProjectWithStats
+		var project agg.ProjectWithStats
 
 		err := rows.Scan(
 			&project.Id,
@@ -228,5 +228,5 @@ func (q *ProjectStorePostgres) GetWithStats(
 		return nil, store.ErrQueryFailed
 	}
 
-	return &aggregates.ProjectWithStatsList{TotalCount: totalProjects, Projects: projects}, nil
+	return &agg.ProjectWithStatsList{TotalCount: totalProjects, Projects: projects}, nil
 }

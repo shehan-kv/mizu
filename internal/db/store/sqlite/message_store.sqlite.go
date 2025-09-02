@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"mizu/internal/db/models/aggregates"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 
@@ -30,7 +30,7 @@ func NewMessageStore(db *sql.DB) *MessageStoreSqlite {
 // Implementation of CreateOne defined in MessageStore interface
 func (q *MessageStoreSqlite) CreateOne(
 	ctx context.Context,
-	arg *params.MessageCreate) (*aggregates.MessageWithUser, error) {
+	arg *params.MessageCreate) (*agg.MessageWithUser, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -44,7 +44,7 @@ func (q *MessageStoreSqlite) CreateOne(
 	VALUES(?, ?, ?, (SELECT id FROM message_types WHERE name = ?)) RETURNING id, created_at
 	`
 
-	var messageWithUser aggregates.MessageWithUser
+	var messageWithUser agg.MessageWithUser
 	messageWithUser.UserId = arg.UserId
 	messageWithUser.Message = arg.Message
 
@@ -154,7 +154,7 @@ func (q *MessageStoreSqlite) GetUsersByChannelId(ctx context.Context, channelId 
 func (q *MessageStoreSqlite) GetByChannelId(
 	ctx context.Context,
 	channelId int64,
-	arg *params.MessageSearch) ([]aggregates.MessageWithUser, error) {
+	arg *params.MessageSearch) ([]agg.MessageWithUser, error) {
 
 	messageQuery := `
 	SELECT m.id, m.message, m.user_id, m.created_at, t.name, u.first_name, 
@@ -173,9 +173,9 @@ func (q *MessageStoreSqlite) GetByChannelId(
 
 	defer rows.Close()
 
-	var msgs []aggregates.MessageWithUser
+	var msgs []agg.MessageWithUser
 	for rows.Next() {
-		var msg aggregates.MessageWithUser
+		var msg agg.MessageWithUser
 		rows.Scan(
 			&msg.MessageId,
 			&msg.Message,
