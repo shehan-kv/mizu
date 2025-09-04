@@ -3,8 +3,11 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strconv"
+	"strings"
 
 	"github.com/lib/pq"
 )
@@ -101,4 +104,114 @@ func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, arg *params.Invoic
 	}
 
 	return invoiceId, nil
+}
+
+// GetInvoiceStatsByProject returns the total number of invoices/quotes
+// found and a list of invoices with status for
+// a specified project using the project ID.
+// The search criteria parameter can be used to filter results
+// by the type (invoice/quote), limit and offset results.
+//
+// If any error occurs, store.ErrQueryFailed is returned.
+func (q *InvoiceStorePostgres) GetInvoiceStatsByProject(
+	ctx context.Context,
+	projectId int64,
+	arg *params.InvoiceSearch) (*agg.WithCount[agg.InvoiceWithStatus], error) {
+
+	var query strings.Builder
+	var countQuery strings.Builder
+
+	query.WriteString(`
+	SELECT 
+		i.id, 
+		i.is_invoice, 
+		i.issued_at, 
+		i.due_at, 
+		i.total, 
+		i.currency_code, 
+		ins.name
+	FROM invoices i 
+	JOIN invoice_statuses ins ON ins.id = i.status
+	WHERE i.project_id = $1 
+	`)
+
+	countQuery.WriteString(`
+	SELECT COUNT(i.id) FROM invoices i
+	JOIN invoice_statuses ins ON ins.id = i.status
+	WHERE i.project_id = $1 
+	`)
+
+	queryArgs := []any{projectId}
+	countQueryArgs := []any{projectId}
+
+	if arg.Type == params.InvoiceTypeInvoice {
+		query.WriteString(" AND i.is_invoice = true")
+		countQuery.WriteString(" AND i.is_invoice = true")
+	}
+
+	if arg.Type == params.InvoiceTypeQuote {
+		query.WriteString(" AND i.is_invoice = false")
+		countQuery.WriteString(" AND i.is_invoice = false")
+	}
+
+	paramCount := 1
+
+	if len(arg.Status) > 0 {
+		paramCount++
+		query.WriteString(" AND ins.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		countQuery.WriteString(" AND ins.name = $")
+		countQuery.WriteString(strconv.Itoa(paramCount))
+
+		queryArgs = append(queryArgs, arg.Status)
+		countQueryArgs = append(countQueryArgs, arg.Status)
+	}
+
+	paramCount++
+	query.WriteString(" LIMIT $")
+	countQuery.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	query.WriteString(" OFFSET $")
+	countQuery.WriteString(strconv.Itoa(paramCount))
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	var totalInvoices int64
+	err := q.db.QueryRowContext(ctx, countQuery.String(), countQueryArgs...).Scan(&totalInvoices)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := agg.WithCount[agg.InvoiceWithStatus]{
+		Total: totalInvoices,
+		Items: make([]agg.InvoiceWithStatus, 0),
+	}
+
+	for rows.Next() {
+		var row agg.InvoiceWithStatus
+		err := rows.Scan(
+			&row.Id,
+			&row.IsInvoice,
+			&row.IssuedAt,
+			&row.DueAt,
+			&row.Total,
+			&row.CurrencyCode,
+			&row.Status,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result.Items = append(result.Items, row)
+	}
+
+	return &result, nil
 }
