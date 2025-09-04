@@ -107,6 +107,24 @@ func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetInvoicesByProject handles HTTP GET requests for getting a paginated
+// list of invoices for a specified project.
+// The project ID is expected as a path parameter, eg: {projectId}.
+// Supports query parameters for pagination and
+// filtering results by type and status, eg: ?type=invoice&page=1.
+// This method expects middleware to properly authorize requests.
+//
+// Supported query parameters:
+//   - type: type to filter by, could be invoice or a quote
+//   - status: status of invoices to filter by
+//   - page: the page number requested
+//   - limit: the number of results per page
+//
+// HTTP responses:
+//   - If the request is successful, HTTP 200 is returned.
+//   - If projectId is missing or invalid, HTTP 400 BadRequest is returned.
+//   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
 func (invHndl *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
