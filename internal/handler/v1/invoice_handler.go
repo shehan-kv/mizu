@@ -57,7 +57,9 @@ func (invHndl *InvoiceHandler) GetMux(
 
 	mux := http.NewServeMux()
 
+	// eg, /invoices/project/{projectId}
 	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
 
 	return mux
 }
@@ -103,4 +105,60 @@ func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (invHndl *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	invType := r.URL.Query().Get("type")
+	status := r.URL.Query().Get("status")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	resp, err := invHndl.invSrv.GetInvoicesByProject(r.Context(), parsedId, &dto.InvoiceSearch{
+		Keyword: "",
+		Status:  status,
+		Type:    invType,
+		Page:    page,
+		Limit:   limit,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
