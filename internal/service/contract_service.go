@@ -470,7 +470,6 @@ func (contSrv *ContractService) GetRevisions(
 			"correlation_id", correlationId,
 			"scope", "contract_service",
 			"contract_id", contractId,
-			"keyword", query.Keyword,
 			"status", query.Status,
 			"page", query.Page,
 			"limit", query.Limit,
@@ -486,12 +485,11 @@ func (contSrv *ContractService) GetRevisions(
 	})
 
 	if err != nil {
-		contSrv.lg.Error("could not get projects list",
+		contSrv.lg.Error("could not get revision list",
 			"event", event.EventGetFailed,
-			"scope", "project_service",
+			"scope", "contract_service",
 			"correlation_id", correlationId,
 			"actor_id", actor.Id,
-			"keyword", query.Keyword,
 			"status", query.Status,
 			"page", query.Page,
 			"limit", query.Limit,
@@ -555,6 +553,7 @@ func (contSrv *ContractService) GetContractsByProject(
 			"correlation_id", correlationId,
 			"scope", "contract_service",
 			"project_id", projectId,
+			"status", query.Status,
 			"page", query.Page,
 			"limit", query.Limit,
 			"err", err)
@@ -571,10 +570,11 @@ func (contSrv *ContractService) GetContractsByProject(
 	if err != nil {
 		contSrv.lg.Error("could not get contracts list",
 			"event", event.EventGetFailed,
-			"scope", "project_service",
+			"scope", "contract_service",
 			"correlation_id", correlationId,
 			"project_id", projectId,
 			"actor_id", actor.Id,
+			"status", query.Status,
 			"page", query.Page,
 			"limit", query.Limit,
 			"err", err)
