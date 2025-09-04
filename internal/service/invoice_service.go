@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/common"
 	dto "mizu/internal/dto/invoice"
 	"mizu/internal/event"
 	"mizu/internal/logger"
@@ -286,4 +288,74 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		"scope", "invoice_service")
 
 	return nil
+}
+
+// GetInvoicesByProject retrieves a paginated list of invoices
+// with status for the specified project. The project is specified by the ID.
+// It supports type and status filtering,
+// and returns results wrapped in a common.Page payload.
+// This method expects middleware to properly authorize requests.
+//
+//   - If an error occurs, it returns service.ErrInternalError
+func (invSrv *InvoiceService) GetInvoicesByProject(
+	ctx context.Context,
+	projectId int64,
+	query *dto.InvoiceSearch) (*common.Page[[]dto.InvoiceWithStatusResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"project_id", projectId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	invoices, err := invSrv.invSt.GetInvoiceStatsByProject(ctx, projectId, &params.InvoiceSearch{
+		Keyword: "",
+		Type:    query.Type,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		invSrv.lg.Error("could not get invoice list",
+			"event", event.EventGetFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	respInv := make([]dto.InvoiceWithStatusResponse, len(invoices.Items))
+
+	for i, invoice := range invoices.Items {
+		respInv[i] = dto.InvoiceWithStatusResponse{
+			Id:           invoice.Id,
+			IsInvoice:    invoice.IsInvoice,
+			IssuedAt:     invoice.IssuedAt,
+			DueAt:        invoice.DueAt,
+			Total:        invoice.Total,
+			CurrencyCode: invoice.CurrencyCode,
+			Status:       invoice.Status,
+		}
+	}
+
+	numOfPages := math.Ceil(float64(invoices.Total) / float64(query.Limit))
+	resp := common.Page[[]dto.InvoiceWithStatusResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  int64(numOfPages),
+		Data:        respInv,
+	}
+
+	return &resp, nil
 }
