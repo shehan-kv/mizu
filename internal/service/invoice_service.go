@@ -359,3 +359,75 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 
 	return &resp, nil
 }
+
+// GetAllByUser retrieves a paginated list of invoices
+// with project information of all projects assigned to the current user.
+// Current user is fetched from context. This function expects middleware to
+// properly add the requesting user to the request context.
+// It supports typen keyword and status filtering,
+// and returns results wrapped in a common.Page payload.
+// This method expects middleware to properly authorize requests.
+//
+//   - If an error occurs, it returns service.ErrInternalError
+func (invSrv *InvoiceService) GetAllByUser(
+	ctx context.Context,
+	query *dto.InvoiceSearch) (*common.Page[[]dto.InvoiceWithProjectResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	invoices, err := invSrv.invSt.GetWithProjectByUserId(ctx, actor.Id, &params.InvoiceSearch{
+		Keyword: query.Keyword,
+		Type:    query.Type,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		invSrv.lg.Error("could not get invoice list",
+			"event", event.EventGetFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	respInv := make([]dto.InvoiceWithProjectResponse, len(invoices.Items))
+
+	for i, invoice := range invoices.Items {
+		respInv[i] = dto.InvoiceWithProjectResponse{
+			Id:           invoice.Id,
+			ProjectId:    invoice.ProjectId,
+			ProjectName:  invoice.ProjectName,
+			IsInvoice:    invoice.IsInvoice,
+			IssuedAt:     invoice.IssuedAt,
+			DueAt:        invoice.DueAt,
+			Total:        invoice.Total,
+			CurrencyCode: invoice.CurrencyCode,
+			Status:       invoice.Status,
+		}
+	}
+
+	numOfPages := math.Ceil(float64(invoices.Total) / float64(query.Limit))
+	resp := common.Page[[]dto.InvoiceWithProjectResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  int64(numOfPages),
+		Data:        respInv,
+	}
+
+	return &resp, nil
+}
