@@ -57,9 +57,11 @@ func (invHndl *InvoiceHandler) GetMux(
 
 	mux := http.NewServeMux()
 
+	mux.Handle("GET /", mwChain.Handle(invHndl.GetAllByUser))
+
 	// eg, /invoices/project/{projectId}
-	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
+	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
 
 	return mux
 }
@@ -168,6 +170,73 @@ func (invHndl *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *ht
 		Keyword: "",
 		Status:  status,
 		Type:    invType,
+		Page:    page,
+		Limit:   limit,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetAllByUser handles HTTP GET requests for getting a paginated
+// list of invoices of all projects assigned to the requesting user.
+// Supports query parameters for pagination and
+// filtering results by keyword, type and status, eg: ?type=invoice&page=1.
+// This method expects middleware to properly authorize requests.
+//
+// Supported query parameters:
+//   - q: keyword to filter results by
+//   - type: type to filter by, could be invoice or a quote
+//   - status: status of invoices to filter by
+//   - page: the page number requested
+//   - limit: the number of results per page
+//
+// HTTP responses:
+//   - If the request is successful, HTTP 200 is returned.
+//   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (invHndl *InvoiceHandler) GetAllByUser(w http.ResponseWriter, r *http.Request) {
+
+	keyword := r.URL.Query().Get("q")
+	invType := r.URL.Query().Get("type")
+	status := r.URL.Query().Get("status")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	resp, err := invHndl.invSrv.GetAllByUser(r.Context(), &dto.InvoiceSearch{
+		Keyword: keyword,
+		Type:    invType,
+		Status:  status,
 		Page:    page,
 		Limit:   limit,
 	})
