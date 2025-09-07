@@ -428,3 +428,47 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 
 	return &invoice, nil
 }
+
+// AcceptById marks a specified invoice as accepted.
+// The invoice is specified by invoice ID.
+// Returns a boolean and an error.
+//
+// If the returned boolean is:
+//   - true: the invoice is already accepted
+//   - false: successfully accepted the invoice
+//
+// If any error occurs, store.ErrUpdateFailed is returned.
+func (q *InvoiceStoreSqlite) AcceptById(ctx context.Context, invoiceId int64) (bool, error) {
+
+	query := `
+	SELECT
+  		ins.name = ? AS pending
+	FROM invoices i
+	JOIN invoice_statuses ins
+  	ON ins.id = i.status
+	WHERE i.id = ?
+	`
+
+	var isPending bool
+	err := q.db.QueryRowContext(ctx, query, params.InvoiceStatusPending, invoiceId).Scan(&isPending)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if !isPending {
+		return true, nil
+	}
+
+	setStatusQuery := `
+	UPDATE invoices
+	SET is_invoice = true, status = (SELECT id from invoice_statuses WHERE name = ?)
+	WHERE id = ?
+	`
+
+	_, err = q.db.ExecContext(ctx, setStatusQuery, params.InvoiceStatusAccepted, invoiceId)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	return false, nil
+}
