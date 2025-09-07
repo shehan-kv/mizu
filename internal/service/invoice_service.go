@@ -431,3 +431,71 @@ func (invSrv *InvoiceService) GetAllByUser(
 
 	return &resp, nil
 }
+
+// GetOneById retrieves a detailed invoice with
+// invoice items. The invoice is specified by the ID.
+// Returns a pointer to a dto.InvoiceDetailsResponse.
+// This method expects middleware to properly authorize requests.
+//
+//   - If an error occurs, it returns service.ErrInternalError
+func (invSrv *InvoiceService) GetOneById(
+	ctx context.Context,
+	invoiceId int64) (*dto.InvoiceDetailsResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	result, err := invSrv.invSt.GetWithDetailsById(ctx, invoiceId)
+	if err != nil {
+		invSrv.lg.Error("could not get invoice details",
+			"event", event.EventGetFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"invoice_id", invoiceId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := dto.InvoiceDetailsResponse{
+		Id:           result.Id,
+		ProjectId:    result.ProjectId,
+		ProjectName:  result.ProjectName,
+		IsInvoice:    result.IsInvoice,
+		Status:       result.Status,
+		IssuedAt:     result.IssuedAt,
+		DueAt:        result.DueAt,
+		Total:        result.Total,
+		Discount:     result.Discount,
+		Tax:          result.Tax,
+		CurrencyCode: result.CurrencyCode,
+		Note:         result.Note,
+		Items:        make([]dto.InvoiceItemResponse, len(result.Items)),
+	}
+
+	for i, item := range result.Items {
+		resp.Items[i] = dto.InvoiceItemResponse{
+			Id:           item.Id,
+			Description:  item.Description,
+			Qty:          item.Qty,
+			UnitPrice:    item.Qty,
+			UnitDiscount: item.UnitDiscount,
+			DiscountType: item.DiscountType,
+			UnitTax:      item.UnitTax,
+			TaxType:      item.TaxType,
+			Tax:          item.Tax,
+			Discount:     item.Discount,
+			Total:        item.Total,
+		}
+	}
+
+	return &resp, nil
+}
