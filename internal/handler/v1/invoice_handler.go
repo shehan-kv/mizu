@@ -58,6 +58,7 @@ func (invHndl *InvoiceHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /", mwChain.Handle(invHndl.GetAllByUser))
+	mux.Handle("GET /{invoiceId}", mwChain.Handle(invHndl.GetOneById))
 
 	// eg, /invoices/project/{projectId}
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
@@ -241,6 +242,34 @@ func (invHndl *InvoiceHandler) GetAllByUser(w http.ResponseWriter, r *http.Reque
 		Limit:   limit,
 	})
 
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// GetOneById handles HTTP GET requests for getting a detailed invoice
+// with invoice items by invoice ID.
+// The invoice ID is expected as a path parameter, eg: {invoiceId}.
+// This method expects middleware to properly authorize requests.
+//
+// HTTP responses:
+//   - If the request is successful, HTTP 200 is returned.
+//   - If invoiceId is missing or invalid, HTTP 400 BadRequest is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (invHndl *InvoiceHandler) GetOneById(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("invoiceId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := invHndl.invSrv.GetOneById(r.Context(), parsedId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
