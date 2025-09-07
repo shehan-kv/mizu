@@ -324,3 +324,107 @@ func (q *InvoiceStoreSqlite) GetWithProjectByUserId(
 
 	return &result, nil
 }
+
+// GetWithDetailsById returns a detailed invoice with invoice items.
+// The invoice is specified by the invoice ID.
+// This function returns a pointer to an agg.InvoiceDetails.
+//
+// If any error occurs, store.ErrQueryFailed is returned.
+func (q *InvoiceStoreSqlite) GetWithDetailsById(
+	ctx context.Context,
+	invoiceId int64) (*agg.InvoiceDetails, error) {
+
+	var invoiceQuery strings.Builder
+	var itemsQuery strings.Builder
+
+	invoiceQuery.WriteString(`
+	SELECT 
+		i.id,
+		p.id,
+		p.name,
+		i.is_invoice,
+		ins.name,
+		i.issued_at,
+		i.due_at,
+		i.total,
+		i.discount,
+		i.tax,
+		i.currency_code,
+		i.note
+	FROM invoices i
+	JOIN invoice_statuses ins ON ins.id = i.status
+	JOIN projects p ON p.id = i.project_id
+	WHERE i.id = ?
+	`)
+
+	itemsQuery.WriteString(`
+	SELECT 
+		id,
+		description,
+		qty,
+		unit_price,
+		unit_discount,
+		discount_type,
+		unit_tax,
+		tax_type,
+		tax,
+		discount,
+		total
+	FROM invoice_items
+	WHERE invoice_id = ?
+	`)
+
+	var invoice agg.InvoiceDetails
+	invoice.Items = make([]agg.InvoiceItem, 0)
+
+	err := q.db.QueryRowContext(ctx, invoiceQuery.String(), invoiceId).Scan(
+		&invoice.Id,
+		&invoice.ProjectId,
+		&invoice.ProjectName,
+		&invoice.IsInvoice,
+		&invoice.Status,
+		&invoice.IssuedAt,
+		&invoice.DueAt,
+		&invoice.Total,
+		&invoice.Discount,
+		&invoice.Tax,
+		&invoice.CurrencyCode,
+		&invoice.Note,
+	)
+
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	rows, err := q.db.QueryContext(ctx, itemsQuery.String(), invoiceId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var row agg.InvoiceItem
+		err := rows.Scan(
+			&row.Id,
+			&row.Description,
+			&row.Qty,
+			&row.UnitPrice,
+			&row.UnitDiscount,
+			&row.DiscountType,
+			&row.UnitTax,
+			&row.TaxType,
+			&row.Tax,
+			&row.Discount,
+			&row.Total,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		invoice.Items = append(invoice.Items, row)
+	}
+
+	return &invoice, nil
+}
