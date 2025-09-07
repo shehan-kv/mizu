@@ -52,4 +52,15 @@ type InvoiceStore interface {
 	//
 	// If any error occurs, store.ErrQueryFailed is returned.
 	GetWithDetailsById(ctx context.Context, invoiceId int64) (*agg.InvoiceDetails, error)
+
+	// AcceptById marks a specified invoice as accepted.
+	// The invoice is specified by invoice ID.
+	// Returns a boolean and an error.
+	//
+	// If the returned boolean is:
+	// 	- true: the invoice is already accepted
+	//  - false: successfully accepted the invoice
+	//
+	// If any error occurs, store.ErrUpdateFailed is returned.
+	AcceptById(ctx context.Context, invoiceId int64) (bool, error)
 }
