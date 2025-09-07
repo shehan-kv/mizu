@@ -500,3 +500,47 @@ func (q *InvoiceStorePostgres) AcceptById(ctx context.Context, invoiceId int64) 
 
 	return false, nil
 }
+
+// RejectById marks a specified invoice as rejected.
+// The invoice is specified by invoice ID.
+// Returns a boolean and an error.
+//
+// If the returned boolean is:
+//   - true: the invoice is already rejected
+//   - false: successfully rejected the invoice
+//
+// If any error occurs, store.ErrUpdateFailed is returned.
+func (q *InvoiceStorePostgres) RejectById(ctx context.Context, invoiceId int64) (bool, error) {
+
+	query := `
+	SELECT
+  		ins.name = $1 AS pending
+	FROM invoices i
+	JOIN invoice_statuses ins
+  	ON ins.id = i.status
+	WHERE i.id = $2
+	`
+
+	var isPending bool
+	err := q.db.QueryRowContext(ctx, query, params.InvoiceStatusPending, invoiceId).Scan(&isPending)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if !isPending {
+		return true, nil
+	}
+
+	setStatusQuery := `
+	UPDATE invoices
+	SET status = (SELECT id from invoice_statuses WHERE name = $1)
+	WHERE id = $2
+	`
+
+	_, err = q.db.ExecContext(ctx, setStatusQuery, params.InvoiceStatusRejected, invoiceId)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	return false, nil
+}
