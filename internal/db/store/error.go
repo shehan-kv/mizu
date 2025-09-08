@@ -12,4 +12,5 @@ var (
 	ErrCheckViolation      = errors.New("database: not null violation")
 	ErrRecordNotFound      = errors.New("database: record not found")
 	ErrQueryFailed         = errors.New("database: query failed")
+	ErrUnexpectedType      = errors.New("database: unexpected type")
 )
