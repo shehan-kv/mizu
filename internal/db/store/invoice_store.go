@@ -85,4 +85,17 @@ type InvoiceStore interface {
 	//
 	// If any error occurs, store.ErrUpdateFailed is returned.
 	CancelById(ctx context.Context, invoiceId int64) (bool, error)
+
+	// PayById marks a specified invoice as paid.
+	// The invoice is specified by invoice ID.
+	// Returns a boolean and an error.
+	//
+	// If the returned boolean is:
+	// 	- true: the invoice is already paid
+	//  - false: successfully marked the invoice as paid
+	//
+	// Errors:
+	// 	- if the provided ID points to a quote, store.ErrUnexpectedType is returned.
+	// 	- If any other error occurs, store.ErrUpdateFailed is returned.
+	PayById(ctx context.Context, invoiceId int64) (bool, error)
 }
