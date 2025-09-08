@@ -579,3 +579,43 @@ func (invSrv *InvoiceService) RejectById(ctx context.Context, invoiceId int64) e
 
 	return nil
 }
+
+// CancelById marks an invoice or a quote as cancelled.
+// The invoice is specified by the ID.
+// The requesting user is retrieved from the context.
+// This method expects middleware to properly authorize requests
+// and to properly add the requesting user to the context.
+//
+//   - If the invoice is already rejected, it returns service.ErrAlreadyExists
+//   - If any other error occurs, it returns service.ErrInternalError
+func (invSrv *InvoiceService) CancelById(ctx context.Context, invoiceId int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return ErrInternalError
+	}
+
+	alreadyAccepted, err := invSrv.invSt.CancelById(ctx, invoiceId)
+	if err != nil {
+		invSrv.lg.Error("could not cancel invoice/quote",
+			"event", event.EventCreateFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"invoice_id", invoiceId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if alreadyAccepted {
+		return ErrAlreadyExists
+	}
+
+	return nil
+}
