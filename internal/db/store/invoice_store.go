@@ -74,4 +74,15 @@ type InvoiceStore interface {
 	//
 	// If any error occurs, store.ErrUpdateFailed is returned.
 	RejectById(ctx context.Context, invoiceId int64) (bool, error)
+
+	// CancelById marks a specified invoice or a quote as cancelled.
+	// The invoice/quote is specified by invoice ID.
+	// Returns a boolean and an error.
+	//
+	// If the returned boolean is:
+	// 	- true: the invoice or quote is already cancelled
+	//  - false: successfully cancelled the invoice or quote
+	//
+	// If any error occurs, store.ErrUpdateFailed is returned.
+	CancelById(ctx context.Context, invoiceId int64) (bool, error)
 }
