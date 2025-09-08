@@ -588,3 +588,53 @@ func (q *InvoiceStorePostgres) CancelById(ctx context.Context, invoiceId int64) 
 
 	return false, nil
 }
+
+// PayById marks a specified invoice as paid.
+// The invoice is specified by invoice ID.
+// Returns a boolean and an error.
+//
+// If the returned boolean is:
+//   - true: the invoice is already paid
+//   - false: successfully marked the invoice as paid
+//
+// Errors:
+//   - if the provided ID points to a quote, store.ErrUnexpectedType is returned.
+//   - If any other error occurs, store.ErrUpdateFailed is returned.
+func (q *InvoiceStorePostgres) PayById(ctx context.Context, invoiceId int64) (bool, error) {
+
+	query := `
+	SELECT i.is_invoice, ins.name AS status
+	FROM invoices i 
+	JOIN invoice_statuses ins ON ins.id = i.status
+	WHERE i.id = $1
+	`
+
+	var isInvoice bool
+	var invStatus string
+
+	err := q.db.QueryRowContext(ctx, query, invoiceId).Scan(&isInvoice, &invStatus)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if !isInvoice {
+		return false, store.ErrUnexpectedType
+	}
+
+	if invStatus != params.InvoiceStatusAccepted {
+		return true, nil
+	}
+
+	setStatusQuery := `
+	UPDATE invoices
+	SET status = (SELECT id FROM invoice_statuses WHERE name = $1)
+	WHERE id = $2
+	`
+
+	_, err = q.db.ExecContext(ctx, setStatusQuery, params.InvoiceStatusPaid, invoiceId)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	return false, nil
+}
