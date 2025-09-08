@@ -62,6 +62,7 @@ func (invHndl *InvoiceHandler) GetMux(
 	mux.Handle("POST /accept/{invoiceId}", mwChain.Handle(invHndl.AcceptById))
 	mux.Handle("POST /reject/{invoiceId}", mwChain.Handle(invHndl.RejectById))
 	mux.Handle("POST /cancel/{invoiceId}", mwChain.Handle(invHndl.CancelById))
+	mux.Handle("POST /pay/{invoiceId}", mwChain.Handle(invHndl.PayById))
 
 	// eg, /invoices/project/{projectId}
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
@@ -369,6 +370,44 @@ func (invHndl *InvoiceHandler) CancelById(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// PayById handles HTTP POST requests for marking an invoice as paid.
+// The invoice ID is expected as a path parameter, eg: {invoiceId}.
+// This method expects middleware to properly authorize requests.
+//
+// HTTP responses:
+//   - If the request is successful, HTTP 200 is returned.
+//   - If invoiceId is missing or invalid, HTTP 400 BadRequest is returned.
+//   - If invoiceId is the ID of a quote, HTTP 400 BadRequest is returned.
+//   - If invoice is already paid, HTTP 409 Conflict is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (invHndl *InvoiceHandler) PayById(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("invoiceId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = invHndl.invSrv.PayById(r.Context(), parsedId)
+	if err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
