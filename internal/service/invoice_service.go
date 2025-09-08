@@ -619,3 +619,56 @@ func (invSrv *InvoiceService) CancelById(ctx context.Context, invoiceId int64) e
 
 	return nil
 }
+
+// PayById marks an invoice as paid.
+// The invoice is specified by the ID.
+// The requesting user is retrieved from the context.
+// This method expects middleware to properly authorize requests
+// and to properly add the requesting user to the context.
+//
+//   - If the invoice is already rejected, it returns service.ErrAlreadyExists
+//   - If the invoice ID points to a quote, it returns service.ErrBadRequest
+//   - If any other error occurs, it returns service.ErrInternalError
+func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return ErrInternalError
+	}
+
+	alreadyPaid, err := invSrv.invSt.PayById(ctx, invoiceId)
+	if err != nil {
+
+		if errors.Is(err, store.ErrUnexpectedType) {
+			invSrv.lg.Error("cannot pay a quote, must be an invoice",
+				"event", event.EventCreateFailed,
+				"scope", "invoice_service",
+				"correlation_id", correlationId,
+				"actor_id", actor.Id,
+				"invoice_id", invoiceId,
+				"err", err)
+			return ErrBadRequest
+		}
+
+		invSrv.lg.Error("could not pay invoice/quote",
+			"event", event.EventCreateFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"invoice_id", invoiceId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if alreadyPaid {
+		return ErrAlreadyExists
+	}
+
+	return nil
+}
