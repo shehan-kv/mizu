@@ -610,3 +610,50 @@ func (q *InvoiceStoreSqlite) PayById(ctx context.Context, invoiceId int64) (bool
 
 	return false, nil
 }
+
+// QuoteToInvoice converts a quote to an invoice.
+// The quote is specified by quote ID.
+// Returns a boolean and an error.
+//
+// If the returned boolean is:
+//   - true: the quote is already converted
+//   - false: successfully converted to an invoice
+//
+// Errors:
+//   - if the quote status is invalid, store.ErrUnexpectedType is returned.
+//   - If any other error occurs, store.ErrUpdateFailed is returned.
+func (q *InvoiceStoreSqlite) QuoteToInvoice(ctx context.Context, quoteId int64) (bool, error) {
+
+	query := `
+	SELECT i.is_invoice, ins.name AS status
+	FROM invoices i 
+	JOIN invoice_statuses ins ON ins.id = i.status
+	WHERE i.id = ?
+	`
+
+	var isInvoice bool
+	var invStatus string
+
+	err := q.db.QueryRowContext(ctx, query, quoteId).Scan(&isInvoice, &invStatus)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if isInvoice {
+		return true, nil
+	}
+
+	if invStatus != params.InvoiceStatusPending {
+		return false, store.ErrUnexpectedType
+	}
+
+	setInvoiceQuery := "UPDATE invoices SET is_invoice = true WHERE id = ?"
+
+	_, err = q.db.ExecContext(ctx, setInvoiceQuery, quoteId)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	return false, nil
+
+}
