@@ -98,4 +98,17 @@ type InvoiceStore interface {
 	// 	- if the provided ID points to a quote, store.ErrUnexpectedType is returned.
 	// 	- If any other error occurs, store.ErrUpdateFailed is returned.
 	PayById(ctx context.Context, invoiceId int64) (bool, error)
+
+	// QuoteToInvoice converts a quote to an invoice.
+	// The quote is specified by quote ID.
+	// Returns a boolean and an error.
+	//
+	// If the returned boolean is:
+	// 	- true: the quote is already converted
+	//  - false: successfully converted to an invoice
+	//
+	// Errors:
+	// 	- if the quote status is invalid, store.ErrUnexpectedType is returned.
+	// 	- If any other error occurs, store.ErrUpdateFailed is returned.
+	QuoteToInvoice(ctx context.Context, quoteId int64) (bool, error)
 }
