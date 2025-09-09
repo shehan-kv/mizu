@@ -63,6 +63,7 @@ func (invHndl *InvoiceHandler) GetMux(
 	mux.Handle("POST /reject/{invoiceId}", mwChain.Handle(invHndl.RejectById))
 	mux.Handle("POST /cancel/{invoiceId}", mwChain.Handle(invHndl.CancelById))
 	mux.Handle("POST /pay/{invoiceId}", mwChain.Handle(invHndl.PayById))
+	mux.Handle("POST /quote-to-invoice/{quoteId}", mwChain.Handle(invHndl.QuoteToInvoice))
 
 	// eg, /invoices/project/{projectId}
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
@@ -400,6 +401,44 @@ func (invHndl *InvoiceHandler) PayById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = invHndl.invSrv.PayById(r.Context(), parsedId)
+	if err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// QuoteToInvoice handles HTTP POST requests for converting a quote to an invoice.
+// The quote ID is expected as a path parameter, eg: {quoteId}.
+// This method expects middleware to properly authorize requests.
+//
+// HTTP responses:
+//   - If the request is successful, HTTP 200 is returned.
+//   - If quoteId is missing or invalid, HTTP 400 BadRequest is returned.
+//   - If quote is in an invalid state to be converted, HTTP 400 BadRequest is returned.
+//   - If quote is already converted, HTTP 409 Conflict is returned.
+//   - If an internal error occurs, HTTP 500 InternalServerError is returned.
+func (invHndl *InvoiceHandler) QuoteToInvoice(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("quoteId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = invHndl.invSrv.QuoteToInvoice(r.Context(), parsedId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
