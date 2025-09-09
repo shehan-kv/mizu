@@ -672,3 +672,56 @@ func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) erro
 
 	return nil
 }
+
+// QuoteToInvoice converts a quote to an invoice.
+// The quote is specified by the ID.
+// The requesting user is retrieved from the context.
+// This method expects middleware to properly authorize requests
+// and to properly add the requesting user to the context.
+//
+//   - If the quote is already converted, it returns service.ErrAlreadyExists
+//   - If the quote is in an invalid state, it returns service.ErrBadRequest
+//   - If any other error occurs, it returns service.ErrInternalError
+func (invSrv *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return ErrInternalError
+	}
+
+	alreadyConverted, err := invSrv.invSt.QuoteToInvoice(ctx, quoteId)
+
+	if err != nil {
+		if errors.Is(err, store.ErrUnexpectedType) {
+			invSrv.lg.Error("quote is in an invalid state to convert",
+				"event", event.EventCreateFailed,
+				"scope", "invoice_service",
+				"correlation_id", correlationId,
+				"actor_id", actor.Id,
+				"quote_id", quoteId,
+				"err", err)
+			return ErrBadRequest
+		}
+
+		invSrv.lg.Error("could not convert quote to invoice",
+			"event", event.EventCreateFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"quote_id", quoteId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if alreadyConverted {
+		return ErrAlreadyExists
+	}
+
+	return nil
+}
