@@ -8,7 +8,7 @@ INSERT INTO invoice_history_events (name) VALUES
 ('cancelled'),
 ('paid'),
 ('emailed'),
-('downloaded'),
+('downloaded')
 ON CONFLICT(name) DO NOTHING;
 
 
