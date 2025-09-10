@@ -63,7 +63,7 @@ type InvoiceStore interface {
 	//  - false: successfully accepted the invoice
 	//
 	// If any error occurs, store.ErrUpdateFailed is returned.
-	AcceptById(ctx context.Context, invoiceId int64) (bool, error)
+	AcceptById(ctx context.Context, userId int64, invoiceId int64) (bool, error)
 
 	// RejectById marks a specified invoice as rejected.
 	// The invoice is specified by invoice ID.
