@@ -358,48 +358,27 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 	invoiceId int64) (*agg.InvoiceDetails, error) {
 
 	var invoiceQuery strings.Builder
-	var itemsQuery strings.Builder
-
 	invoiceQuery.WriteString(`
 	SELECT 
-		i.id,
-		p.id,
-		p.name,
-		i.is_invoice,
-		ins.name,
-		i.issued_at,
-		i.due_at,
-		i.total,
-		i.discount,
-		i.tax,
-		i.currency_code,
-		i.note
+	i.id,
+	p.id,
+	p.name,
+	i.is_invoice,
+	ins.name,
+	i.issued_at,
+	i.due_at,
+	i.total,
+	i.discount,
+	i.tax,
+	i.currency_code,
+	i.note
 	FROM invoices i
 	JOIN invoice_statuses ins ON ins.id = i.status
 	JOIN projects p ON p.id = i.project_id
 	WHERE i.id = ?
 	`)
 
-	itemsQuery.WriteString(`
-	SELECT 
-		id,
-		description,
-		qty,
-		unit_price,
-		unit_discount,
-		discount_type,
-		unit_tax,
-		tax_type,
-		tax,
-		discount,
-		total
-	FROM invoice_items
-	WHERE invoice_id = ?
-	`)
-
 	var invoice agg.InvoiceDetails
-	invoice.Items = make([]agg.InvoiceItem, 0)
-
 	err := q.db.QueryRowContext(ctx, invoiceQuery.String(), invoiceId).Scan(
 		&invoice.Id,
 		&invoice.ProjectId,
@@ -419,16 +398,36 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 		return nil, store.ErrQueryFailed
 	}
 
-	rows, err := q.db.QueryContext(ctx, itemsQuery.String(), invoiceId)
+	var itemsQuery strings.Builder
+	itemsQuery.WriteString(`
+	SELECT 
+		id,
+		description,
+		qty,
+		unit_price,
+		unit_discount,
+		discount_type,
+		unit_tax,
+		tax_type,
+		tax,
+		discount,
+		total
+	FROM invoice_items
+	WHERE invoice_id = ?
+	`)
+
+	invoice.Items = make([]agg.InvoiceItem, 0)
+
+	itemRows, err := q.db.QueryContext(ctx, itemsQuery.String(), invoiceId)
 	if err != nil {
 		return nil, store.ErrQueryFailed
 	}
 
-	defer rows.Close()
+	defer itemRows.Close()
 
-	for rows.Next() {
+	for itemRows.Next() {
 		var row agg.InvoiceItem
-		err := rows.Scan(
+		err := itemRows.Scan(
 			&row.Id,
 			&row.Description,
 			&row.Qty,
@@ -447,6 +446,63 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 		}
 
 		invoice.Items = append(invoice.Items, row)
+	}
+
+	var historyQuery strings.Builder
+	historyQuery.WriteString(`
+	SELECT
+		ih.id,
+		ih.user_id,
+		u.first_name,
+		u.last_name,
+		u.image,
+		u.title,
+		r.name AS role,
+		ihe.name AS event,
+		ih.recorded_at,
+		ih.is_invoice,
+		ins1.name AS last_status,
+		ins2.name AS new_status
+	FROM invoice_history ih
+	JOIN users u ON u.id = ih.user_id
+	JOIN roles r ON r.id = u.role
+	JOIN invoice_history_events ihe ON ihe.id = ih.event
+	LEFT JOIN invoice_statuses ins1 ON ins1.id = ih.last_status
+	LEFT JOIN invoice_statuses ins2 ON ins2.id = ih.new_status
+	WHERE ih.invoice_id = ? 
+	`)
+
+	invoice.History = make([]agg.InvoiceHistory, 0)
+
+	historyRows, err := q.db.QueryContext(ctx, historyQuery.String(), invoiceId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer historyRows.Close()
+
+	for historyRows.Next() {
+		var row agg.InvoiceHistory
+		err := historyRows.Scan(
+			&row.Id,
+			&row.UserId,
+			&row.FirstName,
+			&row.LastName,
+			&row.Image,
+			&row.Title,
+			&row.Role,
+			&row.Event,
+			&row.RecordedAt,
+			&row.IsInvoice,
+			&row.LastStatus,
+			&row.NewStatus,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		invoice.History = append(invoice.History, row)
 	}
 
 	return &invoice, nil
