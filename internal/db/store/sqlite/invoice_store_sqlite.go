@@ -707,7 +707,14 @@ func (q *InvoiceStoreSqlite) CancelById(ctx context.Context, userId int64, invoi
 // Errors:
 //   - if the provided ID points to a quote, store.ErrUnexpectedType is returned.
 //   - If any other error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) PayById(ctx context.Context, invoiceId int64) (bool, error) {
+func (q *InvoiceStoreSqlite) PayById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	defer tx.Rollback()
 
 	query := `
 	SELECT i.is_invoice, ins.name AS status
@@ -717,9 +724,9 @@ func (q *InvoiceStoreSqlite) PayById(ctx context.Context, invoiceId int64) (bool
 	`
 
 	var isInvoice bool
-	var invStatus string
+	var status string
 
-	err := q.db.QueryRowContext(ctx, query, invoiceId).Scan(&isInvoice, &invStatus)
+	err = tx.QueryRowContext(ctx, query, invoiceId).Scan(&isInvoice, &status)
 	if err != nil {
 		return false, store.ErrUpdateFailed
 	}
@@ -728,7 +735,7 @@ func (q *InvoiceStoreSqlite) PayById(ctx context.Context, invoiceId int64) (bool
 		return false, store.ErrUnexpectedType
 	}
 
-	if invStatus != params.InvoiceStatusAccepted {
+	if status != params.InvoiceStatusAccepted {
 		return true, nil
 	}
 
@@ -738,8 +745,37 @@ func (q *InvoiceStoreSqlite) PayById(ctx context.Context, invoiceId int64) (bool
 	WHERE id = ?
 	`
 
-	_, err = q.db.ExecContext(ctx, setStatusQuery, params.InvoiceStatusPaid, invoiceId)
+	_, err = tx.ExecContext(ctx, setStatusQuery, params.InvoiceStatusPaid, invoiceId)
 	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	insertInvHist := `
+	INSERT INTO invoice_history (invoice_id, user_id, is_invoice, event, last_status, new_status)
+	VALUES ( 
+		?, ?, ?,
+		(SELECT id FROM invoice_history_events WHERE name = ?),
+		(SELECT id FROM invoice_statuses WHERE name = ?),
+		(SELECT id FROM invoice_statuses WHERE name = ?)
+	)
+	`
+
+	_, err = tx.ExecContext(
+		ctx,
+		insertInvHist,
+		invoiceId,
+		userId,
+		isInvoice,
+		params.InvoiceHistoryEventPaid,
+		status,
+		params.InvoiceStatusPaid,
+	)
+
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if err = tx.Commit(); err != nil {
 		return false, store.ErrUpdateFailed
 	}
 
