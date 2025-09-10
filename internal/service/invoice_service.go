@@ -610,7 +610,7 @@ func (invSrv *InvoiceService) CancelById(ctx context.Context, invoiceId int64) e
 		return ErrInternalError
 	}
 
-	alreadyAccepted, err := invSrv.invSt.CancelById(ctx, invoiceId)
+	alreadyAccepted, err := invSrv.invSt.CancelById(ctx, actor.Id, invoiceId)
 	if err != nil {
 		invSrv.lg.Error("could not cancel invoice/quote",
 			"event", event.EventCreateFailed,
