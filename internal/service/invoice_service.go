@@ -651,7 +651,7 @@ func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) erro
 		return ErrInternalError
 	}
 
-	alreadyPaid, err := invSrv.invSt.PayById(ctx, invoiceId)
+	alreadyPaid, err := invSrv.invSt.PayById(ctx, actor.Id, invoiceId)
 	if err != nil {
 
 		if errors.Is(err, store.ErrUnexpectedType) {
