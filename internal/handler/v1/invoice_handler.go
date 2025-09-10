@@ -81,7 +81,7 @@ func (invHndl *InvoiceHandler) GetMux(
 // Possible Response Codes:
 //   - 400 BadRequest – Invalid input, missing fields or constraint violations
 //   - 500 InternalServerError - Server error
-//   - 200 OK - Created successfully
+//   - 201 Created - Created successfully
 func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
@@ -112,7 +112,7 @@ func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 // GetInvoicesByProject handles HTTP GET requests for getting a paginated
