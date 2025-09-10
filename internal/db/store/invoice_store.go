@@ -12,6 +12,7 @@ type InvoiceStore interface {
 	//
 	// Parameters:
 	//   - ctx: context to execute the query
+	//   - userId: ID of the user creating the invoice
 	//   - arg: pointer to InvoiceCreateParams
 	//
 	// Returns:
@@ -20,7 +21,7 @@ type InvoiceStore interface {
 	// 	 - store.ErrForeignKeyViolation: if foreign key is invalid
 	// 	 - store.ErrNotNullViolation: if required field is missing
 	//	 - store.ErrCheckViolation: if check constraint fails
-	CreateOne(ctx context.Context, arg *params.InvoiceCreate) (int64, error)
+	CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error)
 
 	// GetInvoiceStatsByProject returns the total number of invoices/quotes
 	// found and a list of invoices with status for
