@@ -20,4 +20,5 @@ type InvoiceDetails struct {
 	CurrencyCode string
 	Note         *string
 	Items        []InvoiceItem
+	History      []InvoiceHistory
 }
