@@ -550,11 +550,11 @@ func (q *InvoiceStorePostgres) AcceptById(ctx context.Context, userId int64, inv
 	)
 
 	if err != nil {
-		return false, store.ErrInsertFailed
+		return false, store.ErrUpdateFailed
 	}
 
 	if err = tx.Commit(); err != nil {
-		return false, store.ErrInsertFailed
+		return false, store.ErrUpdateFailed
 	}
 
 	return false, nil
