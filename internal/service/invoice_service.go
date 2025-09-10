@@ -704,7 +704,7 @@ func (invSrv *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64)
 		return ErrInternalError
 	}
 
-	alreadyConverted, err := invSrv.invSt.QuoteToInvoice(ctx, quoteId)
+	alreadyConverted, err := invSrv.invSt.QuoteToInvoice(ctx, actor.Id, quoteId)
 
 	if err != nil {
 		if errors.Is(err, store.ErrUnexpectedType) {
