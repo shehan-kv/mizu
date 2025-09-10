@@ -623,24 +623,33 @@ func (q *InvoiceStoreSqlite) RejectById(ctx context.Context, userId int64, invoi
 //   - false: successfully cancelled the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) CancelById(ctx context.Context, invoiceId int64) (bool, error) {
+func (q *InvoiceStoreSqlite) CancelById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	defer tx.Rollback()
 
 	query := `
 	SELECT
-  		ins.name = ? AS pending
+  		ins.name AS status,
+		i.is_invoice
 	FROM invoices i
 	JOIN invoice_statuses ins
   	ON ins.id = i.status
 	WHERE i.id = ?
 	`
 
-	var isPending bool
-	err := q.db.QueryRowContext(ctx, query, params.InvoiceStatusPending, invoiceId).Scan(&isPending)
+	var status string
+	var isInvoice bool
+	err = tx.QueryRowContext(ctx, query, invoiceId).Scan(&status, &isInvoice)
 	if err != nil {
 		return false, store.ErrUpdateFailed
 	}
 
-	if !isPending {
+	if status != params.InvoiceStatusPending {
 		return true, nil
 	}
 
@@ -650,8 +659,37 @@ func (q *InvoiceStoreSqlite) CancelById(ctx context.Context, invoiceId int64) (b
 	WHERE id = ?
 	`
 
-	_, err = q.db.ExecContext(ctx, setStatusQuery, params.InvoiceStatusCancelled, invoiceId)
+	_, err = tx.ExecContext(ctx, setStatusQuery, params.InvoiceStatusCancelled, invoiceId)
 	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	insertInvHist := `
+	INSERT INTO invoice_history (invoice_id, user_id, is_invoice, event, last_status, new_status)
+	VALUES ( 
+		?, ?, ?,
+		(SELECT id FROM invoice_history_events WHERE name = ?),
+		(SELECT id FROM invoice_statuses WHERE name = ?),
+		(SELECT id FROM invoice_statuses WHERE name = ?)
+	)
+	`
+
+	_, err = tx.ExecContext(
+		ctx,
+		insertInvHist,
+		invoiceId,
+		userId,
+		isInvoice,
+		params.InvoiceHistoryEventCancelled,
+		status,
+		params.InvoiceStatusRejected,
+	)
+
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if err = tx.Commit(); err != nil {
 		return false, store.ErrUpdateFailed
 	}
 
