@@ -488,6 +488,7 @@ func (invSrv *InvoiceService) GetOneById(
 		CurrencyCode: result.CurrencyCode,
 		Note:         result.Note,
 		Items:        make([]dto.InvoiceItemResponse, len(result.Items)),
+		History:      make([]dto.InvoiceHistoryResponse, len(result.History)),
 	}
 
 	for i, item := range result.Items {
@@ -503,6 +504,25 @@ func (invSrv *InvoiceService) GetOneById(
 			Tax:          item.Tax,
 			Discount:     item.Discount,
 			Total:        item.Total,
+		}
+	}
+
+	for i, entry := range result.History {
+		resp.History[i] = dto.InvoiceHistoryResponse{
+			Id: entry.Id,
+			User: dto.InvoiceHistoryUser{
+				Id:        entry.UserId,
+				FirstName: entry.FirstName,
+				LastName:  entry.LastName,
+				Title:     entry.Title,
+				Image:     entry.Image,
+				Role:      entry.Role,
+			},
+			Event:      entry.Event,
+			RecoredAt:  entry.RecordedAt,
+			IsInvoice:  entry.IsInvoice,
+			LastStatus: entry.LastStatus,
+			NewStatus:  entry.NewStatus,
 		}
 	}
 
