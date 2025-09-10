@@ -569,24 +569,33 @@ func (q *InvoiceStorePostgres) AcceptById(ctx context.Context, userId int64, inv
 //   - false: successfully rejected the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStorePostgres) RejectById(ctx context.Context, invoiceId int64) (bool, error) {
+func (q *InvoiceStorePostgres) RejectById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
-	query := `
-	SELECT
-  		ins.name = $1 AS pending
-	FROM invoices i
-	JOIN invoice_statuses ins
-  	ON ins.id = i.status
-	WHERE i.id = $2
-	`
-
-	var isPending bool
-	err := q.db.QueryRowContext(ctx, query, params.InvoiceStatusPending, invoiceId).Scan(&isPending)
+	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
 		return false, store.ErrUpdateFailed
 	}
 
-	if !isPending {
+	defer tx.Rollback()
+
+	query := `
+	SELECT
+  		ins.name AS status,
+		i.is_invoice
+	FROM invoices i
+	JOIN invoice_statuses ins
+  	ON ins.id = i.status
+	WHERE i.id = $1
+	`
+
+	var status string
+	var isInvoice bool
+	err = tx.QueryRowContext(ctx, query, invoiceId).Scan(&status, &isInvoice)
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if status != params.InvoiceStatusPending {
 		return true, nil
 	}
 
@@ -596,8 +605,37 @@ func (q *InvoiceStorePostgres) RejectById(ctx context.Context, invoiceId int64) 
 	WHERE id = $2
 	`
 
-	_, err = q.db.ExecContext(ctx, setStatusQuery, params.InvoiceStatusRejected, invoiceId)
+	_, err = tx.ExecContext(ctx, setStatusQuery, params.InvoiceStatusRejected, invoiceId)
 	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	insertInvHist := `
+	INSERT INTO invoice_history (invoice_id, user_id, is_invoice, event, last_status, new_status)
+	VALUES ( 
+		$1, $2, $3,
+		(SELECT id FROM invoice_history_events WHERE name = $4),
+		(SELECT id FROM invoice_statuses WHERE name = $5),
+		(SELECT id FROM invoice_statuses WHERE name = $6)
+	)
+	`
+
+	_, err = tx.ExecContext(
+		ctx,
+		insertInvHist,
+		invoiceId,
+		userId,
+		isInvoice,
+		params.InvoiceHistoryEventRejected,
+		status,
+		params.InvoiceStatusRejected,
+	)
+
+	if err != nil {
+		return false, store.ErrUpdateFailed
+	}
+
+	if err = tx.Commit(); err != nil {
 		return false, store.ErrUpdateFailed
 	}
 
