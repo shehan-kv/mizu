@@ -111,5 +111,5 @@ type InvoiceStore interface {
 	// Errors:
 	// 	- if the quote status is invalid, store.ErrUnexpectedType is returned.
 	// 	- If any other error occurs, store.ErrUpdateFailed is returned.
-	QuoteToInvoice(ctx context.Context, quoteId int64) (bool, error)
+	QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error)
 }
