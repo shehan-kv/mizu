@@ -530,7 +530,7 @@ func (invSrv *InvoiceService) AcceptById(ctx context.Context, invoiceId int64) e
 		return ErrInternalError
 	}
 
-	alreadyAccepted, err := invSrv.invSt.AcceptById(ctx, invoiceId)
+	alreadyAccepted, err := invSrv.invSt.AcceptById(ctx, actor.Id, invoiceId)
 	if err != nil {
 		invSrv.lg.Error("could not accept invoice/quote",
 			"event", event.EventCreateFailed,
