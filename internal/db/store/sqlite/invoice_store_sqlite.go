@@ -28,7 +28,7 @@ func NewInvoiceStore(db *sql.DB) *InvoiceStoreSqlite {
 }
 
 // Implementing CreateOne defined in InvoiceStore interface
-func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, arg *params.InvoiceCreate) (int64, error) {
+func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -99,6 +99,29 @@ func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, arg *params.InvoiceC
 			}
 			return 0, store.ErrInsertFailed
 		}
+	}
+
+	insertInvHist := `
+	INSERT INTO invoice_history (invoice_id, user_id, is_invoice, event, new_status)
+	VALUES ( 
+		?, ?, ?,
+		(SELECT id FROM invoice_history_events WHERE name = ?),
+		(SELECT id FROM invoice_statuses WHERE name = ?)
+	)
+	`
+
+	_, err = tx.ExecContext(
+		ctx,
+		insertInvHist,
+		invoiceId,
+		userId,
+		arg.IsInvoice,
+		params.InvoiceHistoryEventCreated,
+		arg.Status,
+	)
+
+	if err != nil {
+		return 0, store.ErrInsertFailed
 	}
 
 	if err = tx.Commit(); err != nil {

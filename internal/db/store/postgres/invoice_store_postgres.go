@@ -29,7 +29,7 @@ func NewInvoiceStore(db *sql.DB) *InvoiceStorePostgres {
 }
 
 // Implementing CreateOne defined in InvoiceStore interface
-func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, arg *params.InvoiceCreate) (int64, error) {
+func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -97,6 +97,29 @@ func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, arg *params.Invoic
 			}
 			return 0, store.ErrInsertFailed
 		}
+	}
+
+	insertInvHist := `
+	INSERT INTO invoice_history (invoice_id, user_id, is_invoice, event, new_status)
+	VALUES ( 
+		$1, $2, $3,
+		(SELECT id FROM invoice_history_events WHERE name = $4),
+		(SELECT id FROM invoice_statuses WHERE name = $5)
+	)
+	`
+
+	_, err = tx.ExecContext(
+		ctx,
+		insertInvHist,
+		invoiceId,
+		userId,
+		arg.IsInvoice,
+		params.InvoiceHistoryEventCreated,
+		arg.Status,
+	)
+
+	if err != nil {
+		return 0, store.ErrInsertFailed
 	}
 
 	if err = tx.Commit(); err != nil {
