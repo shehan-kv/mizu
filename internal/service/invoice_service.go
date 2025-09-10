@@ -49,6 +49,15 @@ func NewInvoiceService(lg logger.Logger, invSt store.InvoiceStore) *InvoiceServi
 func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64, request *dto.InvoiceCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", cid,
+			"scope", "invoice_service",
+			"err", err)
+		return ErrInternalError
+	}
 
 	sumOfTax := apd.New(0, 0)
 	sumOfDiscount := apd.New(0, 0)
@@ -239,7 +248,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		Items:        invoiceItems,
 	}
 
-	invoiceId, err := invSrv.invSt.CreateOne(ctx, &invoice)
+	invoiceId, err := invSrv.invSt.CreateOne(ctx, actor.Id, &invoice)
 	if err != nil {
 		if errors.Is(err, store.ErrNotNullViolation) {
 			invSrv.lg.Warn("required field is null",
