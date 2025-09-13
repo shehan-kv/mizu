@@ -27,7 +27,7 @@ func NewChangeRequestStore(db *sql.DB) *ChangeRequestStoreSqlite {
 func (q *ChangeRequestStoreSqlite) CreateOne(
 	ctx context.Context,
 	userId int64,
-	arg params.ChangeRequestCreate) (int64, error) {
+	arg *params.ChangeRequestCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -42,7 +42,15 @@ func (q *ChangeRequestStoreSqlite) CreateOne(
 	`
 
 	var reqId int64
-	err = tx.QueryRowContext(ctx, reqQuery, arg.ProjectId, userId, arg.Title, arg.Status).Scan(&reqId)
+	err = tx.QueryRowContext(
+		ctx,
+		reqQuery,
+		arg.ProjectId,
+		userId,
+		arg.Title,
+		params.ChangeRequestInProgress,
+	).Scan(&reqId)
+
 	if err != nil {
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {

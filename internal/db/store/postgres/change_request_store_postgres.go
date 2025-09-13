@@ -27,7 +27,7 @@ func NewChangeRequestStore(db *sql.DB) *ChangeRequestStorePostgres {
 func (q *ChangeRequestStorePostgres) CreateOne(
 	ctx context.Context,
 	userId int64,
-	arg params.ChangeRequestCreate) (int64, error) {
+	arg *params.ChangeRequestCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -42,7 +42,15 @@ func (q *ChangeRequestStorePostgres) CreateOne(
 	`
 
 	var reqId int64
-	err = tx.QueryRowContext(ctx, reqQuery, arg.ProjectId, userId, arg.Title, arg.Status).Scan(&reqId)
+	err = tx.QueryRowContext(
+		ctx,
+		reqQuery,
+		arg.ProjectId,
+		userId,
+		arg.Title,
+		params.ChangeRequestInProgress,
+	).Scan(&reqId)
+
 	if err != nil {
 		if err, ok := err.(*pq.Error); ok {
 			if err.Code.Name() == "foreign_key_violation" {
