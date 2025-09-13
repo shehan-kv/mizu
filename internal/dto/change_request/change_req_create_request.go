@@ -3,7 +3,6 @@ package changerequest
 import "strings"
 
 type ChangeReqCreateRequest struct {
-	Status  string `json:"status"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
@@ -24,6 +23,5 @@ func (r *ChangeReqCreateRequest) Validate() bool {
 // whitespace from Name and Version. This helper is intended for internal use
 // and is invoked automatically by the Validate method.
 func (r *ChangeReqCreateRequest) format() {
-	r.Status = strings.TrimSpace(r.Status)
 	r.Title = strings.TrimSpace(r.Title)
 }
