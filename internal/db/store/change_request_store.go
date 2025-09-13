@@ -10,5 +10,5 @@ import (
 // defined in the store package.
 // Implementations must be safe for concurrent use.
 type ChangeRequestStore interface {
-	CreateOne(ctx context.Context, userId int64, arg params.ChangeRequestCreate) (int64, error)
+	CreateOne(ctx context.Context, userId int64, arg *params.ChangeRequestCreate) (int64, error)
 }
