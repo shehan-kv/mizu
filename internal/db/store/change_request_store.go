@@ -11,4 +11,6 @@ import (
 // Implementations must be safe for concurrent use.
 type ChangeRequestStore interface {
 	CreateOne(ctx context.Context, userId int64, arg *params.ChangeRequestCreate) (int64, error)
+
+	CreateEntry(ctx context.Context, userId int64, requestId int64, content string) error
 }
