@@ -191,6 +191,23 @@ func (dbs *DbConn) NewContractStore() store.ContractStore {
 	}
 }
 
+// Creates a new instance of a ChangeRequestStore.
+//
+// Returns:
+//   - a pointer to an implementation of ChangeRequestStore
+func (dbs *DbConn) NewChangeRequestStore() store.ChangeRequestStore {
+	switch dbs.dbEngine {
+	case "sqlite":
+		return sqlite.NewChangeRequestStore(dbs.sqlDb)
+
+	case "postgres":
+		return postgres.NewChangeRequestStore(dbs.sqlDb)
+
+	default:
+		return sqlite.NewChangeRequestStore(dbs.sqlDb)
+	}
+}
+
 // Closes the database connection
 func (dbs *DbConn) Close() {
 	dbs.sqlDb.Close()
