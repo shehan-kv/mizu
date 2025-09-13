@@ -1,5 +1,5 @@
 -- +goose Up
-INSERT INTO contract_revision_statuses (name) VALUES 
+INSERT INTO change_request_statuses (name) VALUES 
 ('in-progress'),
 ('waiting'),
 ('closed')
@@ -7,5 +7,5 @@ ON CONFLICT(name) DO NOTHING;
 
 
 -- +goose Down
-DELETE FROM contract_revision_statuses WHERE name IN ('pending', 'rejected', 'signed');
+DELETE FROM change_request_statuses WHERE name IN ('in-progress', 'waiting', 'closed');
 
