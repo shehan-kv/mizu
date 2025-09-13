@@ -41,6 +41,7 @@ func RunServer() {
 	invoiceStore := db.NewInvoiceStore()
 	messageStore := db.NewMessagetore()
 	contractStore := db.NewContractStore()
+	changeReqStore := db.NewChangeRequestStore()
 
 	// Default admin user when the database has no users
 	auth.CreateDefaultAdminUser(userStore, logger)
@@ -55,6 +56,7 @@ func RunServer() {
 	userService := service.NewUserService(logger, userStore, emailSender)
 	messageService := service.NewMessageService(logger, eventSender, messageStore)
 	contractService := service.NewContractService(logger, eventSender, contractStore, emailSender)
+	changeReqService := service.NewChangeRequestService(logger, eventSender, changeReqStore)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
@@ -63,6 +65,7 @@ func RunServer() {
 	userMux := v1.NewUserHandler(userService).GetMux(logger, sessionStore, userStore)
 	messageMux := v1.NewMessageHandler(messageService).GetMux(logger, sessionStore, userStore)
 	contractMux := v1.NewContractHandler(contractService).GetMux(logger, sessionStore, userStore)
+	changeReqMux := v1.NewChangeRequestHandler(changeReqService).GetMux(logger, sessionStore, userStore)
 	sseMux := v1.NewSseHandler(sseSender).GetMux(logger, sessionStore, userStore)
 
 	// Server routes
@@ -73,6 +76,7 @@ func RunServer() {
 	mainMux.Handle("/api/v1/users/", http.StripPrefix("/api/v1/users", userMux))
 	mainMux.Handle("/api/v1/messages/", http.StripPrefix("/api/v1/messages", messageMux))
 	mainMux.Handle("/api/v1/contracts/", http.StripPrefix("/api/v1/contracts", contractMux))
+	mainMux.Handle("/api/v1/change-requests/", http.StripPrefix("/api/v1/change-requests", changeReqMux))
 	mainMux.Handle("/api/v1/events/", http.StripPrefix("/api/v1/events", sseMux))
 
 	// Start server
