@@ -91,3 +91,72 @@ func (q *ChangeRequestStoreSqlite) CreateOne(
 
 	return reqId, nil
 }
+
+func (q *ChangeRequestStoreSqlite) CreateEntry(
+	ctx context.Context,
+	userId int64,
+	requestId int64,
+	content string) error {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	defer tx.Rollback()
+
+	reqQuery := `
+	SELECT crs.name AS status
+	FROM change_requests cr
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE cr.id = ?
+	`
+
+	var reqStatus string
+	err = tx.QueryRowContext(ctx, reqQuery, requestId).Scan(&reqStatus)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	if reqStatus == params.ChangeRequestClosed {
+		return store.ErrUnexpectedType
+	}
+
+	setStatusQuery := `
+	UPDATE change_requests
+	SET status = (SELECT id FROM change_request_statuses WHERE name = ?)
+	WHERE id = ? 
+	`
+
+	_, err = tx.ExecContext(ctx, setStatusQuery, params.ChangeRequestWaiting, requestId)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	entryQuery := `
+	INSERT INTO change_request_entries(request_id, user_id, content)
+	VALUES (?, ?, ?)
+	`
+
+	_, err = tx.ExecContext(ctx, entryQuery, requestId, userId, content)
+
+	if err != nil {
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
+				return store.ErrForeignKeyViolation
+			}
+
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintNotNull {
+				return store.ErrNotNullViolation
+			}
+
+			return store.ErrInsertFailed
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}
