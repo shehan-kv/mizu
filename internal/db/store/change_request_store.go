@@ -16,4 +16,6 @@ type ChangeRequestStore interface {
 	CreateEntry(ctx context.Context, userId int64, requestId int64, content string) error
 
 	GetByProjectId(ctx context.Context, projectId int64, arg *params.ChangeRequestSearch) (*agg.WithCount[agg.ChangeRequest], error)
+
+	CloseById(ctx context.Context, requestId int64) error
 }

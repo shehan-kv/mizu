@@ -277,3 +277,47 @@ func (q *ChangeRequestStorePostgres) GetByProjectId(
 
 	return &result, nil
 }
+
+func (q *ChangeRequestStorePostgres) CloseById(ctx context.Context, requestId int64) error {
+
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return store.ErrInsertFailed
+	}
+
+	defer tx.Rollback()
+
+	query := `
+	SELECT crs.name AS status
+	FROM change_requests cr 
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE cr.id = $1 
+	`
+
+	var reqStatus string
+	err = tx.QueryRowContext(ctx, query, requestId).Scan(&reqStatus)
+	if err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	if reqStatus == params.ChangeRequestClosed {
+		return store.ErrUnexpectedType
+	}
+
+	updateQuery := `
+	UPDATE change_requests
+	SET status = (SELECT id FROM change_request_statuses WHERE name = $1)
+	WHERE id = $2
+	`
+
+	_, err = tx.ExecContext(ctx, updateQuery, params.ChangeRequestClosed, requestId)
+	if err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	if err = tx.Commit(); err != nil {
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}
