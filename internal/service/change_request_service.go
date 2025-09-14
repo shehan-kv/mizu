@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/change_request"
+	"mizu/internal/dto/common"
 	"mizu/internal/event"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
@@ -109,4 +111,61 @@ func (chngReqSrv *ChangeRequestService) CreateEntry(
 	}
 
 	return nil
+}
+
+func (chngReqSrv *ChangeRequestService) GetAllByProject(
+	ctx context.Context,
+	projectId int64,
+	query *dto.ChangeReqSearch) (*common.Page[[]dto.ChangeReqResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		chngReqSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "change_request_service",
+			"project_id", actor,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	result, err := chngReqSrv.chngReqSt.GetByProjectId(ctx, projectId, &params.ChangeRequestSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	numOfPages := math.Ceil(float64(result.Total) / float64(query.Limit))
+	reqResp := common.Page[[]dto.ChangeReqResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  int64(numOfPages),
+		Data:        make([]dto.ChangeReqResponse, len(result.Items)),
+	}
+
+	for i, item := range result.Items {
+		reqResp.Data[i] = dto.ChangeReqResponse{
+			Id:        item.Id,
+			Title:     item.Title,
+			CreatedAt: item.CreatedAt,
+			RequestedBy: &dto.ChangeReqUserResponse{
+				Id:        item.ReqUserId,
+				FirstName: item.ReqUserFirstName,
+				LastName:  item.ReqUserLastName,
+			},
+			Project: &dto.ChangeReqProjectResponse{
+				Id:   item.ProjectId,
+				Name: item.ProjectName,
+			},
+			Status: item.Status,
+		}
+	}
+
+	return &reqResp, nil
 }
