@@ -51,6 +51,7 @@ func (chngReqHndl *ChangeRequestHandler) GetMux(
 
 	mux.Handle("POST /{projectId}", mwChain.Handle(chngReqHndl.CreateRequest))
 	mux.Handle("POST /entry/{requestId}", mwChain.Handle(chngReqHndl.CreateEntry))
+	mux.Handle("POST /close/{requestId}", mwChain.Handle(chngReqHndl.CloseById))
 
 	// eg, /change-requests/project/{projectId}
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(chngReqHndl.GetAllByProject))
@@ -188,4 +189,27 @@ func (chngReqHndl *ChangeRequestHandler) GetAllByProject(w http.ResponseWriter, 
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(result)
+}
+
+func (chngReqHndl *ChangeRequestHandler) CloseById(w http.ResponseWriter, r *http.Request) {
+
+	reqId := r.PathValue("requestId")
+	parsedReqId, err := strconv.ParseInt(reqId, 10, 64)
+	if err != nil || parsedReqId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = chngReqHndl.chngReqSrv.CloseById(r.Context(), parsedReqId)
+	if err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
