@@ -50,6 +50,7 @@ func (chngReqHndl *ChangeRequestHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /{projectId}", mwChain.Handle(chngReqHndl.CreateRequest))
+	mux.Handle("POST /entry/{requestId}", mwChain.Handle(chngReqHndl.CreateEntry))
 
 	return mux
 }
@@ -80,6 +81,47 @@ func (chngReqHndl *ChangeRequestHandler) CreateRequest(w http.ResponseWriter, r 
 	if err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (chngReqHndl *ChangeRequestHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
+
+	reqId := r.PathValue("requestId")
+	parsedReqId, err := strconv.ParseInt(reqId, 10, 64)
+	if err != nil || parsedReqId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var createRequest dto.EntryCreateRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if ok := createRequest.Validate(); !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = chngReqHndl.chngReqSrv.CreateEntry(r.Context(), parsedReqId, &createRequest)
+
+	if err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
 			return
 		}
 
