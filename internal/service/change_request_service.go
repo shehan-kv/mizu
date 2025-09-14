@@ -72,3 +72,41 @@ func (chngReqSrv *ChangeRequestService) Create(
 
 	return nil
 }
+
+func (chngReqSrv *ChangeRequestService) CreateEntry(
+	ctx context.Context,
+	requestId int64,
+	request *dto.EntryCreateRequest) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		chngReqSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"change_request_id", requestId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = chngReqSrv.chngReqSt.CreateEntry(ctx, actor.Id, requestId, request.Content)
+
+	if err != nil {
+		if errors.Is(err, store.ErrForeignKeyViolation) {
+			return ErrBadRequest
+		}
+
+		if errors.Is(err, store.ErrUnexpectedType) {
+			return ErrAlreadyExists
+		}
+
+		if errors.Is(err, store.ErrNotNullViolation) {
+			return ErrBadRequest
+		}
+
+		return ErrInternalError
+	}
+
+	return nil
+}
