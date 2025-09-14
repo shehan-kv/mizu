@@ -3,8 +3,10 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strings"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -159,4 +161,104 @@ func (q *ChangeRequestStoreSqlite) CreateEntry(
 	}
 
 	return nil
+}
+
+func (q *ChangeRequestStoreSqlite) GetByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.ChangeRequestSearch) (*agg.WithCount[agg.ChangeRequest], error) {
+
+	var reqQuery strings.Builder
+
+	reqQuery.WriteString(`
+	SELECT 
+		cr.id,
+		cr.title,
+		cr.created_at,
+		cr.req_user_id AS user_id,
+		u.first_name,
+		u.last_name,
+		p.id AS project_id,
+		p.name AS project_name,
+		crs.name AS status
+	FROM change_requests cr
+	JOIN projects p ON p.id = cr.project_id
+	JOIN users u ON u.id = cr.req_user_id
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE p.id = ?
+	`)
+
+	var countQuery strings.Builder
+	countQuery.WriteString(`
+	SELECT COUNT(cr.id)
+	FROM change_requests cr
+	JOIN projects p ON p.id = cr.project_id
+	JOIN users u ON u.id = cr.req_user_id
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE p.id = ?
+	`)
+
+	reqQueryArgs := []any{projectId}
+	countQueryArgs := []any{projectId}
+
+	if len(arg.Keyword) != 0 {
+		reqQuery.WriteString(" AND cr.title = ?")
+		countQuery.WriteString(" AND cr.title = ?")
+
+		reqQueryArgs = append(reqQueryArgs, arg.Keyword)
+		countQueryArgs = append(countQueryArgs, arg.Keyword)
+	}
+
+	if len(arg.Status) != 0 {
+		reqQuery.WriteString(" AND crs.name = ?")
+		countQuery.WriteString(" AND crs.name = ?")
+
+		reqQueryArgs = append(reqQueryArgs, arg.Status)
+		countQueryArgs = append(countQueryArgs, arg.Status)
+	}
+
+	reqQuery.WriteString(" ORDER BY cr.created_at DESC")
+	reqQuery.WriteString(" LIMIT ? OFFSET ?")
+	reqQueryArgs = append(reqQueryArgs, arg.Limit, arg.Offset)
+
+	var totalRequests int64
+	err := q.db.QueryRowContext(ctx, countQuery.String(), countQueryArgs...).Scan(&totalRequests)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	reqRows, err := q.db.QueryContext(ctx, reqQuery.String(), reqQueryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer reqRows.Close()
+
+	result := agg.WithCount[agg.ChangeRequest]{
+		Total: totalRequests,
+		Items: make([]agg.ChangeRequest, 0),
+	}
+
+	for reqRows.Next() {
+		var row agg.ChangeRequest
+		err := reqRows.Scan(
+			&row.Id,
+			&row.Title,
+			&row.CreatedAt,
+			&row.ReqUserId,
+			&row.ReqUserFirstName,
+			&row.ReqUserLastName,
+			&row.ProjectId,
+			&row.ProjectName,
+			&row.Status,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result.Items = append(result.Items, row)
+	}
+
+	return &result, nil
 }

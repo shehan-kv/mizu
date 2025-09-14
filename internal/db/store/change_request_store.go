@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -13,4 +14,6 @@ type ChangeRequestStore interface {
 	CreateOne(ctx context.Context, userId int64, arg *params.ChangeRequestCreate) (int64, error)
 
 	CreateEntry(ctx context.Context, userId int64, requestId int64, content string) error
+
+	GetByProjectId(ctx context.Context, projectId int64, arg *params.ChangeRequestSearch) (*agg.WithCount[agg.ChangeRequest], error)
 }
