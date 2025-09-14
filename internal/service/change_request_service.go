@@ -169,3 +169,28 @@ func (chngReqSrv *ChangeRequestService) GetAllByProject(
 
 	return &reqResp, nil
 }
+
+func (chngReqSrv *ChangeRequestService) CloseById(ctx context.Context, requestId int64) error {
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		chngReqSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "change_request_service",
+			"project_id", actor,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = chngReqSrv.chngReqSt.CloseById(ctx, requestId)
+	if err != nil {
+		if errors.Is(err, store.ErrUnexpectedType) {
+			return ErrAlreadyExists
+		}
+
+		return ErrInternalError
+	}
+
+	return nil
+}
