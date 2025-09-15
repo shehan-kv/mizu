@@ -306,3 +306,48 @@ func (q *ChangeRequestStoreSqlite) CloseById(ctx context.Context, requestId int6
 
 	return nil
 }
+
+func (q *ChangeRequestStoreSqlite) GetEntriesByRequestId(
+	ctx context.Context,
+	requestId int64) ([]agg.ChangeRequestEntry, error) {
+
+	query := `
+	SELECT 
+		cre.id,
+		cre.created_at,
+		cre.content,
+		u.id,
+		u.first_name, 
+		u.last_name
+	FROM change_request_entries cre 
+	JOIN users u ON u.id = cre.user_id
+	WHERE cre.request_id = ?
+	ORDER BY cre.created_at DESC
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, requestId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	entries := make([]agg.ChangeRequestEntry, 0)
+	for rows.Next() {
+		var row agg.ChangeRequestEntry
+		err := rows.Scan(
+			&row.Id,
+			&row.CreatedAt,
+			&row.Content,
+			&row.UserId,
+			&row.UserFirstName,
+			&row.UserLastName,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		entries = append(entries, row)
+	}
+
+	return entries, nil
+}

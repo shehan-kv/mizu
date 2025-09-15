@@ -18,4 +18,6 @@ type ChangeRequestStore interface {
 	GetByProjectId(ctx context.Context, projectId int64, arg *params.ChangeRequestSearch) (*agg.WithCount[agg.ChangeRequest], error)
 
 	CloseById(ctx context.Context, requestId int64) error
+
+	GetEntriesByRequestId(ctx context.Context, requestId int64) ([]agg.ChangeRequestEntry, error)
 }
