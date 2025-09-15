@@ -20,4 +20,6 @@ type ChangeRequestStore interface {
 	CloseById(ctx context.Context, requestId int64) error
 
 	GetEntriesByRequestId(ctx context.Context, requestId int64) ([]agg.ChangeRequestEntry, error)
+
+	GetById(ctx context.Context, requestId int64) (*agg.ChangeRequest, error)
 }

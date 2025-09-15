@@ -366,3 +366,45 @@ func (q *ChangeRequestStorePostgres) GetEntriesByRequestId(
 
 	return entries, nil
 }
+
+func (q *ChangeRequestStorePostgres) GetById(
+	ctx context.Context,
+	requestId int64) (*agg.ChangeRequest, error) {
+
+	query := `
+	SELECT 
+		cr.id,
+		cr.title,
+		cr.created_at,
+		cr.req_user_id AS user_id,
+		u.first_name,
+		u.last_name,
+		p.id AS project_id,
+		p.name AS project_name,
+		crs.name AS status
+	FROM change_requests cr
+	JOIN projects p ON p.id = cr.project_id
+	JOIN users u ON u.id = cr.req_user_id
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE cr.id = ?
+	`
+
+	var req agg.ChangeRequest
+	err := q.db.QueryRowContext(ctx, query, requestId).Scan(
+		&req.Id,
+		&req.Title,
+		&req.CreatedAt,
+		&req.ReqUserId,
+		&req.ReqUserFirstName,
+		&req.ReqUserLastName,
+		&req.ProjectId,
+		&req.ProjectName,
+		&req.Status,
+	)
+
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	return &req, nil
+}
