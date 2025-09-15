@@ -50,6 +50,7 @@ func (chngReqHndl *ChangeRequestHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /{projectId}", mwChain.Handle(chngReqHndl.CreateRequest))
+	mux.Handle("GET /{requestId}", mwChain.Handle(chngReqHndl.GetById))
 	mux.Handle("POST /entry/{requestId}", mwChain.Handle(chngReqHndl.CreateEntry))
 	mux.Handle("POST /close/{requestId}", mwChain.Handle(chngReqHndl.CloseById))
 
@@ -212,4 +213,24 @@ func (chngReqHndl *ChangeRequestHandler) CloseById(w http.ResponseWriter, r *htt
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (chngReqHndl *ChangeRequestHandler) GetById(w http.ResponseWriter, r *http.Request) {
+
+	reqId := r.PathValue("requestId")
+	parsedReqId, err := strconv.ParseInt(reqId, 10, 64)
+	if err != nil || parsedReqId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	result, err := chngReqHndl.chngReqSrv.GetById(r.Context(), parsedReqId)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
 }
