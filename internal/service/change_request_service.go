@@ -194,3 +194,59 @@ func (chngReqSrv *ChangeRequestService) CloseById(ctx context.Context, requestId
 
 	return nil
 }
+
+func (chngReqSrv *ChangeRequestService) GetById(ctx context.Context, requestId int64) (*dto.ChangeReqDetailsResponse, error) {
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		chngReqSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "change_request_service",
+			"project_id", actor,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	req, err := chngReqSrv.chngReqSt.GetById(ctx, requestId)
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	entries, err := chngReqSrv.chngReqSt.GetEntriesByRequestId(ctx, requestId)
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	reqDetails := dto.ChangeReqDetailsResponse{
+		Id:        req.Id,
+		Title:     req.Title,
+		CreatedAt: req.CreatedAt,
+		RequestedBy: &dto.ChangeReqUserResponse{
+			Id:        req.ReqUserId,
+			FirstName: req.ReqUserFirstName,
+			LastName:  req.ReqUserLastName,
+		},
+		Project: &dto.ChangeReqProjectResponse{
+			Id:   req.ProjectId,
+			Name: req.ProjectName,
+		},
+		Status:  req.Status,
+		Entries: make([]dto.ChangeReqEntryResponse, len(entries)),
+	}
+
+	for i, entry := range entries {
+		reqDetails.Entries[i] = dto.ChangeReqEntryResponse{
+			Id:        entry.Id,
+			CreatedAt: entry.CreatedAt,
+			Content:   entry.Content,
+			User: dto.ChangeReqUserResponse{
+				Id:        entry.UserId,
+				FirstName: entry.UserFirstName,
+				LastName:  entry.UserLastName,
+			},
+		}
+	}
+
+	return &reqDetails, nil
+}
