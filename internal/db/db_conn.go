@@ -208,6 +208,23 @@ func (dbs *DbConn) NewChangeRequestStore() store.ChangeRequestStore {
 	}
 }
 
+// Creates a new instance of a FileStore.
+//
+// Returns:
+//   - a pointer to an implementation of FileStore
+func (dbs *DbConn) NewFileStore() store.FileStore {
+	switch dbs.dbEngine {
+	case "sqlite":
+		return sqlite.NewFileStore(dbs.sqlDb)
+
+	case "postgres":
+		return postgres.NewFileStore(dbs.sqlDb)
+
+	default:
+		return sqlite.NewFileStore(dbs.sqlDb)
+	}
+}
+
 // Closes the database connection
 func (dbs *DbConn) Close() {
 	dbs.sqlDb.Close()
