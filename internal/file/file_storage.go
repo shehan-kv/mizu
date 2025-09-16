@@ -1,7 +1,7 @@
 package file
 
 type FileStorage interface {
-	UploadFile() error
+	Store() error
 
 	Close() error
 }
