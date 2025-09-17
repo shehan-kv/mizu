@@ -5,6 +5,7 @@ import (
 	"mizu/internal/db"
 	"mizu/internal/email"
 	"mizu/internal/event"
+	"mizu/internal/file"
 	v1 "mizu/internal/handler/v1"
 	"mizu/internal/logger"
 	"mizu/internal/service"
@@ -30,6 +31,10 @@ func RunServer() {
 	sessionStore.Init()
 	defer sessionStore.Close()
 
+	// Initialize file storage
+	fileStorage := file.GetFileStorage(logger)
+	defer fileStorage.Close()
+
 	// Initialize email sender
 	emailSender := email.GetEmailSender()
 	emailSender.Init()
@@ -42,6 +47,7 @@ func RunServer() {
 	messageStore := db.NewMessagetore()
 	contractStore := db.NewContractStore()
 	changeReqStore := db.NewChangeRequestStore()
+	fileStore := db.NewFileStore()
 
 	// Default admin user when the database has no users
 	auth.CreateDefaultAdminUser(userStore, logger)
@@ -57,6 +63,7 @@ func RunServer() {
 	messageService := service.NewMessageService(logger, eventSender, messageStore)
 	contractService := service.NewContractService(logger, eventSender, contractStore, emailSender)
 	changeReqService := service.NewChangeRequestService(logger, eventSender, changeReqStore)
+	fileService := service.NewFileService(logger, eventSender, fileStore, fileStorage)
 
 	// Handler mux init
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
@@ -66,6 +73,7 @@ func RunServer() {
 	messageMux := v1.NewMessageHandler(messageService).GetMux(logger, sessionStore, userStore)
 	contractMux := v1.NewContractHandler(contractService).GetMux(logger, sessionStore, userStore)
 	changeReqMux := v1.NewChangeRequestHandler(changeReqService).GetMux(logger, sessionStore, userStore)
+	fileMux := v1.NewFileHandler(fileService).GetMux(logger, sessionStore, userStore)
 	sseMux := v1.NewSseHandler(sseSender).GetMux(logger, sessionStore, userStore)
 
 	// Server routes
@@ -77,6 +85,7 @@ func RunServer() {
 	mainMux.Handle("/api/v1/messages/", http.StripPrefix("/api/v1/messages", messageMux))
 	mainMux.Handle("/api/v1/contracts/", http.StripPrefix("/api/v1/contracts", contractMux))
 	mainMux.Handle("/api/v1/change-requests/", http.StripPrefix("/api/v1/change-requests", changeReqMux))
+	mainMux.Handle("/api/v1/files/", http.StripPrefix("/api/v1/files", fileMux))
 	mainMux.Handle("/api/v1/events/", http.StripPrefix("/api/v1/events", sseMux))
 
 	// Start server
