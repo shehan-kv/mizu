@@ -5,5 +5,7 @@ import "mime/multipart"
 type FileStorage interface {
 	Store(fileType FileType, file multipart.File, fileName string) (string, error)
 
+	Remove(url string) error
+
 	Close() error
 }

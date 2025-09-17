@@ -134,7 +134,7 @@ func (u *DiskFileStorage) Store(fileType FileType, file multipart.File, fileName
 		return "", ErrFileCloseFailed
 	}
 
-	// owner read/write only permissions
+	// Owner read/write only permissions
 	_ = os.Chmod(tmpPath, 0o600)
 
 	finalPath := filepath.Join(fPath, fileName)
@@ -144,10 +144,20 @@ func (u *DiskFileStorage) Store(fileType FileType, file multipart.File, fileName
 		return "", ErrRenameFailed
 	}
 
-	// return the URL of the file
-	fileUrl := filepath.ToSlash(fPath) + "/" + fileName
+	// The URL of the file.
+	// Server should respond to this path
+	fileUrl := "/api/v1/storage/files/" + fileName
 
 	return fileUrl, nil
+}
+
+func (u *DiskFileStorage) Remove(url string) error {
+
+	if err := os.Remove(url); err != nil {
+		return ErrRemoveFailed
+	}
+
+	return nil
 }
 
 func (u *DiskFileStorage) Close() error {
