@@ -1,6 +1,11 @@
 package postgres
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+	"mizu/internal/db/params"
+	"mizu/internal/db/store"
+)
 
 // FileStoreSqlite implements the FileStore interface using Postgres.
 // It persists File entities in a SQLite database via the provided *sql.DB.
@@ -15,4 +20,30 @@ type FileStorePostgres struct {
 // File entities in a SQLite database via the provided *sql.DB.
 func NewFileStore(db *sql.DB) *FileStorePostgres {
 	return &FileStorePostgres{db: db}
+}
+
+func (q *FileStorePostgres) CreateOne(ctx context.Context, arg params.FileCreate) (int64, error) {
+
+	query := `
+	INSERT INTO files(channel_id, user_id, orig_name, saved_name, url, size)
+	VALUES($1, $2, $3, $4, $5, $6) RETURNING id
+	`
+
+	var fileId int64
+	err := q.db.QueryRowContext(
+		ctx,
+		query,
+		arg.ChannelId,
+		arg.UserId,
+		arg.OriginalName,
+		arg.SavedName,
+		arg.Url,
+		arg.Size,
+	).Scan(&fileId)
+
+	if err != nil {
+		return 0, store.ErrInsertFailed
+	}
+
+	return fileId, nil
 }
