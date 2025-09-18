@@ -3,8 +3,10 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strings"
 )
 
 // FileStoreSqlite implements the FileStore interface using SQLite.
@@ -46,4 +48,94 @@ func (q *FileStoreSqlite) CreateOne(ctx context.Context, arg params.FileCreate) 
 	}
 
 	return fileId, nil
+}
+
+func (q *FileStoreSqlite) GetByChannelId(
+	ctx context.Context,
+	channelId int64,
+	arg *params.FileSearch) (*agg.WithCount[agg.FileWithUser], error) {
+
+	var fileQuery strings.Builder
+	fileQuery.WriteString(`
+	SELECT 
+		f.id,
+		f.channel_id,
+		u.id AS user_id,
+		u.first_name,
+		u.last_name,
+		f.orig_name,
+		f.saved_name,
+		f.uploaded_at,
+		f.url,
+		f.size
+	FROM files f 
+	JOIN users u ON u.id = f.user_id
+	WHERE f.channel_id = ?
+	`)
+
+	var countQuery strings.Builder
+	countQuery.WriteString("SELECT COUNT(id) FROM files WHERE channel_id = ?")
+
+	queryArgs := []any{channelId}
+	countArgs := []any{channelId}
+
+	if len(arg.Keyword) != 0 {
+		fileQuery.WriteString(" AND f.orig_name LIKE")
+		fileQuery.WriteString(" %")
+		fileQuery.WriteString(arg.Keyword)
+		fileQuery.WriteString("%")
+
+		countQuery.WriteString(" AND f.orig_name LIKE")
+		countQuery.WriteString(" %")
+		countQuery.WriteString(arg.Keyword)
+		countQuery.WriteString("%")
+
+		queryArgs = append(queryArgs, arg.Keyword)
+		countArgs = append(countArgs, arg.Keyword)
+	}
+
+	fileQuery.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	var totalFiles int64
+	err := q.db.QueryRowContext(ctx, countQuery.String(), countArgs...).Scan(&totalFiles)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	rows, err := q.db.QueryContext(ctx, fileQuery.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := agg.WithCount[agg.FileWithUser]{
+		Total: totalFiles,
+		Items: make([]agg.FileWithUser, 0),
+	}
+
+	for rows.Next() {
+		var row agg.FileWithUser
+		err := rows.Scan(
+			&row.Id,
+			&row.ChannelId,
+			&row.UserId,
+			&row.UserFirstName,
+			&row.UserLastName,
+			&row.OriginalName,
+			&row.SavedName,
+			&row.UploadedAt,
+			&row.Url,
+			&row.Size,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result.Items = append(result.Items, row)
+	}
+
+	return &result, nil
 }

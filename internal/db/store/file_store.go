@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -11,4 +12,9 @@ import (
 // Implementations must be safe for concurrent use.
 type FileStore interface {
 	CreateOne(ctx context.Context, arg params.FileCreate) (int64, error)
+
+	GetByChannelId(
+		ctx context.Context,
+		channelId int64,
+		arg *params.FileSearch) (*agg.WithCount[agg.FileWithUser], error)
 }
