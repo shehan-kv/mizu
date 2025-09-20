@@ -1,7 +1,9 @@
 package v1
 
 import (
+	"encoding/json"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/file"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
 	"mizu/internal/service"
@@ -62,6 +64,7 @@ func (fileHndl *FileHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(fileHndl.StoreFile))
+	mux.Handle("GET /{channelId}", mwChain.Handle(fileHndl.GetByChannel))
 
 	return mux
 }
@@ -100,4 +103,56 @@ func (fileHndl *FileHandler) StoreFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (fileHndl *FileHandler) GetByChannel(w http.ResponseWriter, r *http.Request) {
+
+	channelId := r.PathValue("channelId")
+	parsedChId, err := strconv.ParseInt(channelId, 10, 64)
+	if err != nil || parsedChId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	keyword := r.URL.Query().Get("q")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	result, err := fileHndl.fileSrv.GetByChannelId(r.Context(), parsedChId, &file.FileSearch{
+		Keyword: keyword,
+		Page:    page,
+		Limit:   limit,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
 }
