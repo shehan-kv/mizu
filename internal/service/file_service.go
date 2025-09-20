@@ -5,6 +5,8 @@ import (
 	"mime/multipart"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/common"
+	dto "mizu/internal/dto/file"
 	"mizu/internal/event"
 	"mizu/internal/file"
 	"mizu/internal/logger"
@@ -89,4 +91,65 @@ func (fileSrv *FileService) StoreFile(
 	}
 
 	return nil
+}
+
+func (fileSrv *FileService) GetByChannelId(
+	ctx context.Context,
+	channelId int64,
+	query *dto.FileSearch) (*common.Page[[]dto.FileResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		fileSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "file_service",
+			"channel_id", channelId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	result, err := fileSrv.fileSt.GetByChannelId(ctx, channelId, &params.FileSearch{
+		Keyword: query.Keyword,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		fileSrv.lg.Error("could not retrieve files for channel",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "file_service",
+			"channel_id", channelId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.FileResponse]{
+		CurrentPage: query.Page,
+		Limit:       query.Limit,
+		TotalPages:  result.Total,
+		Data:        make([]dto.FileResponse, len(result.Items)),
+	}
+
+	for i, file := range result.Items {
+		resp.Data[i] = dto.FileResponse{
+			Id:        file.Id,
+			ChannelId: file.ChannelId,
+			User: dto.FileUserResponse{
+				Id:        file.UserId,
+				FirstName: file.UserFirstName,
+				LastName:  file.UserLastName,
+			},
+			OriginalName: file.OriginalName,
+			SavedName:    file.SavedName,
+			UploadedAt:   file.UploadedAt,
+			Url:          file.Url,
+			Size:         file.Size,
+		}
+	}
+
+	return &resp, nil
 }
