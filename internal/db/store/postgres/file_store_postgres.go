@@ -94,6 +94,7 @@ func (q *FileStorePostgres) GetByChannelId(
 		countArgs = append(countArgs, arg.Keyword)
 	}
 
+	fileQuery.WriteString(" ORDER BY f.uploaded_at DESC")
 	fileQuery.WriteString(" LIMIT $2 OFFSET $3")
 	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
 

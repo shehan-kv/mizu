@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"log"
 	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -94,17 +95,20 @@ func (q *FileStoreSqlite) GetByChannelId(
 		countArgs = append(countArgs, arg.Keyword)
 	}
 
+	fileQuery.WriteString(" ORDER BY f.uploaded_at DESC")
 	fileQuery.WriteString(" LIMIT ? OFFSET ?")
 	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
 
 	var totalFiles int64
 	err := q.db.QueryRowContext(ctx, countQuery.String(), countArgs...).Scan(&totalFiles)
 	if err != nil {
+		log.Println(err)
 		return nil, store.ErrQueryFailed
 	}
 
 	rows, err := q.db.QueryContext(ctx, fileQuery.String(), queryArgs...)
 	if err != nil {
+		log.Println(err)
 		return nil, store.ErrQueryFailed
 	}
 
