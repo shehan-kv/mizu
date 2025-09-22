@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"mizu/internal/dto/common"
@@ -358,12 +357,11 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 		}
 	}
 
-	numOfPages := math.Ceil(float64(invoices.Total) / float64(query.Limit))
 	resp := common.Page[[]dto.InvoiceWithStatusResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  int64(numOfPages),
-		Data:        respInv,
+		Count: invoices.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  respInv,
 	}
 
 	return &resp, nil
@@ -430,12 +428,11 @@ func (invSrv *InvoiceService) GetAllByUser(
 		}
 	}
 
-	numOfPages := math.Ceil(float64(invoices.Total) / float64(query.Limit))
 	resp := common.Page[[]dto.InvoiceWithProjectResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  int64(numOfPages),
-		Data:        respInv,
+		Count: invoices.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  respInv,
 	}
 
 	return &resp, nil

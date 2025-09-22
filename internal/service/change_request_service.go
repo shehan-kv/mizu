@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	dto "mizu/internal/dto/change_request"
@@ -141,12 +140,11 @@ func (chngReqSrv *ChangeRequestService) GetAllByProject(
 		return nil, ErrInternalError
 	}
 
-	numOfPages := math.Ceil(float64(result.Total) / float64(query.Limit))
 	reqResp := common.Page[[]dto.ChangeReqResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  int64(numOfPages),
-		Data:        make([]dto.ChangeReqResponse, len(result.Items)),
+		Count: result.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  make([]dto.ChangeReqResponse, len(result.Items)),
 	}
 
 	for i, item := range result.Items {

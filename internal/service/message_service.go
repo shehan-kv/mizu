@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"mizu/internal/dto/common"
@@ -289,12 +288,11 @@ func (msgSrv *MessageService) GetMessages(
 		msgResponses[i] = resp
 	}
 
-	numOfPages := math.Ceil(float64(count) / float64(query.Limit))
 	resp := common.Page[[]dto.MessageResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  int64(numOfPages),
-		Data:        msgResponses,
+		Count: count,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  msgResponses,
 	}
 
 	return &resp, nil

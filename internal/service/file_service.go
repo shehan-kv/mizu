@@ -128,10 +128,10 @@ func (fileSrv *FileService) GetByChannelId(
 	}
 
 	resp := common.Page[[]dto.FileResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  result.Total,
-		Data:        make([]dto.FileResponse, len(result.Items)),
+		Count: result.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  make([]dto.FileResponse, len(result.Items)),
 	}
 
 	for i, file := range result.Items {

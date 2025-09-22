@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"mizu/internal/dto/common"
@@ -522,12 +521,11 @@ func (contSrv *ContractService) GetRevisions(
 		}
 	}
 
-	numOfPages := math.Ceil(float64(revisions.Total) / float64(query.Limit))
 	resp := common.Page[[]dto.RevisionResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  int64(numOfPages),
-		Data:        revResp,
+		Count: revisions.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  revResp,
 	}
 
 	return &resp, nil
@@ -595,12 +593,11 @@ func (contSrv *ContractService) GetContractsByProject(
 		}
 	}
 
-	numOfPages := math.Ceil(float64(contracts.Total) / float64(query.Limit))
 	resp := common.Page[[]dto.ContractStatsResponse]{
-		CurrentPage: query.Page,
-		Limit:       query.Limit,
-		TotalPages:  int64(numOfPages),
-		Data:        contractResp,
+		Count: contracts.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  contractResp,
 	}
 
 	return &resp, nil

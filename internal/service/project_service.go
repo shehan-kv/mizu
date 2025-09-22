@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"math"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"mizu/internal/dto/common"
@@ -228,12 +227,11 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 		projectResponses = append(projectResponses, stat)
 	}
 
-	numOfPages := math.Ceil(float64(projects.TotalCount) / float64(query.Limit))
 	response := &common.Page[[]dto.ProjectsStatsResponse]{
-		CurrentPage: query.Page,
-		TotalPages:  int64(numOfPages),
-		Limit:       query.Limit,
-		Data:        projectResponses,
+		Count: projects.TotalCount,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  projectResponses,
 	}
 
 	return response, nil
