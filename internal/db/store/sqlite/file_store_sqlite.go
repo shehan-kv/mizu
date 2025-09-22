@@ -81,18 +81,13 @@ func (q *FileStoreSqlite) GetByChannelId(
 	countArgs := []any{channelId}
 
 	if len(arg.Keyword) != 0 {
-		fileQuery.WriteString(" AND f.orig_name LIKE")
-		fileQuery.WriteString(" %")
-		fileQuery.WriteString(arg.Keyword)
-		fileQuery.WriteString("%")
+		fileQuery.WriteString(" AND f.orig_name LIKE ?")
+		countQuery.WriteString(" AND orig_name LIKE ?")
 
-		countQuery.WriteString(" AND f.orig_name LIKE")
-		countQuery.WriteString(" %")
-		countQuery.WriteString(arg.Keyword)
-		countQuery.WriteString("%")
+		keyword := "%" + arg.Keyword + "%"
 
-		queryArgs = append(queryArgs, arg.Keyword)
-		countArgs = append(countArgs, arg.Keyword)
+		queryArgs = append(queryArgs, keyword)
+		countArgs = append(countArgs, keyword)
 	}
 
 	fileQuery.WriteString(" ORDER BY f.uploaded_at DESC")

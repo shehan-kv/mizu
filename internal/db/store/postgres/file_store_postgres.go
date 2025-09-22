@@ -6,6 +6,7 @@ import (
 	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strconv"
 	"strings"
 )
 
@@ -79,23 +80,32 @@ func (q *FileStorePostgres) GetByChannelId(
 	queryArgs := []any{channelId}
 	countArgs := []any{channelId}
 
+	paramCount := 1
+
 	if len(arg.Keyword) != 0 {
-		fileQuery.WriteString(" AND f.orig_name LIKE")
-		fileQuery.WriteString(" %")
-		fileQuery.WriteString(arg.Keyword)
-		fileQuery.WriteString("%")
+		paramCount++
 
-		countQuery.WriteString(" AND f.orig_name LIKE")
-		countQuery.WriteString(" %")
-		countQuery.WriteString(arg.Keyword)
-		countQuery.WriteString("%")
+		fileQuery.WriteString(" AND f.orig_name LIKE $")
+		fileQuery.WriteString(strconv.Itoa(paramCount))
 
-		queryArgs = append(queryArgs, arg.Keyword)
-		countArgs = append(countArgs, arg.Keyword)
+		countQuery.WriteString(" AND f.orig_name LIKE $")
+		countQuery.WriteString(strconv.Itoa(paramCount))
+
+		keyword := "%" + arg.Keyword + "%"
+
+		queryArgs = append(queryArgs, keyword)
+		countArgs = append(countArgs, keyword)
 	}
 
 	fileQuery.WriteString(" ORDER BY f.uploaded_at DESC")
-	fileQuery.WriteString(" LIMIT $2 OFFSET $3")
+
+	paramCount++
+	fileQuery.WriteString(" LIMIT $")
+	fileQuery.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	fileQuery.WriteString(" OFFSET $")
+	fileQuery.WriteString(strconv.Itoa(paramCount))
 	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
 
 	var totalFiles int64
