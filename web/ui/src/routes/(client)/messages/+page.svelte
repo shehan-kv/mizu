@@ -274,11 +274,13 @@
 	{/if}
 </div>
 
-<Dialog.ChannelFiles
-	bind:open={fileDialog.isOpen}
-	close={fileDialog.close}
-	channel={selectedChannel}
-/>
+{#if selectedChannel}
+	<Dialog.ChannelFiles
+		bind:open={fileDialog.isOpen}
+		close={fileDialog.close}
+		channel={selectedChannel}
+	/>
+{/if}
 
 <Dialog.ChannelContracts
 	bind:open={contractDialog.isOpen}
