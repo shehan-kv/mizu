@@ -3,10 +3,10 @@
 	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
 	import CaretRight from 'phosphor-svelte/lib/CaretRight';
 
-	let { page = $bindable() } = $props();
+	let { page = $bindable(), count, perPage } = $props();
 </script>
 
-<Pagination.Root count={100} perPage={10} bind:page>
+<Pagination.Root {count} {perPage} bind:page>
 	{#snippet children({ pages, range })}
 		<div class="flex items-center gap-4">
 			<p class="text-muted-foreground text-center text-xs">
