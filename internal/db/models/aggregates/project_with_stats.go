@@ -15,8 +15,3 @@ type ProjectWithStats struct {
 	InvoicesPaid   int64
 	TotalQuotes    int64
 }
-
-type ProjectWithStatsList struct {
-	TotalCount int64
-	Projects   []ProjectWithStats
-}
