@@ -49,5 +49,5 @@ type ProjectStore interface {
 	// Returns:
 	//	 - *aggregates.ProjectWithStatsList
 	//   - store.ErrQueryFailed: if query fails
-	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*agg.ProjectWithStatsList, error)
+	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error)
 }

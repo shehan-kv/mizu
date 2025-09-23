@@ -3,7 +3,6 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"errors"
 	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -141,7 +140,7 @@ func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCre
 // Implementing GetWithStats defined in ProjectStore interface
 func (q *ProjectStoreSqlite) GetWithStats(
 	ctx context.Context,
-	arg *params.ProjectsSearch) (*agg.ProjectWithStatsList, error) {
+	arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error) {
 
 	query := `
 	SELECT p.id, p.name, p.created_at, ps.name AS status,
@@ -182,7 +181,9 @@ func (q *ProjectStoreSqlite) GetWithStats(
 	`
 
 	projectCount := `
-	SELECT COUNT(p.id) FROM projects p JOIN project_users pu ON p.id = pu.project_id
+	SELECT COUNT(p.id) FROM projects p 
+	JOIN project_users pu ON p.id = pu.project_id
+	JOIN project_statuses ps ON ps.id = p.status 
 	WHERE pu.user_id = ?
 	`
 
@@ -206,6 +207,12 @@ func (q *ProjectStoreSqlite) GetWithStats(
 	query += " LIMIT ? OFFSET ?"
 	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
 
+	var totalProjects int64 = 10
+	err := q.db.QueryRowContext(ctx, projectCount, countArgs...).Scan(&totalProjects)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
 	rows, err := q.db.QueryContext(ctx, query, queryArgs...)
 	if err != nil {
 		return nil, store.ErrQueryFailed
@@ -213,7 +220,10 @@ func (q *ProjectStoreSqlite) GetWithStats(
 
 	defer rows.Close()
 
-	projects := []agg.ProjectWithStats{}
+	result := agg.WithCount[agg.ProjectWithStats]{
+		Total: totalProjects,
+		Items: make([]agg.ProjectWithStats, 0),
+	}
 
 	for rows.Next() {
 		var project agg.ProjectWithStats
@@ -234,18 +244,8 @@ func (q *ProjectStoreSqlite) GetWithStats(
 			return nil, store.ErrQueryFailed
 		}
 
-		projects = append(projects, project)
+		result.Items = append(result.Items, project)
 	}
 
-	var totalProjects int64 = 10
-	err = q.db.QueryRowContext(ctx, projectCount, countArgs...).Scan(&totalProjects)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			totalProjects = 0
-		} else {
-			return nil, store.ErrQueryFailed
-		}
-	}
-
-	return &agg.ProjectWithStatsList{TotalCount: totalProjects, Projects: projects}, nil
+	return &result, nil
 }

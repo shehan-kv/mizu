@@ -115,7 +115,7 @@ func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskC
 // Implementing GetWithStats defined in ProjectStore interface
 func (q *ProjectStorePostgres) GetWithStats(
 	ctx context.Context,
-	arg *params.ProjectsSearch) (*agg.ProjectWithStatsList, error) {
+	arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error) {
 
 	query := `
 	SELECT p.id, p.name, p.created_at, ps.name AS status,
@@ -156,7 +156,9 @@ func (q *ProjectStorePostgres) GetWithStats(
 	`
 
 	projectCount := `
-	SELECT COUNT(p.id) FROM projects p JOIN project_users pu ON p.id = pu.project_id
+	SELECT COUNT(p.id) FROM projects p 
+	JOIN project_users pu ON p.id = pu.project_id
+	JOIN project_statuses ps ON ps.id = p.status 
 	WHERE pu.user_id = $1
 	`
 
@@ -191,6 +193,12 @@ func (q *ProjectStorePostgres) GetWithStats(
 	query += " LIMIT $" + strLimitParamCount + " OFFSET $" + strOffsetParamCount
 	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
 
+	var totalProjects int64
+	err := q.db.QueryRowContext(ctx, projectCount, countArgs...).Scan(&totalProjects)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
 	rows, err := q.db.QueryContext(ctx, query, queryArgs...)
 	if err != nil {
 		return nil, store.ErrQueryFailed
@@ -198,7 +206,10 @@ func (q *ProjectStorePostgres) GetWithStats(
 
 	defer rows.Close()
 
-	projects := []agg.ProjectWithStats{}
+	result := agg.WithCount[agg.ProjectWithStats]{
+		Total: totalProjects,
+		Items: make([]agg.ProjectWithStats, 0),
+	}
 
 	for rows.Next() {
 		var project agg.ProjectWithStats
@@ -219,14 +230,8 @@ func (q *ProjectStorePostgres) GetWithStats(
 			return nil, store.ErrQueryFailed
 		}
 
-		projects = append(projects, project)
+		result.Items = append(result.Items, project)
 	}
 
-	var totalProjects int64
-	err = q.db.QueryRowContext(ctx, projectCount, countArgs...).Scan(&totalProjects)
-	if err != nil {
-		return nil, store.ErrQueryFailed
-	}
-
-	return &agg.ProjectWithStatsList{TotalCount: totalProjects, Projects: projects}, nil
+	return &result, nil
 }
