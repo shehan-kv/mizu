@@ -211,7 +211,7 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 	}
 
 	projectResponses := []dto.ProjectsStatsResponse{}
-	for _, response := range projects.Projects {
+	for _, response := range projects.Items {
 		stat := dto.ProjectsStatsResponse{
 			Id:             response.Id,
 			Name:           response.Name,
@@ -228,7 +228,7 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 	}
 
 	response := &common.Page[[]dto.ProjectsStatsResponse]{
-		Count: projects.TotalCount,
+		Count: projects.Total,
 		Limit: query.Limit,
 		Page:  query.Page,
 		Data:  projectResponses,
