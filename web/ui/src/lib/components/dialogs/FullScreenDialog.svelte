@@ -1,8 +1,8 @@
-<script>
+<script lang="ts">
 	import { Dialog } from 'bits-ui';
 	import X from 'phosphor-svelte/lib/X';
 
-	let { open = $bindable(), close, children } = $props();
+	let { open = $bindable(), children } = $props();
 </script>
 
 <Dialog.Root bind:open>
