@@ -182,7 +182,7 @@
 		{:else if err instanceof APIForbiddenError}
 			<ErrorMessage
 				variant="warn"
-				text="You Don't Have Permission To View These Files"
+				text="You Don't Have Permission To View These Projects"
 				retry={loadProjects}
 			/>
 		{:else if err instanceof APINotFoundError}
