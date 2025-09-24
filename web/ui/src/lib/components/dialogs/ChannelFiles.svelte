@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import * as Table from '$lib/components/ui/table';
 	import SearchBar from '$lib/components/SearchBar.svelte';
@@ -14,19 +12,20 @@
 		APIBadRequestError,
 		APIForbiddenError,
 		APINotFoundError,
-		APIServerError,
-		APIUnauthorizedError
+		APIServerError
 	} from '$lib/api/errors';
 	import { formatBytes } from '$lib/utils/formatBytes';
 
 	interface Props {
-		open: Boolean;
+		open: boolean;
 		close: () => void;
 		channel: Channel;
 	}
 	let { open = $bindable(), close, channel }: Props = $props();
 
-	let q = '';
+	let _q = $state('');
+	let q = $state('');
+
 	let page = $state(1);
 	let limit = $state(30);
 
@@ -40,20 +39,15 @@
 
 		abortController = new AbortController();
 
-		filesPromise = getFilesByChannel(channel.id, q, page, limit, abortController.signal).catch(
-			(err) => {
-				if (err instanceof APIUnauthorizedError) {
-					goto('/sign-in');
-				}
-
-				throw err;
-			}
-		);
+		filesPromise = getFilesByChannel(channel.id, q, page, limit, abortController.signal);
 	}
 
-	function search(term: string) {
-		q = term;
-		loadFiles();
+	function handleSearch() {
+		// $effect automatically runs the loadFiles function when
+		// q changes. This function is used as a workaround to
+		// set page to 1 when a user searches for a file.
+		page = 1;
+		q = _q;
 	}
 
 	$effect(() => {
@@ -62,13 +56,13 @@
 	});
 </script>
 
-<FullScreenDialog bind:open {close}>
+<FullScreenDialog bind:open>
 	<div class="grid auto-rows-[min-content_1fr_min-content] gap-6 overflow-y-auto px-5">
 		<div class="flex-none">
 			<div class="container mx-auto flex items-end justify-between gap-4">
 				<p class="font-bold">Uploaded Files in {channel.name}</p>
 				<div class="w-full max-w-xs">
-					<SearchBar {search} />
+					<SearchBar bind:value={_q} onchange={handleSearch} />
 				</div>
 			</div>
 		</div>

@@ -2,16 +2,24 @@
 	import { debounce } from '$lib/utils/debounce';
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 
-	let { search } = $props();
+	interface Props {
+		value: string;
+		delay?: number;
+		onchange?: () => any;
+	}
+	let { value = $bindable(), onchange, delay = 300 }: Props = $props();
 
 	let inputValue = $state('');
 
-	const updateKeywordDebounced = debounce((val: string) => {
-		search(val);
-	}, 300);
+	const updateKeywordDebounced = debounce(() => {
+		value = inputValue;
+		if (onchange) {
+			onchange();
+		}
+	}, delay);
 
 	function onInput() {
-		updateKeywordDebounced(inputValue);
+		updateKeywordDebounced();
 	}
 </script>
 
