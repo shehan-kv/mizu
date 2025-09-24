@@ -1,3 +1,4 @@
+import { goto } from '$app/navigation';
 import {
 	APIBadRequestError,
 	APIError,
@@ -59,7 +60,7 @@ export async function getFilesByChannel(
 			case 400:
 				throw new APIBadRequestError('Bad request');
 			case 401:
-				throw new APIUnauthorizedError('Unauthorized');
+				goto('/sign-in');
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
