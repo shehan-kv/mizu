@@ -36,7 +36,7 @@ export async function getProjects(
 	// set "q" param if q is truthy
 	if (q) url.set('q', q);
 
-	// set "q" param if q is truthy
+	// set "status" param if status is truthy
 	if (status) url.set('status', status);
 
 	url.set('page', page.toString());
