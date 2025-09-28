@@ -496,3 +496,53 @@ func (q *ChangeRequestStorePostgres) GetByUserId(
 
 	return reqs, nil
 }
+
+func (q *ChangeRequestStorePostgres) CountByUserId(
+	ctx context.Context,
+	userId int64,
+	arg *params.ChangeRequestSearch) (int64, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	SELECT COUNT(cr.id) AS total
+	FROM project_users pu
+	JOIN projects p ON p.id = pu.project_id
+	JOIN change_requests cr ON cr.project_id = pu.project_id
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE pu.user_id = $1 
+	`)
+
+	queryArgs := []any{userId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramCount++
+		query.WriteString(" AND (cr.title LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		paramCount++
+		query.WriteString(" OR p.name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		query.WriteString(")")
+
+		keyword := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, keyword, keyword)
+	}
+
+	if len(arg.Status) != 0 {
+		paramCount++
+		query.WriteString(" AND crs.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}
