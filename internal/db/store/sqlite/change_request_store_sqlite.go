@@ -393,3 +393,77 @@ func (q *ChangeRequestStoreSqlite) GetById(
 
 	return &req, nil
 }
+
+func (q *ChangeRequestStoreSqlite) GetByUserId(
+	ctx context.Context,
+	userId int64,
+	arg *params.ChangeRequestSearch) ([]agg.ChangeRequest, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	SELECT 
+		cr.id,
+		cr.title,
+		cr.created_at,
+		u.id AS user_id,
+		u.first_name,
+		u.last_name,
+		p.id AS project_id,
+		p.name AS project_name,
+		crs.name AS status
+	FROM project_users pu
+	JOIN projects p ON p.id = pu.project_id
+	JOIN users u ON u.id = pu.user_id
+	JOIN change_requests cr ON cr.project_id = pu.project_id
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	WHERE pu.user_id = ?
+	`)
+
+	queryArgs := []any{userId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND cr.title = ?")
+		queryArgs = append(queryArgs, arg.Keyword)
+	}
+
+	if len(arg.Status) != 0 {
+		query.WriteString(" AND crs.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	query.WriteString(" ORDER BY cr.created_at DESC")
+	query.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	reqs := make([]agg.ChangeRequest, 0)
+
+	for rows.Next() {
+		var row agg.ChangeRequest
+		err := rows.Scan(
+			&row.Id,
+			&row.Title,
+			&row.CreatedAt,
+			&row.ReqUserId,
+			&row.ReqUserFirstName,
+			&row.ReqUserLastName,
+			&row.ProjectId,
+			&row.ProjectName,
+			&row.Status,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		reqs = append(reqs, row)
+	}
+
+	return reqs, nil
+}
