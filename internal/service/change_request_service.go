@@ -248,3 +248,64 @@ func (chngReqSrv *ChangeRequestService) GetById(ctx context.Context, requestId i
 
 	return &reqDetails, nil
 }
+
+func (chngReqSrv *ChangeRequestService) GetAllBySignedInUser(
+	ctx context.Context,
+	query *dto.ChangeReqSearch) (*common.Page[[]dto.ChangeReqResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		chngReqSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "change_request_service",
+			"project_id", actor,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	reqSearch := params.ChangeRequestSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	}
+
+	reqests, err := chngReqSrv.chngReqSt.GetByUserId(ctx, actor.Id, &reqSearch)
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	count, err := chngReqSrv.chngReqSt.CountByUserId(ctx, actor.Id, &reqSearch)
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.ChangeReqResponse]{
+		Count: count,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Data:  make([]dto.ChangeReqResponse, len(reqests)),
+	}
+
+	for i, req := range reqests {
+		resp.Data[i] = dto.ChangeReqResponse{
+			Id:        req.Id,
+			Title:     req.Title,
+			CreatedAt: req.CreatedAt,
+			Status:    req.Status,
+			RequestedBy: &dto.ChangeReqUserResponse{
+				Id:        req.ReqUserId,
+				FirstName: req.ReqUserFirstName,
+				LastName:  req.ReqUserLastName,
+			},
+			Project: &dto.ChangeReqProjectResponse{
+				Id:   req.ProjectId,
+				Name: req.ProjectName,
+			},
+		}
+	}
+
+	return &resp, nil
+}
