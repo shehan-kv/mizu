@@ -422,8 +422,9 @@ func (q *ChangeRequestStoreSqlite) GetByUserId(
 	queryArgs := []any{userId}
 
 	if len(arg.Keyword) != 0 {
-		query.WriteString(" AND cr.title = ?")
-		queryArgs = append(queryArgs, arg.Keyword)
+		query.WriteString(" AND ( cr.title LIKE ? OR p.name LIKE ? )")
+		keyword := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, keyword, keyword)
 	}
 
 	if len(arg.Status) != 0 {

@@ -440,8 +440,14 @@ func (q *ChangeRequestStorePostgres) GetByUserId(
 
 	if len(arg.Keyword) != 0 {
 		paramCount++
-		query.WriteString(" AND cr.title = $")
+		query.WriteString(" AND (cr.title LIKE $")
 		query.WriteString(strconv.Itoa(paramCount))
+
+		paramCount++
+		query.WriteString(" OR p.name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		query.WriteString(")")
+
 		queryArgs = append(queryArgs, arg.Keyword)
 	}
 
