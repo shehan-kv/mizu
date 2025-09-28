@@ -18,6 +18,7 @@
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import SendButton from '$lib/components/SendButton.svelte';
 	import AiSuggestionsButton from '$lib/components/AiSuggestionsButton.svelte';
+	import Swap from 'phosphor-svelte/lib/Swap';
 
 	// svelte-ignore non_reactive_update
 	let editor: TextEditor | null = null;
@@ -194,7 +195,7 @@
 					</button>
 				</div>
 				<p class="mt-3 flex items-center gap-2 text-neutral-500">
-					<Ticket class="size-5" />Support Tickets
+					<Swap class="size-5" />Change Requests
 				</p>
 				<div
 					class="mt-1.5 border-l pl-4 *:block *:w-full *:cursor-pointer *:py-1
@@ -202,10 +203,10 @@
 				*:dark:hover:text-neutral-50 *:dark:disabled:text-neutral-600"
 				>
 					<button onclick={allTicketDialog.open} disabled={!selectedChannel.projectId}>
-						All Tickets
+						All Change Requests
 					</button>
 					<button onclick={newTicketDialog.open} disabled={!selectedChannel.projectId}>
-						New Ticket
+						New Request
 					</button>
 				</div>
 			</div>

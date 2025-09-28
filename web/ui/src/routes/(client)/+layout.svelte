@@ -2,8 +2,8 @@
 	import Folder from 'phosphor-svelte/lib/Folder';
 	import Chats from 'phosphor-svelte/lib/Chats';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
-	import Ticket from 'phosphor-svelte/lib/Ticket';
 	import UserGear from 'phosphor-svelte/lib/UserGear';
+	import Swap from 'phosphor-svelte/lib/Swap';
 	import X from 'phosphor-svelte/lib/X';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import { page } from '$app/state';
@@ -71,13 +71,13 @@
 			</li>
 			<li>
 				<a
-					href="/support-tickets"
+					href="/change-requests"
 					class="block flex items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname.startsWith('/support-tickets')}
+					class:border-sky-500={page.url.pathname.startsWith('/change-requests')}
 					onclick={closeMobileMenu}
 				>
-					<Ticket size={20} /> Support Tickets
+					<Swap size={20} /> Change Requests
 				</a>
 			</li>
 			<li class="mt-auto">
