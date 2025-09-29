@@ -283,11 +283,9 @@
 	/>
 {/if}
 
-<Dialog.ChannelContracts
-	bind:open={contractDialog.isOpen}
-	close={contractDialog.close}
-	channel={selectedChannel}
-/>
+{#if selectedChannel}
+	<Dialog.ChannelContracts bind:open={contractDialog.isOpen} channel={selectedChannel} />
+{/if}
 
 <Dialog.ChannelInvoices
 	bind:open={invoiceDialog.isOpen}
