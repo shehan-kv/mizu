@@ -19,129 +19,6 @@
 		APIServerError
 	} from '$lib/api/errors';
 
-	let tickets = [
-		{
-			subject: 'Unable to access billing portal',
-			status: 'Resolved',
-			createdOn: '2025-06-21T10:23:00Z',
-			lastUpdated: '2025-06-22T09:12:00Z',
-			createdBy: 'Alice Morgan',
-			projectName: 'Billing System Revamp'
-		},
-		{
-			subject: 'Feature request: Dark mode for dashboard',
-			status: 'Waiting For Reply',
-			createdOn: '2025-06-19T14:55:00Z',
-			lastUpdated: '2025-06-20T16:40:00Z',
-			createdBy: 'John Taylor',
-			projectName: 'UX/UI Enhancements'
-		},
-		{
-			subject: 'Error 502 when submitting form',
-			status: 'In-Progress',
-			createdOn: '2025-07-01T08:30:00Z',
-			lastUpdated: '2025-07-03T11:22:00Z',
-			createdBy: 'Carlos Hernandez',
-			projectName: 'Form Submission Stability'
-		},
-		{
-			subject: 'Password reset not working',
-			status: 'Resolved',
-			createdOn: '2025-06-28T07:45:00Z',
-			lastUpdated: '2025-06-28T08:10:00Z',
-			createdBy: 'Carlos Hernandez',
-			projectName: 'Authentication Improvements'
-		},
-		{
-			subject: 'App crashes on iOS 17',
-			status: 'In-Progress',
-			createdOn: '2025-07-05T12:10:00Z',
-			lastUpdated: '2025-07-06T15:40:00Z',
-			createdBy: 'Mina Kowalski',
-			projectName: 'Mobile App iOS Compatibility'
-		},
-		{
-			subject: 'Need invoice for May 2025',
-			status: 'Resolved',
-			createdOn: '2025-06-30T09:00:00Z',
-			lastUpdated: '2025-06-30T09:15:00Z',
-			createdBy: 'Derek Wilson',
-			projectName: 'Billing System Revamp'
-		},
-		{
-			subject: 'How to integrate with Zapier?',
-			status: 'Waiting For Reply',
-			createdOn: '2025-07-02T13:42:00Z',
-			lastUpdated: '2025-07-03T10:00:00Z',
-			createdBy: 'Elena Petrova',
-			projectName: 'Third-Party Integrations'
-		},
-		{
-			subject: 'Two-factor auth setup not working',
-			status: 'In-Progress',
-			createdOn: '2025-06-27T18:25:00Z',
-			lastUpdated: '2025-07-01T09:30:00Z',
-			createdBy: 'James Liu',
-			projectName: 'Authentication Improvements'
-		},
-		{
-			subject: 'Clarification on pricing tiers',
-			status: 'Resolved',
-			createdOn: '2025-07-01T10:15:00Z',
-			lastUpdated: '2025-07-01T11:00:00Z',
-			createdBy: 'Sophia Reyes',
-			projectName: 'Pricing Strategy Update'
-		},
-		{
-			subject: 'Need to change account ownership',
-			status: 'Waiting For Reply',
-			createdOn: '2025-07-04T17:35:00Z',
-			lastUpdated: '2025-07-05T08:12:00Z',
-			createdBy: 'Ahmad Saleh',
-			projectName: 'Account Management Enhancements'
-		},
-		{
-			subject: 'Bug in PDF export function',
-			status: 'In-Progress',
-			createdOn: '2025-06-26T07:20:00Z',
-			lastUpdated: '2025-06-30T13:00:00Z',
-			createdBy: 'Julia Becker',
-			projectName: 'Reporting Module Fixes'
-		},
-		{
-			subject: 'Account suspended after payment',
-			status: 'Resolved',
-			createdOn: '2025-06-25T16:45:00Z',
-			lastUpdated: '2025-06-26T09:00:00Z',
-			createdBy: 'Benjamin Tan',
-			projectName: 'Billing System Revamp'
-		},
-		{
-			subject: 'Need help with API access token',
-			status: 'Waiting For Reply',
-			createdOn: '2025-07-03T10:05:00Z',
-			lastUpdated: '2025-07-03T10:30:00Z',
-			createdBy: 'Fatima Noor',
-			projectName: 'API Development'
-		},
-		{
-			subject: 'Unexpected charges in June bill',
-			status: 'In-Progress',
-			createdOn: '2025-07-06T14:20:00Z',
-			lastUpdated: '2025-07-07T09:00:00Z',
-			createdBy: 'Lucas Bennett',
-			projectName: 'Billing System Revamp'
-		},
-		{
-			subject: 'Requesting data deletion',
-			status: 'Resolved',
-			createdOn: '2025-06-29T11:30:00Z',
-			lastUpdated: '2025-06-29T12:00:00Z',
-			createdBy: 'Naomi Tanaka',
-			projectName: 'Data Privacy Compliance'
-		}
-	];
-
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
 	const DEFAULT_LIMIT = 30;
@@ -289,9 +166,9 @@
 					{/if}
 				</div>
 			</div>
-			{#if tickets.length > 0}
+			{#if res.data.length > 0}
 				<div class="container mx-auto flex justify-end">
-					<Pagination bind:page={pageNum} count={30} perPage={limit} />
+					<Pagination bind:page={pageNum} count={res.count} perPage={limit} />
 				</div>
 			{/if}
 		{/if}
