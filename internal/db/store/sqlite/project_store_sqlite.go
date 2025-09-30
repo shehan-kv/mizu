@@ -353,3 +353,44 @@ func (q *ProjectStoreSqlite) GetTasksByProjectId(
 
 	return tasks, nil
 }
+
+func (q *ProjectStoreSqlite) CountTasksByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.TaskSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT COUNT(t.id)
+	FROM tasks t
+	JOIN task_statuses ts ON ts.id = t.status
+	JOIN task_priorities tp ON tp.id = t.priority
+	WHERE t.project_id = ?
+	`)
+
+	queryArgs := []any{projectId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND t.name LIKE ?")
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) != 0 {
+		query.WriteString(" AND ts.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	if len(arg.Priority) != 0 {
+		query.WriteString(" AND tp.name = ?")
+		queryArgs = append(queryArgs, arg.Priority)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}

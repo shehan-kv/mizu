@@ -52,4 +52,6 @@ type ProjectStore interface {
 	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error)
 
 	GetTasksByProjectId(ctx context.Context, projectId int64, arg *params.TaskSearch) ([]agg.Task, error)
+
+	CountTasksByProjectId(ctx context.Context, projectId int64, arg *params.TaskSearch) (int64, error)
 }

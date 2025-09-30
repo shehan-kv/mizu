@@ -354,3 +354,52 @@ func (q *ProjectStorePostgres) GetTasksByProjectId(
 
 	return tasks, nil
 }
+
+func (q *ProjectStorePostgres) CountTasksByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.TaskSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT COUNT(t.id)
+	FROM tasks t
+	JOIN task_statuses ts ON ts.id = t.status
+	JOIN task_priorities tp ON tp.id = t.priority
+	WHERE t.project_id = $1
+	`)
+
+	queryArgs := []any{projectId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramCount++
+		query.WriteString(" AND t.name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) != 0 {
+		paramCount++
+		query.WriteString(" AND ts.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	if len(arg.Priority) != 0 {
+		paramCount++
+		query.WriteString(" AND tp.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Priority)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}
