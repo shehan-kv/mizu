@@ -7,6 +7,7 @@ import (
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
 	"strconv"
+	"strings"
 
 	"github.com/lib/pq"
 )
@@ -234,4 +235,122 @@ func (q *ProjectStorePostgres) GetWithStats(
 	}
 
 	return &result, nil
+}
+
+func (q *ProjectStorePostgres) GetTasksByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.TaskSearch) ([]agg.Task, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	WITH paged_tasks AS (
+		SELECT 
+			t.id,
+			t.project_id,
+			t.name,
+			t.description,
+			t.created_at,
+			t.estimated_time_minutes,
+			ts.name AS status,
+			tp.name AS priority
+		FROM tasks t
+		JOIN task_statuses ts ON ts.id = t.status 
+		JOIN task_priorities tp ON tp.id = t.priority
+		WHERE t.project_id = $1
+	`)
+
+	queryArgs := []any{projectId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramCount++
+		query.WriteString(" AND t.name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) != 0 {
+		paramCount++
+		query.WriteString(" AND ts.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	if len(arg.Priority) != 0 {
+		paramCount++
+		query.WriteString(" AND tp.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Priority)
+	}
+
+	query.WriteString(" ORDER BY t.created_at DESC")
+
+	paramCount++
+	query.WriteString(" LIMIT $")
+	query.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	query.WriteString(" OFFSET $")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+	query.WriteString(strconv.Itoa(paramCount))
+	query.WriteString(" )") // Closing 'WITH paged_tasks AS'
+
+	query.WriteString(`
+	SELECT 
+		t.id,
+		t.project_id,
+		t.name,
+		t.description,
+		t.created_at,
+		t.estimated_time_minutes,
+		t.status,
+		t.priority,
+		u.id,
+		u.first_name,
+		u.last_name,
+		u.image,
+		u.title
+	FROM paged_tasks t
+	LEFT JOIN task_assignees ta ON ta.task_id = t.id
+	LEFT JOIN users u ON u.id = ta.user_id
+	`)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	tasks := make([]agg.Task, 0)
+
+	for rows.Next() {
+		var row agg.Task
+
+		err := rows.Scan(
+			&row.Id,
+			&row.ProjectId,
+			&row.Name,
+			&row.Description,
+			&row.CreatedAt,
+			&row.EstTimeMinutes,
+			&row.Status,
+			&row.Priority,
+			&row.UserId,
+			&row.FirstName,
+			&row.LastName,
+			&row.Image,
+			&row.Title,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		tasks = append(tasks, row)
+	}
+
+	return tasks, nil
 }
