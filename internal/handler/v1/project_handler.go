@@ -60,6 +60,7 @@ func (prjHndl *ProjectHandler) GetMux(
 	mux.Handle("POST /", mwChain.Handle(prjHndl.CreateProject))
 	mux.Handle("GET /", mwChain.Handle(prjHndl.GetProjects))
 	mux.Handle("POST /{projectId}/task", mwChain.Handle(prjHndl.CreateTask))
+	mux.Handle("GET /{projectId}/task", mwChain.Handle(prjHndl.GetTasksByProject))
 
 	return mux
 }
@@ -212,4 +213,61 @@ func (prjHndl *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+func (prjHndl *ProjectHandler) GetTasksByProject(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedPrjId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	keyword := r.URL.Query().Get("q")
+	status := r.URL.Query().Get("status")
+	priority := r.URL.Query().Get("priority")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	resp, err := prjHndl.prjSrv.GetTasksByProject(r.Context(), parsedPrjId, &dto.TaskSearchQuery{
+		Keyword:  keyword,
+		Status:   status,
+		Priority: priority,
+		Page:     page,
+		Limit:    limit,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
