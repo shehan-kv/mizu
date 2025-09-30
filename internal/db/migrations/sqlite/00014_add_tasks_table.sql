@@ -17,6 +17,7 @@ CREATE TABLE tasks (
 CREATE INDEX IF NOT EXISTS idx_tasks_name ON tasks(name);
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_proj_created_at ON tasks(project_id, created_at DESC);
 
 
 -- +goose Down
