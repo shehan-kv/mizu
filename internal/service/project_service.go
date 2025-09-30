@@ -236,3 +236,111 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 
 	return response, nil
 }
+
+func (prjSrv *ProjectService) GetTasksByProject(
+	ctx context.Context,
+	projectId int64,
+	query *dto.TaskSearchQuery) (*common.Page[[]dto.TaskResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	taskSearch := params.TaskSearch{
+		Keyword:  query.Keyword,
+		Status:   query.Status,
+		Priority: query.Priority,
+		Offset:   (query.Page - 1) * query.Limit,
+		Limit:    query.Limit,
+	}
+
+	tasks, err := prjSrv.prjSt.GetTasksByProjectId(ctx, projectId, &taskSearch)
+	if err != nil {
+		prjSrv.lg.Error("could not get tasks list",
+			"event", event.EventGetFailed,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	taskMap := make(map[int64]*dto.TaskResponse)
+	orderedTaskIds := []int64{}
+
+	for _, task := range tasks {
+
+		taskResp := dto.TaskResponse{
+			Id:             task.Id,
+			ProjectId:      task.ProjectId,
+			Name:           task.Name,
+			Status:         task.Status,
+			Priority:       task.Priority,
+			Description:    task.Description,
+			CreatedAt:      task.CreatedAt,
+			EstTimeMinutes: task.EstTimeMinutes,
+		}
+
+		assigneeResp := dto.TaskAssigneeResponse{
+			Id:        *task.UserId,
+			FirstName: *task.FirstName,
+			LastName:  *task.LastName,
+			Image:     task.Image,
+			Title:     task.Title,
+		}
+
+		if _, ok := taskMap[task.Id]; !ok {
+
+			orderedTaskIds = append(orderedTaskIds, task.Id)
+
+			if task.UserId != nil {
+				taskResp.Assignees = []dto.TaskAssigneeResponse{assigneeResp}
+			} else {
+				taskResp.Assignees = make([]dto.TaskAssigneeResponse, 0)
+			}
+
+			taskMap[task.Id] = &taskResp
+
+		} else {
+			taskMap[task.Id].Assignees = append(taskMap[task.Id].Assignees, assigneeResp)
+		}
+	}
+
+	count, err := prjSrv.prjSt.CountTasksByProjectId(ctx, projectId, &taskSearch)
+	if err != nil {
+		prjSrv.lg.Error("could not get tasks count",
+			"event", event.EventGetFailed,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.TaskResponse]{
+		Count: count,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Data:  make([]dto.TaskResponse, len(orderedTaskIds)),
+	}
+
+	for i, taskId := range orderedTaskIds {
+		resp.Data[i] = *taskMap[taskId]
+	}
+
+	return &resp, nil
+}
