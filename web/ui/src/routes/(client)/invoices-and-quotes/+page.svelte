@@ -45,7 +45,10 @@
 
 		abortController = new AbortController();
 
-		invoicesPromise = getInvoices(q, status, type, pageNum, limit, abortController.signal);
+		invoicesPromise = getInvoices(
+			{ q, status, type, page: pageNum, limit },
+			abortController.signal
+		);
 	}
 
 	function updateUrlParam() {

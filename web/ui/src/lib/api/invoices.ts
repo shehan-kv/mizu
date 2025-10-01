@@ -28,27 +28,20 @@ export interface InvoiceQuery {
 	limit: number;
 }
 
-export async function getInvoices(
-	q: string,
-	status: string,
-	type: string,
-	page: number,
-	limit: number,
-	signal?: AbortSignal
-) {
+export async function getInvoices(query: InvoiceQuery, signal?: AbortSignal) {
 	const url = new URLSearchParams();
 
 	// set "q" param if q is truthy
-	if (q) url.set('q', q);
+	if (query.q) url.set('q', query.q);
 
 	// set "status" param if status is truthy
-	if (status) url.set('status', status);
+	if (query.status) url.set('status', query.status);
 
 	// set "type" param if type is truthy
-	if (type) url.set('type', type);
+	if (query.type) url.set('type', query.type);
 
-	url.set('page', page.toString());
-	url.set('limit', limit.toString());
+	url.set('page', query.page.toString());
+	url.set('limit', query.limit.toString());
 
 	let res: Response;
 	try {
