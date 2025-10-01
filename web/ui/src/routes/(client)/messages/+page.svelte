@@ -293,11 +293,9 @@
 	channel={selectedChannel}
 />
 
-<Dialog.ChannelKanban
-	bind:open={kanbanDialog.isOpen}
-	close={kanbanDialog.close}
-	channel={selectedChannel}
-/>
+{#if selectedChannel}
+	<Dialog.ChannelKanban bind:open={kanbanDialog.isOpen} channel={selectedChannel} />
+{/if}
 
 <Dialog.NewTicket
 	bind:open={newTicketDialog.isOpen}
