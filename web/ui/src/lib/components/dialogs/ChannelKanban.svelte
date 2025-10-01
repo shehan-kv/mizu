@@ -2,7 +2,7 @@
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import type { Channel } from '$lib/components/message/types';
 	import ErrorMessage from '../ErrorMessage.svelte';
-	import KanbanItemList from './KanbanItemList.svelte';
+	import KanbanTaskList from './KanbanTaskList.svelte';
 
 	interface Props {
 		open: Boolean;
@@ -32,13 +32,13 @@
 				<p class="border-b py-3.5 text-center text-sm">Completed</p>
 
 				<div class="h-full space-y-2 overflow-y-auto">
-					<KanbanItemList projectId={channel.projectId} status="backlog" />
+					<KanbanTaskList projectId={channel.projectId} status="backlog" />
 				</div>
 				<div class="h-full space-y-2 overflow-y-auto">
-					<KanbanItemList projectId={channel.projectId} status="in-progress" />
+					<KanbanTaskList projectId={channel.projectId} status="in-progress" />
 				</div>
 				<div class="h-full space-y-2 overflow-y-auto">
-					<KanbanItemList projectId={channel.projectId} status="completed" />
+					<KanbanTaskList projectId={channel.projectId} status="completed" />
 				</div>
 			</div>
 		</div>
