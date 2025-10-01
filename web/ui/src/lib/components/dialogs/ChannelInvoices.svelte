@@ -10,162 +10,147 @@
 	import SearchBar from '../SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
+	import { createDialogState } from './createDialogState.svelte';
+	import { getInvoicesByProjectId, type InvoiceWithStatus } from '$lib/api/invoices';
+	import ErrorMessage from '../ErrorMessage.svelte';
+	import Spinner from '../Spinner.svelte';
+	import {
+		APIBadRequestError,
+		APIForbiddenError,
+		APINotFoundError,
+		APIServerError
+	} from '$lib/api/errors';
+	import { toTitleCase } from '$lib/utils/toTitleCase';
 
 	interface Props {
-		open: Boolean;
-		close: () => void;
-		channel?: Channel | null;
+		open: boolean;
+		channel: Channel;
 	}
-	let { open = $bindable(), close, channel }: Props = $props();
+	let { open = $bindable(), channel }: Props = $props();
 
 	let page = $state(1);
+	let limit = $state(30);
 
-	let invoicesAndQuotes = [
-		{
-			type: 'Invoice',
-			id: 'INV-1001',
-			amount: 1250.0,
-			status: 'Paid',
-			issuedOn: '2025-06-15',
-			dueDate: '2025-07-15'
-		},
-		{
-			type: 'Quote',
-			id: 'QTE-2001',
-			amount: 3500.0,
-			status: 'Pending',
-			issuedOn: '2025-06-20',
-			dueDate: null
-		},
-		{
-			type: 'Invoice',
-			id: 'INV-1002',
-			amount: 875.5,
-			status: 'Overdue',
-			issuedOn: '2025-05-10',
-			dueDate: '2025-06-10'
-		},
-		{
-			type: 'Quote',
-			id: 'QTE-2002',
-			amount: 2150.0,
-			status: 'Accepted',
-			issuedOn: '2025-06-25',
-			dueDate: null
-		},
-		{
-			type: 'Invoice',
-			id: 'INV-1003',
-			amount: 4000.0,
-			status: 'Paid',
-			issuedOn: '2025-04-30',
-			dueDate: '2025-05-30'
-		},
-		{
-			type: 'Invoice',
-			id: 'INV-1004',
-			amount: 620.0,
-			status: 'Pending',
-			issuedOn: '2025-06-28',
-			dueDate: '2025-07-28'
-		},
-		{
-			type: 'Quote',
-			id: 'QTE-2003',
-			amount: 1100.0,
-			status: 'Rejected',
-			issuedOn: '2025-06-18',
-			dueDate: null
-		},
-		{
-			type: 'Invoice',
-			id: 'INV-1005',
-			amount: 3750.0,
-			status: 'Paid',
-			issuedOn: '2025-06-01',
-			dueDate: '2025-07-01'
-		},
-		{
-			type: 'Quote',
-			id: 'QTE-2004',
-			amount: 900.0,
-			status: 'Pending',
-			issuedOn: '2025-07-01',
-			dueDate: null
-		},
-		{
-			type: 'Invoice',
-			id: 'INV-1006',
-			amount: 1450.0,
-			status: 'Overdue',
-			issuedOn: '2025-05-20',
-			dueDate: '2025-06-20'
+	// For the invoice details dialog
+	let selectedInvoice: InvoiceWithStatus | null = $state(null);
+	let invoiceViewDialog = createDialogState();
+
+	let invoicePromise: Promise<PaginatedResponse<InvoiceWithStatus>> | null = $state(null);
+
+	let abortController: AbortController | null = null;
+	function loadInvoices() {
+		if (!channel.projectId) {
+			return;
 		}
-	];
+
+		if (abortController) {
+			abortController.abort();
+		}
+		abortController = new AbortController();
+
+		invoicePromise = getInvoicesByProjectId(
+			channel.projectId,
+			{ page, limit },
+			abortController.signal
+		);
+	}
+
+	$effect(() => {
+		if (!open) return;
+		loadInvoices();
+	});
 </script>
 
-<FullScreenDialog bind:open {close}>
+<FullScreenDialog bind:open>
 	<div class="grid auto-rows-[min-content_1fr_min-content] gap-6 overflow-y-auto px-5">
 		<div class="flex-none">
-			<div class="container mx-auto flex items-end justify-between gap-4">
-				<p class="font-bold">Invoices & Quotes of {channel?.name}</p>
-				<div class="w-full max-w-xs">
-					<SearchBar />
-				</div>
+			<div class="container mx-auto">
+				<p class="font-bold">Invoices & Quotes - {channel?.name}</p>
 			</div>
 		</div>
 
-		<div class="overflow-y-auto">
-			{#if invoicesAndQuotes.length > 0}
-				<Table.Root class="container mx-auto">
-					<Table.Header>
-						<Table.Row>
-							<Table.Head class="font-bold">Type</Table.Head>
-							<Table.Head class="font-bold">#ID</Table.Head>
-							<Table.Head class="font-bold">Amount</Table.Head>
-							<Table.Head class="font-bold">Status</Table.Head>
-							<Table.Head class="font-bold">Issued On</Table.Head>
-							<Table.Head class="font-bold">Due Date</Table.Head>
-							<Table.Head class="font-bold">Actions</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each invoicesAndQuotes as entry}
-							<Table.Row>
-								<Table.Cell>{entry.type}</Table.Cell>
-								<Table.Cell>#{entry.id}</Table.Cell>
-								<Table.Cell>{currencyFormatter('USD', entry.amount)}</Table.Cell>
-								<Table.Cell class="flex items-center gap-1">
-									{entry.status}
-									{#if entry.status == 'Paid' || entry.status == 'Accepted'}
-										<Checks size={18} class="text-emerald-500" />
-									{/if}
-								</Table.Cell>
-								<Table.Cell>{entry.issuedOn}</Table.Cell>
-								<Table.Cell>{entry.dueDate}</Table.Cell>
-								<Table.Cell>
-									<div
-										class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
-									>
-										<button title="View">
-											<ArrowRight size={18} />
-										</button>
-										<button title="Download as PDF">
-											<DownloadSimple size={18} />
-										</button>
-										<button title="Email Me"><Envelope size={18} /></button>
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			{/if}
-		</div>
-		{#if invoicesAndQuotes.length > 0}
-			<div class="container mx-auto flex justify-end">
-				<Pagination bind:page />
-			</div>
+		{#if !channel.projectId}
+			<ErrorMessage variant="warn" text="Project ID Not Found" />
+		{:else}
+			{#await invoicePromise}
+				<Spinner />
+			{:then res}
+				{#if res && res.data}
+					<div class="overflow-y-auto">
+						{#if res.data.length == 0}
+							<ErrorMessage variant="info" text="Contracts Not Found" />
+						{/if}
+						{#if res.data.length > 0}
+							<Table.Root class="container mx-auto">
+								<Table.Header>
+									<Table.Row>
+										<Table.Head class="font-bold">Type</Table.Head>
+										<Table.Head class="font-bold">#ID</Table.Head>
+										<Table.Head class="font-bold">Total</Table.Head>
+										<Table.Head class="font-bold">Status</Table.Head>
+										<Table.Head class="font-bold">Issued On</Table.Head>
+										<Table.Head class="font-bold">Due Date</Table.Head>
+										<Table.Head class="font-bold">Actions</Table.Head>
+									</Table.Row>
+								</Table.Header>
+								<Table.Body>
+									{#each res.data as invoice}
+										<Table.Row>
+											<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
+											<Table.Cell>#{invoice.id}</Table.Cell>
+											<Table.Cell>{currencyFormatter('USD', invoice.total)}</Table.Cell>
+											<Table.Cell class="flex items-center gap-1">
+												{toTitleCase(invoice.status)}
+												{#if invoice.status == 'paid' || invoice.status == 'accepted'}
+													<Checks size={18} class="text-emerald-500" />
+												{/if}
+											</Table.Cell>
+											<Table.Cell>{new Date(invoice.issuedAt).toLocaleString()}</Table.Cell>
+											<Table.Cell>
+												{invoice.dueAt ? new Date(invoice.dueAt).toLocaleString() : 'N/A'}
+											</Table.Cell>
+											<Table.Cell>
+												<div
+													class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
+												>
+													<button title="View">
+														<ArrowRight size={18} />
+													</button>
+													<button title="Download as PDF">
+														<DownloadSimple size={18} />
+													</button>
+													<button title="Email Me"><Envelope size={18} /></button>
+												</div>
+											</Table.Cell>
+										</Table.Row>
+									{/each}
+								</Table.Body>
+							</Table.Root>
+						{/if}
+					</div>
+					{#if res.data.length > 0}
+						<div class="container mx-auto flex justify-end">
+							<Pagination bind:page count={res.count} perPage={res.limit} />
+						</div>
+					{/if}
+				{/if}
+			{:catch err}
+				{#if err instanceof APIBadRequestError}
+					<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
+				{:else if err instanceof APIForbiddenError}
+					<ErrorMessage
+						variant="warn"
+						text="You Don't Have Permission To View These Invoices/Quotes"
+						retry={loadInvoices}
+					/>
+				{:else if err instanceof APINotFoundError}
+					<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
+				{:else if err instanceof APIServerError}
+					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
+				{:else}
+					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
+				{/if}
+			{/await}
 		{/if}
 	</div>
 </FullScreenDialog>
