@@ -2,9 +2,9 @@
 	import X from 'phosphor-svelte/lib/X';
 	import { Dialog } from 'bits-ui';
 
-	let { open = $bindable(), close, projectId } = $props();
+	let { open = $bindable(), projectId } = $props();
 
-	// TODO: Implement new support ticket functionality
+	// TODO: Implement new change request functionality
 </script>
 
 <Dialog.Root bind:open>
@@ -55,9 +55,7 @@
 					</div>
 				</div>
 				<div class="mt-6 space-x-1 text-right text-xs *:cursor-pointer *:rounded *:px-6 *:py-3">
-					<button onclick={close} class="hover:bg-neutral-100 dark:hover:bg-neutral-900">
-						Cancel
-					</button>
+					<Dialog.Close class="hover:bg-neutral-100 dark:hover:bg-neutral-900">Cancel</Dialog.Close>
 					<button
 						class="bg-neutral-800 text-neutral-50 transition hover:bg-neutral-950
                     dark:bg-neutral-200 dark:text-neutral-950 dark:hover:bg-neutral-50"

@@ -3,7 +3,6 @@
 	import FileText from 'phosphor-svelte/lib/FileText';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
 	import Kanban from 'phosphor-svelte/lib/Kanban';
-	import Ticket from 'phosphor-svelte/lib/Ticket';
 	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
 
 	import * as Message from '$lib/components/message';
@@ -295,11 +294,12 @@
 	<Dialog.ChannelKanban bind:open={kanbanDialog.isOpen} channel={selectedChannel} />
 {/if}
 
-<Dialog.NewTicket
-	bind:open={newTicketDialog.isOpen}
-	close={newTicketDialog.close}
-	projectId={selectedChannel?.projectId}
-/>
+{#if selectedChannel?.projectId}
+	<Dialog.NewChangeRequest
+		bind:open={newTicketDialog.isOpen}
+		projectId={selectedChannel.projectId}
+	/>
+{/if}
 
 <Dialog.ChannelTickets
 	bind:open={allTicketDialog.isOpen}

@@ -4,10 +4,10 @@ import ChannelInvoices from './ChannelInvoices.svelte';
 import ChannelViewContract from './ChannelViewContract.svelte';
 import ChannelKanban from './ChannelKanban.svelte';
 import ChannelTickets from './ChannelTickets.svelte';
-import NewTicket from './NewTicket.svelte';
+import NewChangeRequest from './NewChangeRequest.svelte';
 
 export {
-	NewTicket,
+	NewChangeRequest,
 	ChannelTickets,
 	ChannelFiles,
 	ChannelContracts,
