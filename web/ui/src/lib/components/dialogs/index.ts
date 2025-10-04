@@ -3,12 +3,12 @@ import ChannelContracts from './ChannelContracts.svelte';
 import ChannelInvoices from './ChannelInvoices.svelte';
 import ChannelViewContract from './ChannelViewContract.svelte';
 import ChannelKanban from './ChannelKanban.svelte';
-import ChannelTickets from './ChannelTickets.svelte';
+import ChannelChangeRequests from './ChannelChangeRequests.svelte';
 import NewChangeRequest from './NewChangeRequest.svelte';
 
 export {
 	NewChangeRequest,
-	ChannelTickets,
+	ChannelChangeRequests,
 	ChannelFiles,
 	ChannelContracts,
 	ChannelInvoices,
