@@ -287,11 +287,9 @@
 	<Dialog.ChannelContracts bind:open={contractDialog.isOpen} channel={selectedChannel} />
 {/if}
 
-<Dialog.ChannelInvoices
-	bind:open={invoiceDialog.isOpen}
-	close={invoiceDialog.close}
-	channel={selectedChannel}
-/>
+{#if selectedChannel}
+	<Dialog.ChannelInvoices bind:open={invoiceDialog.isOpen} channel={selectedChannel} />
+{/if}
 
 {#if selectedChannel}
 	<Dialog.ChannelKanban bind:open={kanbanDialog.isOpen} channel={selectedChannel} />

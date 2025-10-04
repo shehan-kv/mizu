@@ -7,7 +7,6 @@
 	import * as Table from '$lib/components/ui/table';
 	import type { Channel } from '../message/types';
 	import Pagination from '../Pagination.svelte';
-	import SearchBar from '../SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { createDialogState } from './createDialogState.svelte';
