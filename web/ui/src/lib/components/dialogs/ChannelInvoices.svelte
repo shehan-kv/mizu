@@ -77,7 +77,7 @@
 				{#if res && res.data}
 					<div class="overflow-y-auto">
 						{#if res.data.length == 0}
-							<ErrorMessage variant="info" text="Contracts Not Found" />
+							<ErrorMessage variant="info" text="Invoices/Quotes Not Found" />
 						{/if}
 						{#if res.data.length > 0}
 							<Table.Root class="container mx-auto">
