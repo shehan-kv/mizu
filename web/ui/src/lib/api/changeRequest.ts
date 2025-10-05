@@ -24,6 +24,13 @@ export interface ChangeRequest {
 	};
 }
 
+export interface ChangeRequestQuery {
+	q?: string;
+	status?: string;
+	page: number;
+	limit: number;
+}
+
 export async function getChangeRequests(
 	q: string,
 	status: string,
@@ -45,6 +52,53 @@ export async function getChangeRequests(
 	let res: Response;
 	try {
 		res = await fetch(`/api/v1/change-requests/?${url.toString()}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch change requests: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Change requests not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as PaginatedResponse<ChangeRequest>;
+	return payload;
+}
+
+export async function getChangeRequestsByProject(
+	projectId: number,
+	query: ChangeRequestQuery,
+	signal?: AbortSignal
+) {
+	const url = new URLSearchParams();
+
+	// set "q" param if q is truthy
+	if (query.q) url.set('q', query.q);
+
+	// set "status" param if status is truthy
+	if (query.status) url.set('status', query.status);
+
+	url.set('page', query.page.toString());
+	url.set('limit', query.limit.toString());
+
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/change-requests/project/${projectId}?${url.toString()}`, {
 			method: 'GET',
 			signal
 		});

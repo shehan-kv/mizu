@@ -301,8 +301,6 @@
 	/>
 {/if}
 
-<Dialog.ChannelChangeRequests
-	bind:open={allTicketDialog.isOpen}
-	close={allTicketDialog.close}
-	channel={selectedChannel}
-/>
+{#if selectedChannel}
+	<Dialog.ChannelChangeRequests bind:open={allTicketDialog.isOpen} channel={selectedChannel} />
+{/if}
