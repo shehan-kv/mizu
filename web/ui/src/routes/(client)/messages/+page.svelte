@@ -275,32 +275,16 @@
 </div>
 
 {#if selectedChannel}
-	<Dialog.ChannelFiles
-		bind:open={fileDialog.isOpen}
-		close={fileDialog.close}
-		channel={selectedChannel}
-	/>
-{/if}
-
-{#if selectedChannel}
+	<Dialog.ChannelFiles bind:open={fileDialog.isOpen} channel={selectedChannel} />
 	<Dialog.ChannelContracts bind:open={contractDialog.isOpen} channel={selectedChannel} />
-{/if}
-
-{#if selectedChannel}
 	<Dialog.ChannelInvoices bind:open={invoiceDialog.isOpen} channel={selectedChannel} />
-{/if}
-
-{#if selectedChannel}
 	<Dialog.ChannelKanban bind:open={kanbanDialog.isOpen} channel={selectedChannel} />
-{/if}
-
-{#if selectedChannel?.projectId}
-	<Dialog.NewChangeRequest
-		bind:open={newTicketDialog.isOpen}
-		projectId={selectedChannel.projectId}
-	/>
-{/if}
-
-{#if selectedChannel}
 	<Dialog.ChannelChangeRequests bind:open={allTicketDialog.isOpen} channel={selectedChannel} />
+
+	{#if selectedChannel.projectId}
+		<Dialog.NewChangeRequest
+			bind:open={newTicketDialog.isOpen}
+			projectId={selectedChannel.projectId}
+		/>
+	{/if}
 {/if}
