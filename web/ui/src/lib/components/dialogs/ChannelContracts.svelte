@@ -21,6 +21,7 @@
 	} from '$lib/api/errors';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import Checks from 'phosphor-svelte/lib/Checks';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	interface Props {
 		open: boolean;
@@ -122,7 +123,7 @@
 											<Table.Cell>
 												{contract.acceptedRevisions} / {contract.numOfRevisions} Accepted
 											</Table.Cell>
-											<Table.Cell>{new Date(contract.createdAt).toLocaleString()}</Table.Cell>
+											<Table.Cell>{formatDate(contract.createdAt)}</Table.Cell>
 											<Table.Cell>
 												<div
 													class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"

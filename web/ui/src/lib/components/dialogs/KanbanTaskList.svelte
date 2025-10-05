@@ -14,6 +14,7 @@
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	interface Props {
 		projectId: number;
@@ -131,7 +132,7 @@
 							{/if}
 						</div>
 						<div>
-							<p>Added - {new Date(task.createdAt).toLocaleString()}</p>
+							<p>Added - {formatDate(task.createdAt)}</p>
 							<p class="text-neutral-4400 mt-0.5 text-right text-xs">
 								{formatMinutes(task.estTimeMinutes)} Estimated
 							</p>

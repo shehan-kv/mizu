@@ -21,6 +21,7 @@
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
@@ -171,9 +172,9 @@
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
 										</Table.Cell>
-										<Table.Cell>{new Date(invoice.issuedAt).toLocaleString()}</Table.Cell>
+										<Table.Cell>{formatDate(invoice.issuedAt)}</Table.Cell>
 										<Table.Cell>
-											{invoice.dueAt ? new Date(invoice.dueAt).toLocaleString() : 'N/A'}
+											{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}
 										</Table.Cell>
 										<Table.Cell>
 											<div

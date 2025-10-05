@@ -15,6 +15,7 @@
 		APIServerError
 	} from '$lib/api/errors';
 	import { formatBytes } from '$lib/utils/formatBytes';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	interface Props {
 		open: boolean;
@@ -90,7 +91,7 @@
 									<Table.Row>
 										<Table.Cell>{file.originalName}</Table.Cell>
 										<Table.Cell>{formatBytes(file.size)}</Table.Cell>
-										<Table.Cell>{new Date(file.uploadedAt).toLocaleString()}</Table.Cell>
+										<Table.Cell>{formatDate(file.uploadedAt)}</Table.Cell>
 										<Table.Cell>{file.user.firstName} {file.user.lastName}</Table.Cell>
 										<Table.Cell>
 											<a

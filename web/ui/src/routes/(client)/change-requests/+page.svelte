@@ -18,6 +18,7 @@
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
@@ -132,7 +133,7 @@
 									<Table.Head class="font-bold">Subject</Table.Head>
 									<Table.Head class="font-bold">Project</Table.Head>
 									<Table.Head class="font-bold">Status</Table.Head>
-									<Table.Head class="font-bold">Created On</Table.Head>
+									<Table.Head class="font-bold">Created At</Table.Head>
 									<Table.Head class="font-bold">Created By</Table.Head>
 									<Table.Head class="font-bold">Actions</Table.Head>
 								</Table.Row>
@@ -148,7 +149,7 @@
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
 										</Table.Cell>
-										<Table.Cell>{new Date(req.createdAt).toLocaleString()}</Table.Cell>
+										<Table.Cell>{formatDate(req.createdAt)}</Table.Cell>
 										<Table.Cell>{req.requestedBy.firstName} {req.requestedBy.lastName}</Table.Cell>
 										<Table.Cell>
 											<button

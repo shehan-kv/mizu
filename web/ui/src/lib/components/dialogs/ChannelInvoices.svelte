@@ -20,6 +20,7 @@
 		APIServerError
 	} from '$lib/api/errors';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	interface Props {
 		open: boolean;
@@ -104,9 +105,9 @@
 													<Checks size={18} class="text-emerald-500" />
 												{/if}
 											</Table.Cell>
-											<Table.Cell>{new Date(invoice.issuedAt).toLocaleString()}</Table.Cell>
+											<Table.Cell>{formatDate(invoice.issuedAt)}</Table.Cell>
 											<Table.Cell>
-												{invoice.dueAt ? new Date(invoice.dueAt).toLocaleString() : 'N/A'}
+												{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}
 											</Table.Cell>
 											<Table.Cell>
 												<div

@@ -17,6 +17,7 @@
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import FilterInput from '$lib/components/FilterInput.svelte';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
@@ -151,7 +152,7 @@
 											{toTitleCase(project.status)}
 										</Table.Cell>
 										<Table.Cell>{project.tasksCompleted} Completed</Table.Cell>
-										<Table.Cell>{new Date(project.createdAt).toLocaleString()}</Table.Cell>
+										<Table.Cell>{formatDate(project.createdAt)}</Table.Cell>
 										<Table.Cell>{project.invoicesPaid} / {project.totalInvoices} Paid</Table.Cell>
 										<Table.Cell>{project.totalQuotes}</Table.Cell>
 										<Table.Cell>
