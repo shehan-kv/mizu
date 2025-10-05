@@ -18,10 +18,9 @@
 
 	interface Props {
 		open: boolean;
-		close: () => void;
 		channel: Channel;
 	}
-	let { open = $bindable(), close, channel }: Props = $props();
+	let { open = $bindable(), channel }: Props = $props();
 
 	let _q = $state('');
 	let q = $state('');
