@@ -205,13 +205,14 @@ func (q *ChangeRequestStorePostgres) GetByProjectId(
 
 	if len(arg.Keyword) != 0 {
 		paramCount++
-		reqQuery.WriteString(" AND cr.title = $")
+		reqQuery.WriteString(" AND cr.title LIKE $")
 		reqQuery.WriteString(strconv.Itoa(paramCount))
-		countQuery.WriteString(" AND cr.title = $")
+		countQuery.WriteString(" AND cr.title LIKE $")
 		countQuery.WriteString(strconv.Itoa(paramCount))
 
-		reqQueryArgs = append(reqQueryArgs, arg.Keyword)
-		countQueryArgs = append(countQueryArgs, arg.Keyword)
+		keyword := "%" + arg.Keyword + "%"
+		reqQueryArgs = append(reqQueryArgs, keyword)
+		countQueryArgs = append(countQueryArgs, keyword)
 	}
 
 	if len(arg.Status) != 0 {

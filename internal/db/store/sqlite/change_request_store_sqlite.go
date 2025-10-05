@@ -202,11 +202,13 @@ func (q *ChangeRequestStoreSqlite) GetByProjectId(
 	countQueryArgs := []any{projectId}
 
 	if len(arg.Keyword) != 0 {
-		reqQuery.WriteString(" AND cr.title = ?")
-		countQuery.WriteString(" AND cr.title = ?")
+		reqQuery.WriteString(" AND cr.title LIKE ?")
+		countQuery.WriteString(" AND cr.title LIKE ?")
 
-		reqQueryArgs = append(reqQueryArgs, arg.Keyword)
-		countQueryArgs = append(countQueryArgs, arg.Keyword)
+		keyword := "%" + arg.Keyword + "%"
+
+		reqQueryArgs = append(reqQueryArgs, keyword)
+		countQueryArgs = append(countQueryArgs, keyword)
 	}
 
 	if len(arg.Status) != 0 {
