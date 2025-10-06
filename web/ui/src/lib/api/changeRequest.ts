@@ -8,16 +8,21 @@ import {
 	NetworkError
 } from './errors';
 
+export interface ChangeRequestUser {
+	id: string;
+	firstName: string;
+	lastName: string;
+	title?: string;
+	role?: string;
+	image?: string;
+}
+
 export interface ChangeRequest {
 	id: number;
 	title: string;
 	createdAt: Date;
 	status: string;
-	requestedBy: {
-		id: number;
-		firstName: string;
-		lastName: string;
-	};
+	requestedBy: ChangeRequestUser;
 	project: {
 		id: number;
 		name: string;
@@ -165,4 +170,47 @@ export async function createChangeRequest(
 				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
 		}
 	}
+}
+
+export interface ChangeRequestEntry {
+	id: number;
+	user: ChangeRequestUser;
+	createdAt: Date;
+	content: string;
+}
+
+export interface ChangeRequestDetails extends ChangeRequest {
+	entries: ChangeRequestEntry[];
+}
+
+export async function getChangeRequestDetails(requestId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/change-requests/${requestId}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch change requests: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Change requests not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as ChangeRequestDetails;
+	return payload;
 }

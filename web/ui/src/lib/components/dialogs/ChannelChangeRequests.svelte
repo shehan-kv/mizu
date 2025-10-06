@@ -7,8 +7,8 @@
 	import Pagination from '../Pagination.svelte';
 	import SearchBar from '../SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
+	import ChannelViewChangeRequest from './ChannelViewChangeRequest.svelte';
 	import { createDialogState } from './createDialogState.svelte';
-	import ChannelViewTicket from './ChannelViewTicket.svelte';
 	import { getChangeRequestsByProject, type ChangeRequest } from '$lib/api/changeRequest';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import Spinner from '../Spinner.svelte';
@@ -169,8 +169,6 @@
 	</div>
 </FullScreenDialog>
 
-<ChannelViewTicket
-	bind:open={viewRequestDialog.isOpen}
-	close={viewRequestDialog.close}
-	ticket={selectedRequest}
-/>
+{#if selectedRequest}
+	<ChannelViewChangeRequest bind:open={viewRequestDialog.isOpen} request={selectedRequest} />
+{/if}

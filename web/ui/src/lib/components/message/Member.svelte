@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { toTitleCase } from '$lib/utils/toTitleCase';
+
 	interface Props {
 		image?: string;
 		name: string;
-		title: string;
+		title?: string;
+		role?: string;
 	}
-	let { image, name, title }: Props = $props();
+	let { image, name, title, role }: Props = $props();
 </script>
 
 <div class="flex gap-2">
@@ -23,7 +26,12 @@
 			{name || 'N/A'}
 		</p>
 		<p class="text-xs text-neutral-500 dark:text-neutral-400">
-			{title || 'N/A'}
+			{#if title || role}
+				{title ? title : ''}
+				{role ? `${title ? ' - ' : ''}${toTitleCase(role)}` : ''}
+			{:else}
+				N/A
+			{/if}
 		</p>
 	</div>
 </div>
