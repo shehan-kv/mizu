@@ -8,16 +8,23 @@
 	import * as Message from '$lib/components/message';
 	import * as Dialog from '$lib/components/dialogs';
 
-	import type { Channel, ChannelMessage, Member, UserMessage } from '$lib/components/message/types';
+	import type { ChannelMessage, Member, UserMessage } from '$lib/components/message/types';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import { onMount } from 'svelte';
-	import { channelData, memebersData, messageData } from '$lib/components/message/mockData';
+	import { memebersData, messageData } from '$lib/components/message/mockData';
 	import TextEditor from '$lib/components/TextEditor.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import SendButton from '$lib/components/SendButton.svelte';
 	import AiSuggestionsButton from '$lib/components/AiSuggestionsButton.svelte';
 	import Swap from 'phosphor-svelte/lib/Swap';
+	import { getChannels, type Channel } from '$lib/api/messages';
+	import {
+		APIBadRequestError,
+		APIForbiddenError,
+		APINotFoundError,
+		APIServerError
+	} from '$lib/api/errors';
 
 	// svelte-ignore non_reactive_update
 	let editor: TextEditor | null = null;
@@ -31,7 +38,6 @@
 		messages: true
 	});
 
-	let channels = $state<Channel[]>([]);
 	let selectedChannel: Channel | null = $state(null);
 	let channelMembers: Member[] = $state([]);
 	let channelMessages: ChannelMessage[] = $state([]);
@@ -64,18 +70,26 @@
 		}
 	});
 
+	let channelsPromise: Promise<Channel[]> | null = $state(null);
+	let channelAbortController: AbortController | null = null;
+
+	async function loadChannels() {
+		if (channelAbortController) {
+			channelAbortController.abort();
+		}
+
+		channelAbortController = new AbortController();
+
+		channelsPromise = getChannels().then((channels) => {
+			if (channels.length > 0) selectedChannel = channels[0];
+			return channels;
+		});
+	}
+
 	onMount(() => {
-		fetchChannels();
+		loadChannels();
 	});
 
-	function fetchChannels() {
-		loading.channels = true;
-		setTimeout(() => {
-			channels = channelData;
-			loading.channels = false;
-			selectedChannel = channels[0];
-		}, 1000);
-	}
 	function switchChannel(channel: Channel) {
 		selectedChannel = channel;
 	}
@@ -138,23 +152,42 @@
 			<p class="bg-neutral-100 text-xs text-neutral-400 dark:bg-neutral-900 dark:text-neutral-500">
 				CHANNELS
 			</p>
-			{#if loading.channels}
+			{#await channelsPromise}
 				<Spinner />
-			{:else if !loading.channels && selectedChannel}
-				<div
-					class="text-sm text-neutral-700 *:block *:cursor-pointer *:border-l *:px-2 *:py-0.5 *:transition
+			{:then channels}
+				{#if channels}
+					{#if channels.length == 0}
+						<ErrorMessage variant="channel" text="No Channels Found" retry={loadChannels} />
+					{/if}
+					<div
+						class="text-sm text-neutral-700 *:block *:cursor-pointer *:border-l *:px-2 *:py-0.5 *:transition
 				*:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
-				>
-					{#each channels as channel}
-						<button
-							class:border-sky-500={selectedChannel.id == channel.id}
-							onclick={() => switchChannel(channel)}>#{channel.name}</button
-						>
-					{/each}
-				</div>
-			{:else}
-				<ErrorMessage variant="channel" text="No Channels Found" retry={fetchChannels} />
-			{/if}
+					>
+						{#each channels as channel}
+							<button
+								class:border-sky-500={selectedChannel?.id == channel.id}
+								onclick={() => switchChannel(channel)}>#{channel.name}</button
+							>
+						{/each}
+					</div>
+				{/if}
+			{:catch err}
+				{#if err instanceof APIBadRequestError}
+					<ErrorMessage variant="warn" text="Invalid Request" retry={loadChannels} />
+				{:else if err instanceof APIForbiddenError}
+					<ErrorMessage
+						variant="warn"
+						text="You Don't Have Permission To View These Channels"
+						retry={loadChannels}
+					/>
+				{:else if err instanceof APINotFoundError}
+					<ErrorMessage variant="info" text="Not Found" retry={loadChannels} />
+				{:else if err instanceof APIServerError}
+					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadChannels} />
+				{:else}
+					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadChannels} />
+				{/if}
+			{/await}
 		</div>
 
 		<div class="grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto border-t p-4">

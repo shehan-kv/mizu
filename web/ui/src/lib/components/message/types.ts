@@ -1,9 +1,3 @@
-export interface Channel {
-	id: number;
-	name: string;
-	projectId: number | null;
-}
-
 export interface Member {
 	name: string;
 	title: string;
