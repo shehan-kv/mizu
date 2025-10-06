@@ -56,6 +56,7 @@ func (msgHndl *MessageHandler) GetMux(lg logger.Logger,
 
 	mux.Handle("POST /{channelId}", mwChain.Handle(msgHndl.CreateMessage))
 	mux.Handle("GET /{channelId}", mwChain.Handle(msgHndl.GetMessages))
+	mux.Handle("GET /channels", mwChain.Handle(msgHndl.GetChannels))
 
 	return mux
 }
@@ -176,4 +177,16 @@ func (msgHndl *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (msgHndl *MessageHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
+
+	result, err := msgHndl.msgSrv.GetChannels(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
 }
