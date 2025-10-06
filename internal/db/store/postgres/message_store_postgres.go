@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"mizu/internal/db/models"
 	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
@@ -111,6 +112,47 @@ func (q *MessageStorePostgres) GetChannelIdsByUserId(ctx context.Context, userId
 		}
 
 		channels = append(channels, id)
+	}
+
+	return channels, nil
+}
+
+func (q *MessageStorePostgres) GetChannelsByUserId(ctx context.Context, userId int64) ([]models.Channel, error) {
+
+	query := `
+	SELECT 
+		c.id,
+		c.project_id,
+		c.name,
+		c.created_at
+	FROM channel_users cu
+	JOIN channels c ON c.id = cu.channel_id
+	WHERE cu.user_id = $1
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, userId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	channels := make([]models.Channel, 0)
+
+	for rows.Next() {
+		var row models.Channel
+		err := rows.Scan(
+			&row.Id,
+			&row.ProjectId,
+			&row.Name,
+			&row.CreatedAt,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		channels = append(channels, row)
 	}
 
 	return channels, nil

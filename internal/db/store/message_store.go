@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"mizu/internal/db/models"
 	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
@@ -30,6 +31,8 @@ type MessageStore interface {
 	//   - []int64: array of channel ids
 	//   - store.ErrQueryFailed: if query fails
 	GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error)
+
+	GetChannelsByUserId(ctx context.Context, userId int64) ([]models.Channel, error)
 
 	// Gets IDs of all users in the given channel
 	//
