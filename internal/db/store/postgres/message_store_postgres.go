@@ -248,3 +248,51 @@ func (q *MessageStorePostgres) CountByChannelId(ctx context.Context, channelId i
 
 	return count, nil
 }
+
+func (q *MessageStorePostgres) GetUsersByChannelId(
+	ctx context.Context,
+	channelId int64) ([]agg.ChannelMember, error) {
+
+	query := `
+	SELECT 
+		u.id,
+		u.first_name,
+		u.last_name,
+		u.image,
+		u.title,
+		r.name AS role
+	FROM channel_users cu
+	JOIN users u ON u.id = cu.user_id
+	JOIN roles r ON r.id = u.role
+	WHERE cu.channel_id = $1
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, channelId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	users := make([]agg.ChannelMember, 0)
+
+	for rows.Next() {
+		var row agg.ChannelMember
+		err := rows.Scan(
+			&row.Id,
+			&row.FirstName,
+			&row.LastName,
+			&row.Image,
+			&row.Title,
+			&row.Role,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		users = append(users, row)
+	}
+
+	return users, nil
+}

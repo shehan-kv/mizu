@@ -45,6 +45,8 @@ type MessageStore interface {
 	//   - store.ErrQueryFailed: if query fails
 	GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error)
 
+	GetUsersByChannelId(ctx context.Context, channelId int64) ([]agg.ChannelMember, error)
+
 	// GetByChannelId returns an array of MessageWithuser aggregate structs
 	// for messages in a specified channel.
 	// If an error occurs, it returns store.ErrQueryFailed.
