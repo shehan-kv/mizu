@@ -76,7 +76,7 @@ func (msgSrv *MessageService) CreateMessage(
 		return nil, ErrInternalError
 	}
 
-	users, err := msgSrv.msgSt.GetUsersByChannelId(ctx, channelId)
+	users, err := msgSrv.msgSt.GetUserIdsByChannelId(ctx, channelId)
 	if err != nil {
 		msgSrv.lg.Error("could not get users by channel",
 			"event", event.EventGetFailed,
@@ -324,6 +324,50 @@ func (msgSrv *MessageService) GetChannels(ctx context.Context) ([]dto.ChannelRes
 			ProjectId: channel.ProjectId,
 			Name:      channel.Name,
 			CreatedAt: channel.CreatedAt,
+		}
+	}
+
+	return resp, nil
+}
+
+func (msgSrv *MessageService) GetMembersByChannel(
+	ctx context.Context,
+	channelId int64) ([]dto.MemberResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		msgSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "message_service",
+			"channel_id", channelId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	members, err := msgSrv.msgSt.GetUsersByChannelId(ctx, channelId)
+	if err != nil {
+		msgSrv.lg.Error("could not get members by channel",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "message_service",
+			"actor_id", actor.Id,
+			"channel_id", channelId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.MemberResponse, len(members))
+
+	for i, member := range members {
+		resp[i] = dto.MemberResponse{
+			Id:        member.Id,
+			FirstName: member.FirstName,
+			LastName:  member.LastName,
+			Image:     member.Image,
+			Title:     member.Title,
+			Role:      member.Role,
 		}
 	}
 
