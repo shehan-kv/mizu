@@ -18,13 +18,19 @@
 	import SendButton from '$lib/components/SendButton.svelte';
 	import AiSuggestionsButton from '$lib/components/AiSuggestionsButton.svelte';
 	import Swap from 'phosphor-svelte/lib/Swap';
-	import { getChannels, type Channel } from '$lib/api/messages';
+	import {
+		getChannels,
+		getMembersByChannel,
+		type Channel,
+		type ChannelMember
+	} from '$lib/api/messages';
 	import {
 		APIBadRequestError,
 		APIForbiddenError,
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
+	import { toast } from 'svelte-sonner';
 
 	// svelte-ignore non_reactive_update
 	let editor: TextEditor | null = null;
@@ -70,6 +76,21 @@
 		}
 	});
 
+	let membersPromise: Promise<ChannelMember[]> | null = $state(null);
+	let memberAbortController: AbortController | null = null;
+
+	async function loadMembers() {
+		if (!selectedChannel) return;
+
+		if (memberAbortController) {
+			memberAbortController.abort();
+		}
+
+		memberAbortController = new AbortController();
+
+		membersPromise = getMembersByChannel(selectedChannel?.id, memberAbortController.signal);
+	}
+
 	let channelsPromise: Promise<Channel[]> | null = $state(null);
 	let channelAbortController: AbortController | null = null;
 
@@ -80,8 +101,9 @@
 
 		channelAbortController = new AbortController();
 
-		channelsPromise = getChannels().then((channels) => {
+		channelsPromise = getChannels(channelAbortController.signal).then((channels) => {
 			if (channels.length > 0) selectedChannel = channels[0];
+			loadMembers();
 			return channels;
 		});
 	}
@@ -92,6 +114,7 @@
 
 	function switchChannel(channel: Channel) {
 		selectedChannel = channel;
+		loadMembers();
 	}
 
 	let fileDialog = createDialogState();
@@ -158,18 +181,19 @@
 				{#if channels}
 					{#if channels.length == 0}
 						<ErrorMessage variant="channel" text="No Channels Found" retry={loadChannels} />
+					{:else}
+						<div
+							class="text-sm text-neutral-700 *:block *:cursor-pointer *:border-l *:px-2 *:py-0.5 *:transition
+							*:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
+						>
+							{#each channels as channel}
+								<button
+									class:border-sky-500={selectedChannel?.id == channel.id}
+									onclick={() => switchChannel(channel)}>#{channel.name}</button
+								>
+							{/each}
+						</div>
 					{/if}
-					<div
-						class="text-sm text-neutral-700 *:block *:cursor-pointer *:border-l *:px-2 *:py-0.5 *:transition
-				*:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
-					>
-						{#each channels as channel}
-							<button
-								class:border-sky-500={selectedChannel?.id == channel.id}
-								onclick={() => switchChannel(channel)}>#{channel.name}</button
-							>
-						{/each}
-					</div>
 				{/if}
 			{:catch err}
 				{#if err instanceof APIBadRequestError}
@@ -191,21 +215,47 @@
 		</div>
 
 		<div class="grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto border-t p-4">
-			<p class="bg-neutral-100 text-xs text-neutral-400 dark:bg-neutral-900 dark:text-neutral-500">
-				MEMBERS ({channelMembers.length})
-			</p>
-
-			<div class=" space-y-2.5">
-				{#if loading.members}
-					<Spinner />
-				{:else if !loading.members && channelMembers.length > 0}
-					{#each channelMembers as member (member)}
-						<Message.Member image={member.image} name={member.name} title={member.title} />
-					{/each}
-				{:else}
-					<ErrorMessage variant="user" text="No Members Found" />
+			{#await membersPromise}
+				<Spinner />
+			{:then members}
+				{#if members}
+					<p
+						class="bg-neutral-100 text-xs text-neutral-400 dark:bg-neutral-900 dark:text-neutral-500"
+					>
+						MEMBERS ({members.length})
+					</p>
+					{#if members.length > 0}
+						<div class=" space-y-2.5">
+							{#each members as member (member)}
+								<Message.Member
+									image={member.image}
+									name={`${member.firstName} ${member.lastName}`}
+									title={member.title}
+									role={member.role}
+								/>
+							{/each}
+						</div>
+					{:else}
+						<ErrorMessage variant="user" text="No Members Found" />
+					{/if}
 				{/if}
-			</div>
+			{:catch err}
+				{#if err instanceof APIBadRequestError}
+					<ErrorMessage variant="warn" text="Invalid Request" retry={loadMembers} />
+				{:else if err instanceof APIForbiddenError}
+					<ErrorMessage
+						variant="warn"
+						text="You Don't Have Permission To View These Members"
+						retry={loadMembers}
+					/>
+				{:else if err instanceof APINotFoundError}
+					<ErrorMessage variant="info" text="Not Found" retry={loadMembers} />
+				{:else if err instanceof APIServerError}
+					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadMembers} />
+				{:else}
+					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadMembers} />
+				{/if}
+			{/await}
 		</div>
 
 		{#if selectedChannel}
