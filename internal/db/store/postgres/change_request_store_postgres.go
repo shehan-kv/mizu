@@ -334,9 +334,13 @@ func (q *ChangeRequestStorePostgres) GetEntriesByRequestId(
 		cre.content,
 		u.id,
 		u.first_name, 
-		u.last_name
+		u.last_name,
+		u.title,
+		u.image,
+		r.name AS role
 	FROM change_request_entries cre 
 	JOIN users u ON u.id = cre.user_id
+	JOIN roles r ON r.id = u.role
 	WHERE cre.request_id = $1
 	ORDER BY cre.created_at DESC
 	`
@@ -356,6 +360,9 @@ func (q *ChangeRequestStorePostgres) GetEntriesByRequestId(
 			&row.UserId,
 			&row.UserFirstName,
 			&row.UserLastName,
+			&row.UserTitle,
+			&row.UserImage,
+			&row.UserRole,
 		)
 
 		if err != nil {

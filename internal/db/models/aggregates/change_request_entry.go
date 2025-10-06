@@ -7,6 +7,9 @@ type ChangeRequestEntry struct {
 	UserId        int64
 	UserFirstName string
 	UserLastName  string
+	UserTitle     *string
+	UserImage     *string
+	UserRole      string
 	CreatedAt     time.Time
 	Content       string
 }
