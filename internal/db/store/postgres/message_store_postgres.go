@@ -158,8 +158,8 @@ func (q *MessageStorePostgres) GetChannelsByUserId(ctx context.Context, userId i
 	return channels, nil
 }
 
-// Implementation of GetUsersByChannelId defined in MessageStore interface
-func (q *MessageStorePostgres) GetUsersByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
+// Implementation of GetUserIdsByChannelId defined in MessageStore interface
+func (q *MessageStorePostgres) GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
 
 	query := `SELECT user_id FROM channel_users WHERE channel_id = $1`
 

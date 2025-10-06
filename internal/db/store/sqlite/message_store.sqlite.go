@@ -164,8 +164,8 @@ func (q *MessageStoreSqlite) GetChannelsByUserId(ctx context.Context, userId int
 	return channels, nil
 }
 
-// Implementation of GetUsersByChannelId defined in MessageStore interface
-func (q *MessageStoreSqlite) GetUsersByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
+// Implementation of GetUserIdsByChannelId defined in MessageStore interface
+func (q *MessageStoreSqlite) GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
 
 	query := `SELECT user_id FROM channel_users WHERE channel_id = ?`
 
