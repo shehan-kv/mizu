@@ -242,6 +242,9 @@ func (chngReqSrv *ChangeRequestService) GetById(ctx context.Context, requestId i
 				Id:        entry.UserId,
 				FirstName: entry.UserFirstName,
 				LastName:  entry.UserLastName,
+				Title:     entry.UserTitle,
+				Role:      &entry.UserRole,
+				Image:     entry.UserImage,
 			},
 		}
 	}
