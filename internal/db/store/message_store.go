@@ -29,7 +29,7 @@ type MessageStore interface {
 	// Returns:
 	//   - []int64: array of channel ids
 	//   - store.ErrQueryFailed: if query fails
-	GetChannelsByUserId(ctx context.Context, userId int64) ([]int64, error)
+	GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error)
 
 	// Gets IDs of all users in the given channel
 	//

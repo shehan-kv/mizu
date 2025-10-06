@@ -94,7 +94,7 @@ func (q *MessageStoreSqlite) CreateOne(
 }
 
 // Implementation of GetChannelsByUserId defined in MessageStore interface
-func (q *MessageStoreSqlite) GetChannelsByUserId(ctx context.Context, userId int64) ([]int64, error) {
+func (q *MessageStoreSqlite) GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error) {
 
 	query := `SELECT channel_id FROM channel_users WHERE user_id = ?`
 

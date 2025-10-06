@@ -90,7 +90,7 @@ func (q *MessageStorePostgres) CreateOne(
 }
 
 // Implementation of GetChannelsByUserId defined in MessageStore interface
-func (q *MessageStorePostgres) GetChannelsByUserId(ctx context.Context, userId int64) ([]int64, error) {
+func (q *MessageStorePostgres) GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error) {
 
 	query := `SELECT channel_id FROM channel_users WHERE user_id = $1`
 
