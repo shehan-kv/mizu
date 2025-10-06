@@ -57,6 +57,7 @@ func (msgHndl *MessageHandler) GetMux(lg logger.Logger,
 	mux.Handle("POST /{channelId}", mwChain.Handle(msgHndl.CreateMessage))
 	mux.Handle("GET /{channelId}", mwChain.Handle(msgHndl.GetMessages))
 	mux.Handle("GET /channels", mwChain.Handle(msgHndl.GetChannels))
+	mux.Handle("GET /members/{channelId}", mwChain.Handle(msgHndl.GetMembersByChannel))
 
 	return mux
 }
@@ -182,6 +183,25 @@ func (msgHndl *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Reques
 func (msgHndl *MessageHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
 
 	result, err := msgHndl.msgSrv.GetChannels(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+func (msgHndl *MessageHandler) GetMembersByChannel(w http.ResponseWriter, r *http.Request) {
+
+	channelId := r.PathValue("channelId")
+	parsedChId, err := strconv.ParseInt(channelId, 10, 64)
+	if err != nil || parsedChId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	result, err := msgHndl.msgSrv.GetMembersByChannel(r.Context(), parsedChId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
