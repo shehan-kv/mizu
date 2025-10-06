@@ -5,6 +5,7 @@
 	import SendButton from '../SendButton.svelte';
 	import AiSuggestionsButton from '../AiSuggestionsButton.svelte';
 	import {
+		createChangeRequestEntry,
 		getChangeRequestDetails,
 		type ChangeRequest,
 		type ChangeRequestDetails
@@ -14,6 +15,16 @@
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import Checks from 'phosphor-svelte/lib/Checks';
+	import Hourglass from 'phosphor-svelte/lib/Hourglass';
+	import { toast } from 'svelte-sonner';
+	import {
+		APIBadRequestError,
+		APIError,
+		APIForbiddenError,
+		APINotFoundError,
+		APIServerError,
+		NetworkError
+	} from '$lib/api/errors';
 
 	interface Props {
 		open: Boolean;
@@ -25,19 +36,43 @@
 
 	let requestPromise: Promise<ChangeRequestDetails> | null = $state(null);
 
-	let abortController: AbortController | null = null;
+	let loadAbortController: AbortController | null = null;
+	let entryAbortController: AbortController | null = null;
 	function loadRequest() {
 		if (!request.id) {
 			return;
 		}
 
-		if (abortController) {
-			abortController.abort();
+		if (loadAbortController) {
+			loadAbortController.abort();
 		}
 
-		abortController = new AbortController();
+		loadAbortController = new AbortController();
 
-		requestPromise = getChangeRequestDetails(request.id, abortController.signal);
+		requestPromise = getChangeRequestDetails(request.id, loadAbortController.signal);
+	}
+
+	// svelte-ignore non_reactive_update
+	let editor: TextEditor | null = null;
+
+	async function createEntry(content: string) {
+		if (!content) {
+			toast.error('Required Field Missing');
+			return;
+		}
+
+		try {
+			await createChangeRequestEntry(request.id, { content }, entryAbortController?.signal);
+			toast.success('Entry Created Successfully');
+			loadRequest();
+		} catch (error) {
+			if (error instanceof APIBadRequestError) toast.error('Invalid Request');
+			if (error instanceof APIForbiddenError) toast.error('Not Authorized');
+			if (error instanceof APINotFoundError) toast.error('Not Found');
+			if (error instanceof APIServerError) toast.error('Server Error');
+			if (error instanceof APIError) toast.error('Unexpected Error, Try Again');
+			if (error instanceof NetworkError) toast.error('Request Failed, Try Again');
+		}
 	}
 
 	$effect(() => {
@@ -86,18 +121,27 @@
 											>
 											</span>
 										</span>
+									{:else if res.status == 'waiting'}
+										<Hourglass size={18} class="text-yellow-500" />
 									{:else if res.status == 'closed'}
 										<Checks size={18} class="text-emerald-500" />
 									{/if}
-									<p class="text-sm">{toTitleCase(res.status)}</p>
+									<p class="text-sm">
+										{#if res.status == 'waiting'}
+											Waiting For Client Reply
+										{:else}
+											{toTitleCase(res.status)}
+										{/if}
+									</p>
 								</div>
 								{#if res.status != 'closed'}
 									<div class="space-y-2 rounded bg-neutral-100 p-4 dark:bg-neutral-900">
 										<div class="border-b pb-2">
 											<TextEditor
+												bind:this={editor}
 												autoSuggest={isAiEnabled}
 												placeholder="Write your reply here"
-												onSubmit={() => console.log('submit called!')}
+												onSubmit={createEntry}
 											/>
 										</div>
 										<div class="flex items-end justify-end text-xs">
@@ -106,7 +150,7 @@
 												class="cursor-pointer rounded p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800"
 												onclick={() => (isAiEnabled = !isAiEnabled)}
 											/>
-											<SendButton onclick={() => console.log('submit called!')} />
+											<SendButton onclick={() => editor?.submit()} />
 										</div>
 									</div>
 								{/if}

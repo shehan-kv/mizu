@@ -203,7 +203,7 @@ export async function getChangeRequestDetails(requestId: number, signal?: AbortS
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
-				throw new APINotFoundError(`Change requests not found`);
+				throw new APINotFoundError(`Change request not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
@@ -213,4 +213,42 @@ export async function getChangeRequestDetails(requestId: number, signal?: AbortS
 
 	const payload = (await res.json()) as ChangeRequestDetails;
 	return payload;
+}
+
+export interface CreateChangeRequestEntryParams {
+	content: string;
+}
+export async function createChangeRequestEntry(
+	requestId: number,
+	req: CreateChangeRequestEntryParams,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/change-requests/entry/${requestId}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch projects: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Change request entries not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
 }
