@@ -64,7 +64,7 @@ func (msgSrv *MessageService) CreateMessage(
 		return nil, ErrInternalError
 	}
 
-	channels, err := msgSrv.msgSt.GetChannelsByUserId(ctx, actor.Id)
+	channels, err := msgSrv.msgSt.GetChannelIdsByUserId(ctx, actor.Id)
 	if err != nil {
 		msgSrv.lg.Error("could not get channels",
 			"event", event.EventGetFailed,
@@ -206,7 +206,7 @@ func (msgSrv *MessageService) GetMessages(
 		return nil, ErrInternalError
 	}
 
-	channels, err := msgSrv.msgSt.GetChannelsByUserId(ctx, actor.Id)
+	channels, err := msgSrv.msgSt.GetChannelIdsByUserId(ctx, actor.Id)
 	if err != nil {
 		msgSrv.lg.Error("could not get channels",
 			"event", event.EventGetFailed,
@@ -296,4 +296,36 @@ func (msgSrv *MessageService) GetMessages(
 	}
 
 	return &resp, nil
+}
+
+func (msgSrv *MessageService) GetChannels(ctx context.Context) ([]dto.ChannelResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		msgSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "message_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	channels, err := msgSrv.msgSt.GetChannelsByUserId(ctx, actor.Id)
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.ChannelResponse, len(channels))
+
+	for i, channel := range channels {
+		resp[i] = dto.ChannelResponse{
+			Id:        channel.Id,
+			ProjectId: channel.ProjectId,
+			Name:      channel.Name,
+			CreatedAt: channel.CreatedAt,
+		}
+	}
+
+	return resp, nil
 }
