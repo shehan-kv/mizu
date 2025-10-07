@@ -12,18 +12,36 @@
 	import { createDialogState } from './createDialogState.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import RequestRevision from './RequestRevision.svelte';
+	import { getContractVersions, type Contract, type ContractVersion } from '$lib/api/contracts';
+	import { formatDate } from '$lib/utils/formatDate';
 
 	interface Props {
 		open: Boolean;
-		close: () => void;
-		contract?: any; // TODO: Properly type contract
+		contract: Contract;
 	}
-	let { open = $bindable(), close }: Props = $props();
-
-	let isLoading = $state(false);
-	// TODO: Add error state
+	let { open = $bindable() }: Props = $props();
 
 	let activeSidebar: 'ABOUT' | 'REVISION' = $state('ABOUT');
+
+	let versionsPromise: Promise<ContractVersion[]> | null = $state(null);
+	let versionAbortController: AbortController | null = null;
+
+	let selectedVersion: ContractVersion | null = $state(null);
+
+	async function loadVersions() {
+		if (versionAbortController) {
+			versionAbortController.abort();
+		}
+
+		versionAbortController = new AbortController();
+
+		versionsPromise = getContractVersions(contract.id, versionAbortController.signal).then(
+			(versions) => {
+				if (versions.length > 0) selectedVersion = versions[0];
+				return versions;
+			}
+		);
+	}
 
 	let contract = {
 		id: 1,
@@ -60,17 +78,14 @@
 		]
 	};
 
-	let openedVersion = $state({
-		versionId: 1,
-		version: 'V1.0.0',
-		createdDate: new Date().toUTCString(),
-		contract: ''
-	});
-
-	function openContractVersion(id: number) {
-		openedVersion.versionId = id;
-		// TODO: Fetch version content from the server
+	function openContractVersion(version: ContractVersion) {
+		selectedVersion = version;
 	}
+
+	$effect(() => {
+		if (!open) return;
+		loadVersions();
+	});
 
 	let confirmSignDialog = createDialogState();
 	let confirmRejectDialog = createDialogState();
@@ -81,58 +96,60 @@
 	<p class="mb-4 text-xs text-neutral-500">{text}</p>
 {/snippet}
 
-<FullScreenDialog bind:open {close}>
-	{#if isLoading}
+<FullScreenDialog bind:open>
+	{#await versionsPromise}
 		<Spinner />
-	{:else}
+	{:then versions}
 		<div class="container mx-auto grid auto-rows-[min-content_1fr] gap-6 overflow-y-auto">
 			<div class="space-y-0.5">
 				<p class="text-xs text-neutral-500">Contract</p>
-				<p class="font-bold">{contract?.name}</p>
+				<p class="font-bold">{contract.name}</p>
 			</div>
 
-			<div class="grid grid-cols-4 gap-2 overflow-hidden">
-				<div
-					class="col-span-3 grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto rounded border"
-				>
+			{#if versions && selectedVersion}
+				<div class="grid grid-cols-4 gap-2 overflow-hidden">
 					<div
-						class="sticky top-0 flex items-center justify-between bg-neutral-100 p-2 px-6 dark:bg-neutral-900"
+						class="col-span-3 grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto rounded border"
 					>
-						<p class="text-xs">{openedVersion.version} - Created On {openedVersion.createdDate}</p>
-
 						<div
-							class="space-x-1 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
-							*:dark:hover:text-neutral-50"
+							class="sticky top-0 flex items-center justify-between bg-neutral-100 p-2 px-6 dark:bg-neutral-900"
 						>
-							<button title="Download Contract"><DownloadSimple size={18} /> </button>
-							<button title="Email Me This Version"><Envelope size={18} /> </button>
+							<p class="text-xs">
+								{selectedVersion.version} - Created At {formatDate(selectedVersion.createdAt)}
+							</p>
+
+							<div
+								class="space-x-1 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
+							*:dark:hover:text-neutral-50"
+							>
+								<button title="Download Contract"><DownloadSimple size={18} /> </button>
+								<button title="Email Me This Version"><Envelope size={18} /> </button>
+							</div>
+						</div>
+						<div class="overflow-y-auto p-6">
+							<p class="max-w-2xl whitespace-pre-line">
+								{selectedVersion?.contract}
+							</p>
 						</div>
 					</div>
-					<div class="overflow-y-auto p-6">
-						<p class="max-w-2xl whitespace-pre-line">
-							{openedVersion.contract}
-						</p>
-					</div>
-				</div>
-				<div class="grid auto-rows-[min-content_1fr] space-y-2 overflow-y-auto overflow-y-auto">
-					<div
-						class="grid grid-cols-2 gap-2 text-neutral-500 transition
+					<div class="grid auto-rows-[min-content_1fr] space-y-2 overflow-y-auto overflow-y-auto">
+						<div
+							class="grid grid-cols-2 gap-2 text-neutral-500 transition
 					*:cursor-pointer *:border-neutral-900 *:px-8 *:py-3 *:text-left
 					*:text-xs *:hover:underline"
-					>
-						<button
-							class:dark:text-neutral-50={activeSidebar == 'ABOUT'}
-							class:text-neutral-950={activeSidebar == 'ABOUT'}
-							onclick={() => (activeSidebar = 'ABOUT')}>ABOUT CONTRACT</button
 						>
-						<button
-							class:dark:text-neutral-50={activeSidebar == 'REVISION'}
-							class:text-neutral-950={activeSidebar == 'REVISION'}
-							onclick={() => (activeSidebar = 'REVISION')}>REVISION HISTORY</button
-						>
-					</div>
-					{#if activeSidebar == 'ABOUT'}
-						{#if contract}
+							<button
+								class:dark:text-neutral-50={activeSidebar == 'ABOUT'}
+								class:text-neutral-950={activeSidebar == 'ABOUT'}
+								onclick={() => (activeSidebar = 'ABOUT')}>ABOUT CONTRACT</button
+							>
+							<button
+								class:dark:text-neutral-50={activeSidebar == 'REVISION'}
+								class:text-neutral-950={activeSidebar == 'REVISION'}
+								onclick={() => (activeSidebar = 'REVISION')}>REVISION HISTORY</button
+							>
+						</div>
+						{#if activeSidebar == 'ABOUT'}
 							<div class="rounded bg-neutral-50 p-8 dark:bg-neutral-900/30">
 								{@render cardTitle('PARTIES')}
 
@@ -215,30 +232,30 @@
 									class="text-sm text-neutral-700 *:block *:w-full *:cursor-pointer *:py-0.5
 								*:text-left *:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
 								>
-									{#each contract.versions as version}
-										<button onclick={() => openContractVersion(version.id)}
-											>{version.version}</button
-										>
+									{#each versions as version}
+										<button onclick={() => openContractVersion(version)}>
+											{version.version}
+										</button>
 									{/each}
 								</div>
 							</div>
-						{/if}
-					{:else}
-						<div
-							class="grid auto-rows-[min-content_1fr] overflow-y-auto rounded bg-neutral-50
+						{:else}
+							<div
+								class="grid auto-rows-[min-content_1fr] overflow-y-auto rounded bg-neutral-50
 							p-8 dark:bg-neutral-900/30"
-						>
-							{@render cardTitle('REVISIONS')}
+							>
+								{@render cardTitle('REVISIONS')}
 
-							<div class="overflow-y-auto">
-								<ContractRevisions contractId={contract.id} />
+								<div class="overflow-y-auto">
+									<ContractRevisions contractId={contract.id} />
+								</div>
 							</div>
-						</div>
-					{/if}
+						{/if}
+					</div>
 				</div>
-			</div>
+			{/if}
 		</div>
-	{/if}
+	{/await}
 </FullScreenDialog>
 
 <ConfirmSignContract bind:open={confirmSignDialog.isOpen} close={confirmSignDialog.close} />

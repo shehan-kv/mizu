@@ -44,7 +44,7 @@ export async function getContractsByProject(
 			signal
 		});
 	} catch (err) {
-		throw new NetworkError(`Failed to fetch projects: ${err}`);
+		throw new NetworkError(`Failed to fetch contracts: ${err}`);
 	}
 
 	if (!res.ok) {
@@ -56,7 +56,7 @@ export async function getContractsByProject(
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
-				throw new APINotFoundError(`Projects not found`);
+				throw new APINotFoundError(`Contracts not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
@@ -65,5 +65,45 @@ export async function getContractsByProject(
 	}
 
 	const payload = (await res.json()) as PaginatedResponse<Contract>;
+	return payload;
+}
+
+export interface ContractVersion {
+	id: number;
+	createdAt: Date;
+	status: string;
+	version: string;
+	contract: string;
+}
+
+export async function getContractVersions(contractId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/version/${contractId}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch contract versions: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Contract versions not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as ContractVersion[];
 	return payload;
 }
