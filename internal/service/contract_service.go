@@ -645,3 +645,47 @@ func (contSrv *ContractService) GetVersions(
 
 	return resp, nil
 }
+
+func (contSrv *ContractService) GetVersionSignatures(
+	ctx context.Context,
+	versionId int64) ([]dto.SignatureResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	users, err := contSrv.contSt.GetUsersWithSignature(ctx, versionId)
+	if err != nil {
+		contSrv.lg.Error("could not get signatures by version id",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"version_id", versionId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.SignatureResponse, len(users.Signatures))
+
+	for i, signature := range users.Signatures {
+		resp[i] = dto.SignatureResponse{
+			Id:        signature.Id,
+			FirstName: signature.FirstName,
+			LastName:  signature.LastName,
+			SignedAt:  signature.SignedAt,
+			Status:    signature.Status,
+			Image:     signature.Image,
+		}
+	}
+
+	return resp, nil
+}
