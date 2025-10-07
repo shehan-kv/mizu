@@ -56,6 +56,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux.Handle("GET /revision/{contractId}", mwChain.Handle(contHndl.GetRevisions))
 	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(contHndl.AcceptRevision))
 	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(contHndl.RejectRevision))
+	mux.Handle("GET /version/{contractId}", mwChain.Handle(contHndl.GetVersions))
 
 	return mux
 }
@@ -420,4 +421,22 @@ func (contHndl *ContractHandler) GetContractsByProject(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(result)
 
+}
+
+func (contHndl *ContractHandler) GetVersions(w http.ResponseWriter, r *http.Request) {
+	contractId := r.PathValue("contractId")
+	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
+	if err != nil || parsedContractId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	result, err := contHndl.contSrv.GetVersions(r.Context(), parsedContractId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
 }
