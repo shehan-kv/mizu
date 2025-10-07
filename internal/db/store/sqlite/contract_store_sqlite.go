@@ -851,3 +851,48 @@ func (q *ContractStoreSqlite) GetContractStatsByProject(
 
 	return &result, nil
 }
+
+func (q *ContractStoreSqlite) GetVersionsByContractId(
+	ctx context.Context,
+	contractId int64) ([]agg.ContractVersion, error) {
+
+	query := `
+	SELECT 
+		cv.id,
+		cv.created_at,
+		cv.version,
+		cv.contract,
+		cs.name AS status
+	FROM contract_versions cv
+	JOIN contract_statuses cs ON cs.id = cv.status
+	WHERe cv.contract_id = ?
+	ORDER BY cv.created_at DESC
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, contractId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.ContractVersion, 0)
+	for rows.Next() {
+		var row agg.ContractVersion
+		err := rows.Scan(
+			&row.Id,
+			&row.CreatedAt,
+			&row.Version,
+			&row.Contract,
+			&row.Status,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
