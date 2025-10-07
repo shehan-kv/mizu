@@ -12,20 +12,48 @@
 	import { createDialogState } from './createDialogState.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import RequestRevision from './RequestRevision.svelte';
-	import { getContractVersions, type Contract, type ContractVersion } from '$lib/api/contracts';
+	import {
+		getContractSignatures,
+		getContractVersions,
+		type Contract,
+		type ContractSignature,
+		type ContractVersion
+	} from '$lib/api/contracts';
 	import { formatDate } from '$lib/utils/formatDate';
+	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import ErrorMessage from '../ErrorMessage.svelte';
+	import {
+		APIBadRequestError,
+		APIForbiddenError,
+		APINotFoundError,
+		APIServerError
+	} from '$lib/api/errors';
 
 	interface Props {
 		open: Boolean;
 		contract: Contract;
 	}
-	let { open = $bindable() }: Props = $props();
+	let { open = $bindable(), contract }: Props = $props();
 
 	let activeSidebar: 'ABOUT' | 'REVISION' = $state('ABOUT');
 
+	let signaturesPromise: Promise<ContractSignature[]> | null = $state(null);
+	let signatureAbortController: AbortController | null = null;
+
+	async function loadSignatures() {
+		if (!selectedVersion) return;
+
+		if (signatureAbortController) {
+			signatureAbortController.abort();
+		}
+
+		signatureAbortController = new AbortController();
+
+		signaturesPromise = getContractSignatures(selectedVersion.id, signatureAbortController.signal);
+	}
+
 	let versionsPromise: Promise<ContractVersion[]> | null = $state(null);
 	let versionAbortController: AbortController | null = null;
-
 	let selectedVersion: ContractVersion | null = $state(null);
 
 	async function loadVersions() {
@@ -38,45 +66,46 @@
 		versionsPromise = getContractVersions(contract.id, versionAbortController.signal).then(
 			(versions) => {
 				if (versions.length > 0) selectedVersion = versions[0];
+				loadSignatures();
 				return versions;
 			}
 		);
 	}
 
-	let contract = {
-		id: 1,
-		name: 'Website Redesign',
-		userSignedStatus: 'UNSIGNED',
-		versions: [
-			{ id: 1, version: 'V1.0.0', createdDate: new Date().toUTCString() },
-			{ id: 2, version: 'V1.0.1', createdDate: new Date().toUTCString() },
-			{ id: 3, version: 'V1.0.2', createdDate: new Date().toUTCString() },
-			{ id: 4, version: 'V1.0.3', createdDate: new Date().toUTCString() }
-		],
+	// let contract = {
+	// 	id: 1,
+	// 	name: 'Website Redesign',
+	// 	userSignedStatus: 'UNSIGNED',
+	// 	versions: [
+	// 		{ id: 1, version: 'V1.0.0', createdDate: new Date().toUTCString() },
+	// 		{ id: 2, version: 'V1.0.1', createdDate: new Date().toUTCString() },
+	// 		{ id: 3, version: 'V1.0.2', createdDate: new Date().toUTCString() },
+	// 		{ id: 4, version: 'V1.0.3', createdDate: new Date().toUTCString() }
+	// 	],
 
-		parties: [
-			{
-				name: 'Alice',
-				signed: true,
-				image: null
-			},
-			{
-				name: 'Bob',
-				signed: true,
-				image: null
-			},
-			{
-				name: 'Yvonne',
-				signed: true,
-				image: null
-			},
-			{
-				name: 'Lucas Barrett',
-				signed: false,
-				image: null
-			}
-		]
-	};
+	// 	parties: [
+	// 		{
+	// 			name: 'Alice',
+	// 			signed: true,
+	// 			image: null
+	// 		},
+	// 		{
+	// 			name: 'Bob',
+	// 			signed: true,
+	// 			image: null
+	// 		},
+	// 		{
+	// 			name: 'Yvonne',
+	// 			signed: true,
+	// 			image: null
+	// 		},
+	// 		{
+	// 			name: 'Lucas Barrett',
+	// 			signed: false,
+	// 			image: null
+	// 		}
+	// 	]
+	// };
 
 	function openContractVersion(version: ContractVersion) {
 		selectedVersion = version;
@@ -154,37 +183,71 @@
 								{@render cardTitle('PARTIES')}
 
 								<div class="space-y-3">
-									{#each contract.parties as party}
-										<div class="flex gap-1.5">
-											<div class="size-10 rounded-full bg-neutral-200/80 dark:bg-neutral-800">
-												{#if party.image}
-													<img
-														src={party.image}
-														alt={`${party.name} profile picture`}
-														class="size-full object-cover"
-													/>
-												{:else if party.name}
-													<div
-														class="flex size-full items-center justify-center text-xs text-neutral-500"
-													>
-														{party.name[0]}
+									{#await signaturesPromise}
+										<Spinner />
+									{:then signatures}
+										{#if signatures && signatures.length > 0}
+											{#each signatures as signature}
+												<div class="flex gap-1.5">
+													<div class="size-10 rounded-full bg-neutral-200/80 dark:bg-neutral-800">
+														{#if signature.image}
+															<img
+																src={signature.image}
+																alt={`${signature.firstName} ${signature.lastName} profile picture`}
+																class="size-full object-cover"
+															/>
+														{:else}
+															<div
+																class="flex size-full items-center justify-center text-xs text-neutral-500"
+															>
+																{signature.firstName[0]}
+															</div>
+														{/if}
 													</div>
-												{/if}
-											</div>
-											<div>
-												<p class="text-sm">{party.name}</p>
-												<p class="text-xs text-neutral-500 dark:text-neutral-400">
-													{party.signed ? 'Signed' : 'Pending Signature'}
-												</p>
-											</div>
-										</div>
-									{/each}
+													<div>
+														<p class="text-sm">{signature.firstName} {signature.lastName}</p>
+														<p class="text-xs text-neutral-500 dark:text-neutral-400">
+															{signature.status == 'pending'
+																? 'Pending Signature'
+																: toTitleCase(signature.status)}
+														</p>
+													</div>
+												</div>
+											{/each}
+										{:else}
+											<ErrorMessage variant="info" text="Signatures Not Found" />
+										{/if}
+									{:catch err}
+										{#if err instanceof APIBadRequestError}
+											<ErrorMessage variant="warn" text="Invalid Request" retry={loadSignatures} />
+										{:else if err instanceof APIForbiddenError}
+											<ErrorMessage
+												variant="warn"
+												text="You Don't Have Permission To View These Signatures"
+												retry={loadSignatures}
+											/>
+										{:else if err instanceof APINotFoundError}
+											<ErrorMessage variant="info" text="Not Found" retry={loadSignatures} />
+										{:else if err instanceof APIServerError}
+											<ErrorMessage
+												variant="warn"
+												text="Server Ran Into An Error"
+												retry={loadSignatures}
+											/>
+										{:else}
+											<ErrorMessage
+												variant="warn"
+												text="An Unexpected Error Occured"
+												retry={loadSignatures}
+											/>
+										{/if}
+									{/await}
 								</div>
 							</div>
 							<div class="rounded bg-neutral-50 p-8 dark:bg-neutral-900/30">
 								{@render cardTitle('SIGN CONTRACT')}
 
-								{#if contract.userSignedStatus == 'UNSIGNED'}
+								{#if selectedVersion.status == 'pending'}
 									<div class="space-y-6">
 										<div
 											class="grid grid-cols-2 gap-2 *:inline-flex
@@ -216,11 +279,11 @@
 											Request Revision</button
 										>
 									</div>
-								{:else if contract.userSignedStatus == 'SIGNED'}
+								{:else if selectedVersion.status == 'signed'}
 									<p class="inline-flex items-center gap-1 text-sm">
 										<CheckCircle size={20} class="text-emerald-500" /> You've Already Signed This Contract
 									</p>
-								{:else if contract.userSignedStatus == 'REJECTED'}
+								{:else if selectedVersion.status == 'rejected'}
 									<p class="inline-flex items-center gap-1 text-sm">
 										<CheckCircle size={18} class="text-rose-500" /> You've Already Rejected This Contract
 									</p>
@@ -253,8 +316,26 @@
 						{/if}
 					</div>
 				</div>
+			{:else}
+				<ErrorMessage variant="info" text="Versions Not Found" />
 			{/if}
 		</div>
+	{:catch err}
+		{#if err instanceof APIBadRequestError}
+			<ErrorMessage variant="warn" text="Invalid Request" retry={loadVersions} />
+		{:else if err instanceof APIForbiddenError}
+			<ErrorMessage
+				variant="warn"
+				text="You Don't Have Permission To View These Versions"
+				retry={loadVersions}
+			/>
+		{:else if err instanceof APINotFoundError}
+			<ErrorMessage variant="info" text="Not Found" retry={loadVersions} />
+		{:else if err instanceof APIServerError}
+			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadVersions} />
+		{:else}
+			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadVersions} />
+		{/if}
 	{/await}
 </FullScreenDialog>
 
