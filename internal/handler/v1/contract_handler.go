@@ -57,6 +57,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(contHndl.AcceptRevision))
 	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(contHndl.RejectRevision))
 	mux.Handle("GET /version/{contractId}", mwChain.Handle(contHndl.GetVersions))
+	mux.Handle("GET /version/signature/{versionId}", mwChain.Handle(contHndl.GetVersionSignatures))
 
 	return mux
 }
@@ -432,6 +433,24 @@ func (contHndl *ContractHandler) GetVersions(w http.ResponseWriter, r *http.Requ
 	}
 
 	result, err := contHndl.contSrv.GetVersions(r.Context(), parsedContractId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+func (contHndl *ContractHandler) GetVersionSignatures(w http.ResponseWriter, r *http.Request) {
+	versionId := r.PathValue("versionId")
+	parsedVersionId, err := strconv.ParseInt(versionId, 10, 64)
+	if err != nil || parsedVersionId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	result, err := contHndl.contSrv.GetVersionSignatures(r.Context(), parsedVersionId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
