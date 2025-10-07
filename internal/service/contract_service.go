@@ -602,3 +602,46 @@ func (contSrv *ContractService) GetContractsByProject(
 
 	return &resp, nil
 }
+
+func (contSrv *ContractService) GetVersions(
+	ctx context.Context,
+	contractId int64) ([]dto.VersionResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"contract_id", contractId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	versions, err := contSrv.contSt.GetVersionsByContractId(ctx, contractId)
+	if err != nil {
+		contSrv.lg.Error("could not get versions by contract id",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"contract_id", contractId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.VersionResponse, len(versions))
+
+	for i, version := range versions {
+		resp[i] = dto.VersionResponse{
+			Id:        version.Id,
+			CreatedAt: version.CreatedAt,
+			Status:    version.Status,
+			Version:   version.Version,
+			Contract:  version.Contract,
+		}
+	}
+
+	return resp, nil
+}
