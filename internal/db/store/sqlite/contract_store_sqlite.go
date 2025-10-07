@@ -392,7 +392,11 @@ func (q *ContractStoreSqlite) GetUsersWithSignature(
 	versionId int64) (*agg.ContractUserSignatures, error) {
 
 	contractQuery := `
-	SELECT c.name, cv.version, cv.contract FROM contract_versions cv
+	SELECT 
+		c.name, 
+		cv.version, 
+		cv.contract 
+	FROM contract_versions cv
 	JOIN contracts c ON c.id = cv.contract_id
 	WHERE cv.id = ?
 	`
@@ -416,11 +420,13 @@ func (q *ContractStoreSqlite) GetUsersWithSignature(
 
 	signaturesQuery := `
 	SELECT 
-	u.first_name, 
-	u.last_name, 
-	u.email,
-	cs.created_at AS signed_date,
-	COALESCE(c_stat.name, 'pending') as status 
+		u.id,
+		u.first_name, 
+		u.last_name, 
+		u.email,
+		u.image,
+		cs.created_at AS signed_date,
+		COALESCE(c_stat.name, 'pending') as status 
 	FROM contract_versions cv
 	JOIN contracts c ON c.id = cv.contract_id
 	JOIN project_users pu ON pu.project_id = c.project_id
@@ -443,9 +449,11 @@ func (q *ContractStoreSqlite) GetUsersWithSignature(
 
 		var usrSign agg.ContractSignature
 		if err := rows.Scan(
+			&usrSign.Id,
 			&usrSign.FirstName,
 			&usrSign.LastName,
 			&usrSign.Email,
+			&usrSign.Image,
 			&usrSign.SignedAt,
 			&usrSign.Status,
 		); err != nil {
