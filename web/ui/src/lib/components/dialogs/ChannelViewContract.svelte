@@ -312,6 +312,12 @@
 		version={selectedVersion}
 		onSuccess={loadVersions}
 	/>
+
+	<ConfirmRejectContract
+		bind:open={confirmRejectDialog.isOpen}
+		version={selectedVersion}
+		onSuccess={loadVersions}
+	/>
 {/if}
-<ConfirmRejectContract bind:open={confirmRejectDialog.isOpen} close={confirmRejectDialog.close} />
+
 <RequestRevision bind:open={requestRevisionDialog.isOpen} {contract} onSuccess={loadVersions} />

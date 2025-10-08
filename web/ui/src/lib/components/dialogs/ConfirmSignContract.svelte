@@ -6,6 +6,7 @@
 	import { toast } from 'svelte-sonner';
 	import {
 		APIBadRequestError,
+		APIConflictError,
 		APIError,
 		APIForbiddenError,
 		APINotFoundError,
@@ -37,6 +38,7 @@
 			if (error instanceof APIBadRequestError) toast.error('Invalid Request');
 			if (error instanceof APIForbiddenError) toast.error('Not Authorized');
 			if (error instanceof APINotFoundError) toast.error('Not Found');
+			if (error instanceof APIConflictError) toast.error('Already Signed Or Rejected');
 			if (error instanceof APIServerError) toast.error('Server Error');
 			if (error instanceof APIError) toast.error('Unexpected Error, Try Again');
 			if (error instanceof NetworkError) toast.error('Request Failed, Try Again');
