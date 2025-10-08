@@ -43,3 +43,10 @@ export class APINotFoundError extends APIError {
 		this.name = 'APINotFoundError';
 	}
 }
+
+export class APIConflictError extends APIError {
+	constructor(message: string) {
+		super(message, 409);
+		this.name = 'APIConflictError';
+	}
+}

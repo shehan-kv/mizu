@@ -304,6 +304,12 @@
 	{/await}
 </FullScreenDialog>
 
-<ConfirmSignContract bind:open={confirmSignDialog.isOpen} close={confirmSignDialog.close} />
+{#if selectedVersion}
+	<ConfirmSignContract
+		bind:open={confirmSignDialog.isOpen}
+		version={selectedVersion}
+		onSuccess={loadVersions}
+	/>
+{/if}
 <ConfirmRejectContract bind:open={confirmRejectDialog.isOpen} close={confirmRejectDialog.close} />
 <RequestRevision bind:open={requestRevisionDialog.isOpen} {contract} onSuccess={loadVersions} />
