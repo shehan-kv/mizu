@@ -56,7 +56,7 @@
 	let versionAbortController: AbortController | null = null;
 	let selectedVersion: ContractVersion | null = $state(null);
 
-	async function loadVersions() {
+	function loadVersions() {
 		if (versionAbortController) {
 			versionAbortController.abort();
 		}
@@ -76,14 +76,14 @@
 		selectedVersion = version;
 	}
 
+	let confirmSignDialog = createDialogState();
+	let confirmRejectDialog = createDialogState();
+	let requestRevisionDialog = createDialogState();
+
 	$effect(() => {
 		if (!open) return;
 		loadVersions();
 	});
-
-	let confirmSignDialog = createDialogState();
-	let confirmRejectDialog = createDialogState();
-	let requestRevisionDialog = createDialogState();
 </script>
 
 {#snippet cardTitle(text: string)}
@@ -91,15 +91,15 @@
 {/snippet}
 
 <FullScreenDialog bind:open>
-	{#await versionsPromise}
-		<Spinner />
-	{:then versions}
-		<div class="container mx-auto grid auto-rows-[min-content_1fr] gap-6 overflow-y-auto">
-			<div class="space-y-0.5">
-				<p class="text-xs text-neutral-500">Contract</p>
-				<p class="font-bold">{contract.name}</p>
-			</div>
+	<div class="container mx-auto grid auto-rows-[min-content_1fr] gap-6 overflow-y-auto">
+		<div class="space-y-0.5">
+			<p class="text-xs text-neutral-500">Contract</p>
+			<p class="font-bold">{contract.name}</p>
+		</div>
 
+		{#await versionsPromise}
+			<Spinner />
+		{:then versions}
 			{#if versions && selectedVersion}
 				<div class="grid grid-cols-4 gap-2 overflow-hidden">
 					<div
@@ -108,9 +108,11 @@
 						<div
 							class="sticky top-0 flex items-center justify-between bg-neutral-100 p-2 px-6 dark:bg-neutral-900"
 						>
-							<p class="text-xs">
-								{selectedVersion.version} - Created At {formatDate(selectedVersion.createdAt)}
-							</p>
+							{#if selectedVersion}
+								<p class="text-xs">
+									{selectedVersion.version} - Created At {formatDate(selectedVersion.createdAt)}
+								</p>
+							{/if}
 
 							<div
 								class="space-x-1 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
@@ -212,7 +214,7 @@
 							<div class="rounded bg-neutral-50 p-8 dark:bg-neutral-900/30">
 								{@render cardTitle('SIGN CONTRACT')}
 
-								{#if selectedVersion.status == 'pending'}
+								{#if selectedVersion && selectedVersion.status == 'pending'}
 									<div class="space-y-6">
 										<div
 											class="grid grid-cols-2 gap-2 *:inline-flex
@@ -284,24 +286,24 @@
 			{:else}
 				<ErrorMessage variant="info" text="Versions Not Found" />
 			{/if}
-		</div>
-	{:catch err}
-		{#if err instanceof APIBadRequestError}
-			<ErrorMessage variant="warn" text="Invalid Request" retry={loadVersions} />
-		{:else if err instanceof APIForbiddenError}
-			<ErrorMessage
-				variant="warn"
-				text="You Don't Have Permission To View These Versions"
-				retry={loadVersions}
-			/>
-		{:else if err instanceof APINotFoundError}
-			<ErrorMessage variant="info" text="Not Found" retry={loadVersions} />
-		{:else if err instanceof APIServerError}
-			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadVersions} />
-		{:else}
-			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadVersions} />
-		{/if}
-	{/await}
+		{:catch err}
+			{#if err instanceof APIBadRequestError}
+				<ErrorMessage variant="warn" text="Invalid Request" retry={loadVersions} />
+			{:else if err instanceof APIForbiddenError}
+				<ErrorMessage
+					variant="warn"
+					text="You Don't Have Permission To View These Versions"
+					retry={loadVersions}
+				/>
+			{:else if err instanceof APINotFoundError}
+				<ErrorMessage variant="info" text="Not Found" retry={loadVersions} />
+			{:else if err instanceof APIServerError}
+				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadVersions} />
+			{:else}
+				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadVersions} />
+			{/if}
+		{/await}
+	</div>
 </FullScreenDialog>
 
 {#if selectedVersion}
