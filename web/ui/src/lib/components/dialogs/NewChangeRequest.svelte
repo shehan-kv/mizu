@@ -85,10 +85,10 @@
 			</div>
 
 			<div class="px-6 pb-6">
-				<p class="font-bold">Create New Support Ticket</p>
+				<p class="font-bold">Create New Change Request</p>
 				<div class="mt-6 space-y-4">
 					<div class="space-y-1 text-sm *:block">
-						<InputLabel htmlFor="title" text="Subject" required />
+						<InputLabel htmlFor="title" text="Title" required />
 						<input
 							type="text"
 							id="title"
