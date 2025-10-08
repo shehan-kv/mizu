@@ -277,7 +277,7 @@
 								{@render cardTitle('REVISIONS')}
 
 								<div class="overflow-y-auto">
-									<ContractRevisions contractId={contract.id} />
+									<ContractRevisions {contract} />
 								</div>
 							</div>
 						{/if}
