@@ -50,7 +50,7 @@ export async function getInvoices(query: InvoiceQuery, signal?: AbortSignal) {
 			signal
 		});
 	} catch (err) {
-		throw new NetworkError(`Failed to fetch projects: ${err}`);
+		throw new NetworkError(`Failed to fetch invoices: ${err}`);
 	}
 
 	if (!res.ok) {
@@ -62,7 +62,7 @@ export async function getInvoices(query: InvoiceQuery, signal?: AbortSignal) {
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
-				throw new APINotFoundError(`Projects not found`);
+				throw new APINotFoundError(`Invoices not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
@@ -110,7 +110,7 @@ export async function getInvoicesByProjectId(
 			signal
 		});
 	} catch (err) {
-		throw new NetworkError(`Failed to fetch projects: ${err}`);
+		throw new NetworkError(`Failed to fetch invoices: ${err}`);
 	}
 
 	if (!res.ok) {
@@ -122,7 +122,7 @@ export async function getInvoicesByProjectId(
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
-				throw new APINotFoundError(`Projects not found`);
+				throw new APINotFoundError(`Invoices not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
