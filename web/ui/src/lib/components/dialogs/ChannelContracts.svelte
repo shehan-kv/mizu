@@ -4,7 +4,6 @@
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 
 	import * as Table from '$lib/components/ui/table';
-	import type { Channel } from '../message/types';
 	import Pagination from '../Pagination.svelte';
 	import SearchBar from '../SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
@@ -22,6 +21,7 @@
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
+	import type { Channel } from '$lib/api/messages';
 
 	interface Props {
 		open: boolean;
@@ -176,8 +176,6 @@
 	</div>
 </FullScreenDialog>
 
-<ChannelViewContract
-	bind:open={contractViewDialog.isOpen}
-	close={contractViewDialog.close}
-	contract={selectedContract}
-/>
+{#if selectedContract}
+	<ChannelViewContract bind:open={contractViewDialog.isOpen} contract={selectedContract} />
+{/if}
