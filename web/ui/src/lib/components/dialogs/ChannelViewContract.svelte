@@ -72,41 +72,6 @@
 		);
 	}
 
-	// let contract = {
-	// 	id: 1,
-	// 	name: 'Website Redesign',
-	// 	userSignedStatus: 'UNSIGNED',
-	// 	versions: [
-	// 		{ id: 1, version: 'V1.0.0', createdDate: new Date().toUTCString() },
-	// 		{ id: 2, version: 'V1.0.1', createdDate: new Date().toUTCString() },
-	// 		{ id: 3, version: 'V1.0.2', createdDate: new Date().toUTCString() },
-	// 		{ id: 4, version: 'V1.0.3', createdDate: new Date().toUTCString() }
-	// 	],
-
-	// 	parties: [
-	// 		{
-	// 			name: 'Alice',
-	// 			signed: true,
-	// 			image: null
-	// 		},
-	// 		{
-	// 			name: 'Bob',
-	// 			signed: true,
-	// 			image: null
-	// 		},
-	// 		{
-	// 			name: 'Yvonne',
-	// 			signed: true,
-	// 			image: null
-	// 		},
-	// 		{
-	// 			name: 'Lucas Barrett',
-	// 			signed: false,
-	// 			image: null
-	// 		}
-	// 	]
-	// };
-
 	function openContractVersion(version: ContractVersion) {
 		selectedVersion = version;
 	}
@@ -341,4 +306,4 @@
 
 <ConfirmSignContract bind:open={confirmSignDialog.isOpen} close={confirmSignDialog.close} />
 <ConfirmRejectContract bind:open={confirmRejectDialog.isOpen} close={confirmRejectDialog.close} />
-<RequestRevision bind:open={requestRevisionDialog.isOpen} close={requestRevisionDialog.close} />
+<RequestRevision bind:open={requestRevisionDialog.isOpen} {contract} onSuccess={loadVersions} />

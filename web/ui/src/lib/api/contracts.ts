@@ -147,3 +147,43 @@ export async function getContractSignatures(versionId: number, signal?: AbortSig
 	const payload = (await res.json()) as ContractSignature[];
 	return payload;
 }
+
+export interface ContractRevisionParams {
+	title: string;
+	description: string;
+}
+
+export async function createContractRevision(
+	contractId: number,
+	req: ContractRevisionParams,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/revision/${contractId}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to create contract revision : ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
