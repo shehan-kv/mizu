@@ -437,8 +437,8 @@ func (q *InvoiceStorePostgres) GetWithDetailsById(
 		discount_type,
 		unit_tax,
 		tax_type,
-		tax,
-		discount,
+		total_tax,
+		total_discount,
 		total
 	FROM invoice_items
 	WHERE invoice_id = $1
@@ -464,8 +464,8 @@ func (q *InvoiceStorePostgres) GetWithDetailsById(
 			&row.DiscountType,
 			&row.UnitTax,
 			&row.TaxType,
-			&row.Tax,
-			&row.Discount,
+			&row.TotalTax,
+			&row.TotalDiscount,
 			&row.Total,
 		)
 
