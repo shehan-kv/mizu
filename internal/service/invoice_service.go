@@ -490,17 +490,17 @@ func (invSrv *InvoiceService) GetOneById(
 
 	for i, item := range result.Items {
 		resp.Items[i] = dto.InvoiceItemResponse{
-			Id:           item.Id,
-			Description:  item.Description,
-			Qty:          item.Qty,
-			UnitPrice:    item.Qty,
-			UnitDiscount: item.UnitDiscount,
-			DiscountType: item.DiscountType,
-			UnitTax:      item.UnitTax,
-			TaxType:      item.TaxType,
-			Tax:          item.Tax,
-			Discount:     item.Discount,
-			Total:        item.Total,
+			Id:            item.Id,
+			Description:   item.Description,
+			Qty:           item.Qty,
+			UnitPrice:     item.Qty,
+			UnitDiscount:  item.UnitDiscount,
+			DiscountType:  item.DiscountType,
+			UnitTax:       item.UnitTax,
+			TaxType:       item.TaxType,
+			TotalTax:      item.TotalTax,
+			TotalDiscount: item.TotalDiscount,
+			Total:         item.Total,
 		}
 	}
 
