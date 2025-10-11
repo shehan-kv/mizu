@@ -348,38 +348,30 @@ func (q *InvoiceStoreSqlite) GetWithProjectByUserId(
 	return &result, nil
 }
 
-// GetWithDetailsById returns a detailed invoice with invoice items.
-// The invoice is specified by the invoice ID.
-// This function returns a pointer to an agg.InvoiceDetails.
-//
-// If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStoreSqlite) GetWithDetailsById(
-	ctx context.Context,
-	invoiceId int64) (*agg.InvoiceDetails, error) {
+func (q *InvoiceStoreSqlite) GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error) {
 
-	var invoiceQuery strings.Builder
-	invoiceQuery.WriteString(`
+	query := `
 	SELECT 
-	i.id,
-	p.id,
-	p.name,
-	i.is_invoice,
-	ins.name,
-	i.issued_at,
-	i.due_at,
-	i.total,
-	i.discount,
-	i.tax,
-	i.currency_code,
-	i.note
+		i.id,
+		p.id,
+		p.name,
+		i.is_invoice,
+		ins.name,
+		i.issued_at,
+		i.due_at,
+		i.total,
+		i.discount,
+		i.tax,
+		i.currency_code,
+		i.note
 	FROM invoices i
 	JOIN invoice_statuses ins ON ins.id = i.status
 	JOIN projects p ON p.id = i.project_id
 	WHERE i.id = ?
-	`)
+	`
 
-	var invoice agg.InvoiceDetails
-	err := q.db.QueryRowContext(ctx, invoiceQuery.String(), invoiceId).Scan(
+	var invoice agg.Invoice
+	err := q.db.QueryRowContext(ctx, query, invoiceId).Scan(
 		&invoice.Id,
 		&invoice.ProjectId,
 		&invoice.ProjectName,
@@ -397,9 +389,14 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 	if err != nil {
 		return nil, store.ErrQueryFailed
 	}
+	return &invoice, nil
+}
 
-	var itemsQuery strings.Builder
-	itemsQuery.WriteString(`
+func (q *InvoiceStoreSqlite) GetItemsByInvoiceId(
+	ctx context.Context,
+	invoiceId int64) ([]agg.InvoiceItem, error) {
+
+	query := `
 	SELECT 
 		id,
 		description,
@@ -414,20 +411,20 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 		total
 	FROM invoice_items
 	WHERE invoice_id = ?
-	`)
+	`
 
-	invoice.Items = make([]agg.InvoiceItem, 0)
-
-	itemRows, err := q.db.QueryContext(ctx, itemsQuery.String(), invoiceId)
+	rows, err := q.db.QueryContext(ctx, query, invoiceId)
 	if err != nil {
 		return nil, store.ErrQueryFailed
 	}
 
-	defer itemRows.Close()
+	defer rows.Close()
 
-	for itemRows.Next() {
+	result := make([]agg.InvoiceItem, 0)
+
+	for rows.Next() {
 		var row agg.InvoiceItem
-		err := itemRows.Scan(
+		err := rows.Scan(
 			&row.Id,
 			&row.Description,
 			&row.Qty,
@@ -445,11 +442,17 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 			return nil, store.ErrQueryFailed
 		}
 
-		invoice.Items = append(invoice.Items, row)
+		result = append(result, row)
 	}
 
-	var historyQuery strings.Builder
-	historyQuery.WriteString(`
+	return result, nil
+}
+
+func (q *InvoiceStoreSqlite) GetHistoryByInvoiceId(
+	ctx context.Context,
+	invoiceId int64) ([]agg.InvoiceHistory, error) {
+
+	query := `
 	SELECT
 		ih.id,
 		ih.user_id,
@@ -470,20 +473,20 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 	LEFT JOIN invoice_statuses ins1 ON ins1.id = ih.last_status
 	LEFT JOIN invoice_statuses ins2 ON ins2.id = ih.new_status
 	WHERE ih.invoice_id = ? 
-	`)
+	`
 
-	invoice.History = make([]agg.InvoiceHistory, 0)
+	result := make([]agg.InvoiceHistory, 0)
 
-	historyRows, err := q.db.QueryContext(ctx, historyQuery.String(), invoiceId)
+	rows, err := q.db.QueryContext(ctx, query, invoiceId)
 	if err != nil {
 		return nil, store.ErrQueryFailed
 	}
 
-	defer historyRows.Close()
+	defer rows.Close()
 
-	for historyRows.Next() {
+	for rows.Next() {
 		var row agg.InvoiceHistory
-		err := historyRows.Scan(
+		err := rows.Scan(
 			&row.Id,
 			&row.UserId,
 			&row.FirstName,
@@ -502,10 +505,10 @@ func (q *InvoiceStoreSqlite) GetWithDetailsById(
 			return nil, store.ErrQueryFailed
 		}
 
-		invoice.History = append(invoice.History, row)
+		result = append(result, row)
 	}
 
-	return &invoice, nil
+	return result, nil
 }
 
 // AcceptById marks a specified invoice as accepted.

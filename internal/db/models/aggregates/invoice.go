@@ -6,7 +6,7 @@ import (
 	"github.com/cockroachdb/apd/v3"
 )
 
-type InvoiceDetails struct {
+type Invoice struct {
 	Id           int64
 	ProjectId    int64
 	ProjectName  string
@@ -19,6 +19,4 @@ type InvoiceDetails struct {
 	Tax          *apd.Decimal
 	CurrencyCode string
 	Note         *string
-	Items        []InvoiceItem
-	History      []InvoiceHistory
 }

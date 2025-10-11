@@ -47,12 +47,11 @@ type InvoiceStore interface {
 		userId int64,
 		arg *params.InvoiceSearch) (*agg.WithCount[agg.InvoiceWithProject], error)
 
-	// GetWithDetailsById returns a detailed invoice with invoice items.
-	// The invoice is specified by the invoice ID.
-	// This function returns a pointer to an agg.InvoiceDetails.
-	//
-	// If any error occurs, store.ErrQueryFailed is returned.
-	GetWithDetailsById(ctx context.Context, invoiceId int64) (*agg.InvoiceDetails, error)
+	GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error)
+
+	GetItemsByInvoiceId(ctx context.Context, invoiceId int64) ([]agg.InvoiceItem, error)
+
+	GetHistoryByInvoiceId(ctx context.Context, invoiceId int64) ([]agg.InvoiceHistory, error)
 
 	// AcceptById marks a specified invoice as accepted.
 	// The invoice is specified by invoice ID.
