@@ -459,9 +459,33 @@ func (invSrv *InvoiceService) GetOneById(
 		return nil, ErrInternalError
 	}
 
-	result, err := invSrv.invSt.GetWithDetailsById(ctx, invoiceId)
+	summary, err := invSrv.invSt.GetSummaryById(ctx, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice details",
+		invSrv.lg.Error("could not get invoice summary",
+			"event", event.EventGetFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"invoice_id", invoiceId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	items, err := invSrv.invSt.GetItemsByInvoiceId(ctx, invoiceId)
+	if err != nil {
+		invSrv.lg.Error("could not get invoice items",
+			"event", event.EventGetFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"invoice_id", invoiceId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	history, err := invSrv.invSt.GetHistoryByInvoiceId(ctx, invoiceId)
+	if err != nil {
+		invSrv.lg.Error("could not get invoice history",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -472,28 +496,28 @@ func (invSrv *InvoiceService) GetOneById(
 	}
 
 	resp := dto.InvoiceDetailsResponse{
-		Id:           result.Id,
-		ProjectId:    result.ProjectId,
-		ProjectName:  result.ProjectName,
-		IsInvoice:    result.IsInvoice,
-		Status:       result.Status,
-		IssuedAt:     result.IssuedAt,
-		DueAt:        result.DueAt,
-		Total:        result.Total,
-		Discount:     result.Discount,
-		Tax:          result.Tax,
-		CurrencyCode: result.CurrencyCode,
-		Note:         result.Note,
-		Items:        make([]dto.InvoiceItemResponse, len(result.Items)),
-		History:      make([]dto.InvoiceHistoryResponse, len(result.History)),
+		Id:           summary.Id,
+		ProjectId:    summary.ProjectId,
+		ProjectName:  summary.ProjectName,
+		IsInvoice:    summary.IsInvoice,
+		Status:       summary.Status,
+		IssuedAt:     summary.IssuedAt,
+		DueAt:        summary.DueAt,
+		Total:        summary.Total,
+		Discount:     summary.Discount,
+		Tax:          summary.Tax,
+		CurrencyCode: summary.CurrencyCode,
+		Note:         summary.Note,
+		Items:        make([]dto.InvoiceItemResponse, len(items)),
+		History:      make([]dto.InvoiceHistoryResponse, len(history)),
 	}
 
-	for i, item := range result.Items {
+	for i, item := range items {
 		resp.Items[i] = dto.InvoiceItemResponse{
 			Id:            item.Id,
 			Description:   item.Description,
 			Qty:           item.Qty,
-			UnitPrice:     item.Qty,
+			UnitPrice:     item.UnitPrice,
 			UnitDiscount:  item.UnitDiscount,
 			DiscountType:  item.DiscountType,
 			UnitTax:       item.UnitTax,
@@ -504,7 +528,7 @@ func (invSrv *InvoiceService) GetOneById(
 		}
 	}
 
-	for i, entry := range result.History {
+	for i, entry := range history {
 		resp.History[i] = dto.InvoiceHistoryResponse{
 			Id: entry.Id,
 			User: dto.InvoiceHistoryUser{
