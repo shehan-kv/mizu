@@ -20,10 +20,9 @@
 
 	interface Props {
 		invoiceId: number;
-		isInvoice: boolean;
 	}
 
-	let { invoiceId, isInvoice }: Props = $props();
+	let { invoiceId }: Props = $props();
 
 	let invoicePromise: Promise<InvoiceDetails> | null = $state(null);
 	let abortController: AbortController | null = null;

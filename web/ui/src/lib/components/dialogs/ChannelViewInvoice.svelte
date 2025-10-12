@@ -24,7 +24,7 @@
 		<div class="overflow-y-auto">
 			<div class="container mx-auto">
 				{#if open}
-					<ViewInvoice {invoiceId} {isInvoice} />
+					<ViewInvoice {invoiceId} />
 				{/if}
 			</div>
 		</div>
