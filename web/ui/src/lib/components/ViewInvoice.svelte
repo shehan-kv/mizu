@@ -17,6 +17,11 @@
 	import User from './User.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { onMount } from 'svelte';
+	import Checks from 'phosphor-svelte/lib/Checks';
+	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
+	import { createDialogState } from './dialogs/createDialogState.svelte';
+	import InvoiceAcceptDialog from './dialogs/InvoiceAcceptDialog.svelte';
+	import InvoiceRejectDialog from './dialogs/InvoiceRejectDialog.svelte';
 
 	interface Props {
 		invoiceId: number;
@@ -37,6 +42,9 @@
 		invoicePromise = getInvoiceDetails(invoiceId, abortController.signal);
 	}
 
+	let acceptDialog = createDialogState();
+	let rejectDialog = createDialogState();
+
 	onMount(() => {
 		loadInvoice();
 	});
@@ -51,43 +59,66 @@
 				<p class="font-bold">{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}</p>
 			</div>
 		{/if}
-		<div class="flex gap-20">
-			<div class="space-y-2">
-				<div>
-					<p class="text-xs text-neutral-500">Project</p>
-					<p>{invoice.projectName}</p>
+		<div class="flex justify-between">
+			<div class="flex gap-20">
+				<div class="space-y-2">
+					<div>
+						<p class="text-xs text-neutral-500">Project</p>
+						<p>{invoice.projectName}</p>
+					</div>
+					<div>
+						<p class="text-xs text-neutral-500">Status</p>
+						<p>{toTitleCase(invoice.status)}</p>
+					</div>
+					<div>
+						<p class="text-xs text-neutral-500">Issued On</p>
+						<p>{formatDate(invoice.issuedAt)}</p>
+					</div>
+					<div>
+						<p class="text-xs text-neutral-500">Due On</p>
+						<p>{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}</p>
+					</div>
 				</div>
-				<div>
-					<p class="text-xs text-neutral-500">Status</p>
-					<p>{toTitleCase(invoice.status)}</p>
-				</div>
-				<div>
-					<p class="text-xs text-neutral-500">Issued On</p>
-					<p>{formatDate(invoice.issuedAt)}</p>
-				</div>
-				<div>
-					<p class="text-xs text-neutral-500">Due On</p>
-					<p>{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}</p>
+				<div class=" space-y-2">
+					<div>
+						<p class="text-xs text-neutral-500">Currency Code</p>
+						<p>{invoice.currencyCode.toLocaleUpperCase()}</p>
+					</div>
+					<div>
+						<p class="text-xs text-neutral-500">Discount</p>
+						<p>{currencyFormatter(invoice.currencyCode, invoice.discount)}</p>
+					</div>
+					<div>
+						<p class="text-xs text-neutral-500">Tax</p>
+						<p>{currencyFormatter(invoice.currencyCode, invoice.tax)}</p>
+					</div>
+					<div>
+						<p class="text-xs text-neutral-500">Total</p>
+						<p>{currencyFormatter(invoice.currencyCode, invoice.total)}</p>
+					</div>
 				</div>
 			</div>
-			<div class=" space-y-2">
-				<div>
-					<p class="text-xs text-neutral-500">Currency Code</p>
-					<p>{invoice.currencyCode.toLocaleUpperCase()}</p>
+			{#if invoice.status == 'pending'}
+				<div class="space-x-1">
+					<button
+						onclick={() => acceptDialog.open()}
+						class="inline-flex cursor-pointer items-center gap-2
+						rounded bg-neutral-950 px-4 py-3 text-xs text-neutral-50 transition
+						hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950
+						dark:hover:bg-neutral-300"
+					>
+						Accept <Checks size={16} />
+					</button>
+					<button
+						class="inline-flex cursor-pointer items-center gap-2
+						rounded bg-neutral-100 px-4 py-3 text-xs text-neutral-950 transition
+						hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100
+						dark:hover:bg-neutral-800"
+					>
+						Reject <WarningCircle size={16} />
+					</button>
 				</div>
-				<div>
-					<p class="text-xs text-neutral-500">Discount</p>
-					<p>{currencyFormatter(invoice.currencyCode, invoice.discount)}</p>
-				</div>
-				<div>
-					<p class="text-xs text-neutral-500">Tax</p>
-					<p>{currencyFormatter(invoice.currencyCode, invoice.tax)}</p>
-				</div>
-				<div>
-					<p class="text-xs text-neutral-500">Total</p>
-					<p>{currencyFormatter(invoice.currencyCode, invoice.total)}</p>
-				</div>
-			</div>
+			{/if}
 		</div>
 		<div class="mt-16">
 			<Table.Root>
@@ -160,7 +191,7 @@
 
 		<div class="mt-8">
 			<p class="inline-flex items-center gap-1"><Note size={20} /> Note</p>
-			<p>{invoice.note || 'N/A'}</p>
+			<p class="max-w-xl whitespace-break-spaces">{invoice.note || 'N/A'}</p>
 		</div>
 
 		<div class="mt-8">
@@ -182,8 +213,13 @@
 						></div>
 						<div>
 							<p class="text-sm">
-								{entry.isInvoice ? 'Invoice' : 'Quote'}
-								{toTitleCase(entry.event)}
+								{#if entry.event == 'converted'}
+									Converted to
+									{entry.isInvoice ? 'Invoice' : 'Quote'}
+								{:else}
+									{entry.isInvoice ? 'Invoice' : 'Quote'}
+									{toTitleCase(entry.event)}
+								{/if}
 							</p>
 							<p class=" text-xs">
 								On {formatDate(entry.recoredAt)}
@@ -230,3 +266,6 @@
 		<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoice} />
 	{/if}
 {/await}
+
+<InvoiceAcceptDialog bind:open={acceptDialog.isOpen} {invoiceId} onSuccess={loadInvoice} />
+<InvoiceRejectDialog />

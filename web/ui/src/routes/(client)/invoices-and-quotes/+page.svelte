@@ -8,7 +8,7 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { onMount } from 'svelte';
-	import { getInvoices, type Invoice } from '$lib/api/invoices';
+	import { getInvoices, type InvoiceSummary } from '$lib/api/invoices';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
@@ -36,7 +36,7 @@
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
 	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
-	let invoicesPromise: Promise<PaginatedResponse<Invoice>> | null = $state(null);
+	let invoicesPromise: Promise<PaginatedResponse<InvoiceSummary>> | null = $state(null);
 
 	let abortController: AbortController | null = null;
 	function loadInvoices() {
@@ -178,11 +178,16 @@
 										</Table.Cell>
 										<Table.Cell>
 											<div
-												class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
+												class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950
+												dark:text-neutral-400 *:dark:hover:text-neutral-50"
 											>
-												<button title="View">
+												<a
+													title="View"
+													class="inline-block"
+													href={`/invoices-and-quotes/${invoice.id}`}
+												>
 													<ArrowRight size={18} />
-												</button>
+												</a>
 												<button title="Download as PDF">
 													<DownloadSimple size={18} />
 												</button>
