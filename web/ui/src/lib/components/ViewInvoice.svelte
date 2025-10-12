@@ -20,9 +20,10 @@
 
 	interface Props {
 		invoiceId: number;
+		showTitle?: boolean;
 	}
 
-	let { invoiceId }: Props = $props();
+	let { invoiceId, showTitle = false }: Props = $props();
 
 	let invoicePromise: Promise<InvoiceDetails> | null = $state(null);
 	let abortController: AbortController | null = null;
@@ -45,6 +46,11 @@
 	<Spinner />
 {:then invoice}
 	{#if invoice}
+		{#if showTitle}
+			<div class="mb-8">
+				<p class="font-bold">{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}</p>
+			</div>
+		{/if}
 		<div class="flex gap-20">
 			<div class="space-y-2">
 				<div>
