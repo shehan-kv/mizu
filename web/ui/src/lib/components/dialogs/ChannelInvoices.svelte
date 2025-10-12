@@ -5,7 +5,6 @@
 	import Checks from 'phosphor-svelte/lib/Checks';
 
 	import * as Table from '$lib/components/ui/table';
-	import type { Channel } from '../message/types';
 	import Pagination from '../Pagination.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
@@ -21,6 +20,8 @@
 	} from '$lib/api/errors';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { formatDate } from '$lib/utils/formatDate';
+	import type { Channel } from '$lib/api/messages';
+	import ChannelViewInvoice from './ChannelViewInvoice.svelte';
 
 	interface Props {
 		open: boolean;
@@ -28,8 +29,11 @@
 	}
 	let { open = $bindable(), channel }: Props = $props();
 
-	let page = $state(1);
-	let limit = $state(30);
+	const DEFAULT_PAGE = 1;
+	const DEFAULT_LIMIT = 30;
+
+	let page = $state(DEFAULT_PAGE);
+	let limit = $state(DEFAULT_LIMIT);
 
 	// For the invoice details dialog
 	let selectedInvoice: InvoiceWithStatus | null = $state(null);
@@ -65,7 +69,7 @@
 	<div class="grid auto-rows-[min-content_1fr_min-content] gap-6 overflow-y-auto px-5">
 		<div class="flex-none">
 			<div class="container mx-auto">
-				<p class="font-bold">Invoices & Quotes - {channel?.name}</p>
+				<p class="font-bold">Invoices & Quotes - {channel.name}</p>
 			</div>
 		</div>
 
@@ -113,7 +117,13 @@
 												<div
 													class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
 												>
-													<button title="View">
+													<button
+														title="View"
+														onclick={() => {
+															selectedInvoice = invoice;
+															invoiceViewDialog.open();
+														}}
+													>
 														<ArrowRight size={18} />
 													</button>
 													<button title="Download as PDF">
@@ -154,3 +164,11 @@
 		{/if}
 	</div>
 </FullScreenDialog>
+
+{#if selectedInvoice}
+	<ChannelViewInvoice
+		bind:open={invoiceViewDialog.isOpen}
+		invoiceId={selectedInvoice.id}
+		isInvoice={selectedInvoice.isInvoice}
+	/>
+{/if}

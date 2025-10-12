@@ -8,7 +8,7 @@ import {
 	NetworkError
 } from './errors';
 
-export interface Invoice {
+export interface InvoiceSummary {
 	id: number;
 	projectId: number;
 	projectName: string;
@@ -16,6 +16,8 @@ export interface Invoice {
 	issuedAt: Date;
 	dueAt?: Date;
 	total: Intl.StringNumericLiteral;
+	discount: Intl.StringNumericLiteral;
+	tax: Intl.StringNumericLiteral;
 	currencyCode: string;
 	status: string;
 }
@@ -70,7 +72,7 @@ export async function getInvoices(query: InvoiceQuery, signal?: AbortSignal) {
 		}
 	}
 
-	const payload = (await res.json()) as PaginatedResponse<Invoice>;
+	const payload = (await res.json()) as PaginatedResponse<InvoiceSummary>;
 	return payload;
 }
 
@@ -131,5 +133,87 @@ export async function getInvoicesByProjectId(
 	}
 
 	const payload = (await res.json()) as PaginatedResponse<InvoiceWithStatus>;
+	return payload;
+}
+
+export interface InvoiceItem {
+	id: number;
+	description: string;
+	qty: Intl.StringNumericLiteral;
+	unitPrice: Intl.StringNumericLiteral;
+	unitDiscount: Intl.StringNumericLiteral;
+	discountType: string;
+	unitTax: Intl.StringNumericLiteral;
+	taxType: string;
+	totalTax: Intl.StringNumericLiteral;
+	totalDiscount: Intl.StringNumericLiteral;
+	total: Intl.StringNumericLiteral;
+}
+
+export interface InvoiceHistoryUser {
+	id: number;
+	firstName: string;
+	lastName: string;
+	title?: string;
+	image?: string;
+	role: string;
+}
+
+export interface InvoiceHistory {
+	id: number;
+	user: InvoiceHistoryUser;
+	event: string;
+	recoredAt: Date;
+	isInvoice: boolean;
+	lastStatus?: string;
+	newStatus?: string;
+}
+
+export interface InvoiceDetails {
+	id: number;
+	projectId: number;
+	projectName: string;
+	isInvoice: boolean;
+	status: string;
+	issuedAt: Date;
+	dueAt: Date;
+	total: Intl.StringNumericLiteral;
+	discount: Intl.StringNumericLiteral;
+	tax: Intl.StringNumericLiteral;
+	currencyCode: string;
+	note?: string;
+	items: InvoiceItem[];
+	history: InvoiceHistory[];
+}
+
+export async function getInvoiceDetails(invoiceId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/invoices/${invoiceId}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch invoice: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Invoice not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as InvoiceDetails;
 	return payload;
 }
