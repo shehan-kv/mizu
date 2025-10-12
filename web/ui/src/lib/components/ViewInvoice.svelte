@@ -110,6 +110,7 @@
 						Accept <Checks size={16} />
 					</button>
 					<button
+						onclick={() => rejectDialog.open()}
 						class="inline-flex cursor-pointer items-center gap-2
 						rounded bg-neutral-100 px-4 py-3 text-xs text-neutral-950 transition
 						hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100
@@ -135,7 +136,7 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each invoice.items as item, idx}
+					{#each invoice.items as item}
 						<Table.Row>
 							<Table.Cell>{item.description}</Table.Cell>
 							<Table.Cell>{item.qty}</Table.Cell>
@@ -268,4 +269,4 @@
 {/await}
 
 <InvoiceAcceptDialog bind:open={acceptDialog.isOpen} {invoiceId} onSuccess={loadInvoice} />
-<InvoiceRejectDialog />
+<InvoiceRejectDialog bind:open={rejectDialog.isOpen} {invoiceId} onSuccess={loadInvoice} />
