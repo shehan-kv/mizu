@@ -308,7 +308,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 func (invSrv *InvoiceService) GetInvoicesByProject(
 	ctx context.Context,
 	projectId int64,
-	query *dto.InvoiceSearch) (*common.Page[[]dto.InvoiceWithStatusResponse], error) {
+	query *dto.InvoiceSearch) (*common.Page[[]dto.InvoiceSummaryResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
@@ -322,14 +322,15 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 		return nil, ErrInternalError
 	}
 
-	invoices, err := invSrv.invSt.GetInvoiceStatsByProject(ctx, projectId, &params.InvoiceSearch{
+	invoiceSearch := params.InvoiceSearch{
 		Keyword: "",
 		Type:    query.Type,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
 		Limit:   query.Limit,
-	})
+	}
 
+	invoices, err := invSrv.invSt.GetSummaryByProjectId(ctx, projectId, &invoiceSearch)
 	if err != nil {
 		invSrv.lg.Error("could not get invoice list",
 			"event", event.EventGetFailed,
@@ -343,22 +344,41 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 		return nil, ErrInternalError
 	}
 
-	respInv := make([]dto.InvoiceWithStatusResponse, len(invoices.Items))
+	count, err := invSrv.invSt.CountSummaryByProjectId(ctx, projectId, &invoiceSearch)
+	if err != nil {
+		invSrv.lg.Error("could not get invoice count",
+			"event", event.EventGetFailed,
+			"scope", "invoice_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
 
-	for i, invoice := range invoices.Items {
-		respInv[i] = dto.InvoiceWithStatusResponse{
+	respInv := make([]dto.InvoiceSummaryResponse, len(invoices))
+
+	for i, invoice := range invoices {
+		respInv[i] = dto.InvoiceSummaryResponse{
 			Id:           invoice.Id,
+			ProjectId:    invoice.ProjectId,
+			ProjectName:  invoice.ProjectName,
 			IsInvoice:    invoice.IsInvoice,
 			IssuedAt:     invoice.IssuedAt,
 			DueAt:        invoice.DueAt,
+			Discount:     invoice.Discount,
+			Tax:          invoice.Tax,
 			Total:        invoice.Total,
 			CurrencyCode: invoice.CurrencyCode,
 			Status:       invoice.Status,
+			Note:         invoice.Note,
 		}
 	}
 
-	resp := common.Page[[]dto.InvoiceWithStatusResponse]{
-		Count: invoices.Total,
+	resp := common.Page[[]dto.InvoiceSummaryResponse]{
+		Count: count,
 		Limit: query.Limit,
 		Page:  query.Page,
 		Data:  respInv,
