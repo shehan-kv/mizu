@@ -34,17 +34,16 @@ type InvoiceStore interface {
 
 	CountSummaryByProjectId(ctx context.Context, projectId int64, arg *params.InvoiceSearch) (int64, error)
 
-	// GetWithProjectByUserId returns the total number of invoices/quotes
-	// found and a list of invoices with project name for all projects
-	// that belong to the specified user.
+	// GetSummaryByUserId returns the total number of invoices/quotes
+	// found and a list of invoices for all projects
+	// assigned to the specified user.
 	// The search criteria parameter can be used to filter results
 	// by a keyword, the type (invoice/quote), limit and offset results.
 	//
 	// If any error occurs, store.ErrQueryFailed is returned.
-	GetWithProjectByUserId(
-		ctx context.Context,
-		userId int64,
-		arg *params.InvoiceSearch) (*agg.WithCount[agg.InvoiceWithProject], error)
+	GetSummaryByUserId(ctx context.Context, userId int64, arg *params.InvoiceSearch) ([]agg.Invoice, error)
+
+	CountSummaryByUserId(ctx context.Context, userId int64, arg *params.InvoiceSearch) (int64, error)
 
 	GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error)
 

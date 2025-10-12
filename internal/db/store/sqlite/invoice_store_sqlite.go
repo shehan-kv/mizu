@@ -256,32 +256,33 @@ func (q *InvoiceStoreSqlite) CountSummaryByProjectId(
 	return count, nil
 }
 
-// GetWithProjectByUserId returns the total number of invoices/quotes
-// found and a list of invoices with project name for all projects
-// that belong to the specified user.
+// GetSummaryByUserId returns the total number of invoices/quotes
+// found and a list of invoices for all projects
+// assigned to the specified user.
 // The search criteria parameter can be used to filter results
 // by a keyword, the type (invoice/quote), limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStoreSqlite) GetWithProjectByUserId(
+func (q *InvoiceStoreSqlite) GetSummaryByUserId(
 	ctx context.Context,
 	userId int64,
-	arg *params.InvoiceSearch) (*agg.WithCount[agg.InvoiceWithProject], error) {
+	arg *params.InvoiceSearch) ([]agg.Invoice, error) {
 
 	var query strings.Builder
-	var countQuery strings.Builder
-
 	query.WriteString(`
 	SELECT 
 		i.id,
 		p.id AS project_id,
 		p.name,
 		i.is_invoice,
+		ins.name,
 		i.issued_at,
 		i.due_at,
 		i.total,
+		i.discount,
+		i.tax,
 		i.currency_code,
-		ins.name
+		i.note
 	FROM project_users pu
 	JOIN projects p ON p.id = pu.project_id
 	JOIN invoices i ON i.project_id = p.id
@@ -289,7 +290,73 @@ func (q *InvoiceStoreSqlite) GetWithProjectByUserId(
 	WHERE pu.user_id = ?
 	`)
 
-	countQuery.WriteString(`
+	queryArgs := []any{userId}
+
+	switch arg.Type {
+	case params.InvoiceTypeInvoice:
+		query.WriteString(" AND i.is_invoice = true")
+
+	case params.InvoiceTypeQuote:
+		query.WriteString(" AND i.is_invoice = false")
+	}
+
+	if len(arg.Keyword) > 0 {
+		query.WriteString(" AND p.name LIKE ?")
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+
+	}
+
+	if len(arg.Status) > 0 {
+		query.WriteString(" AND ins.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	query.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.Invoice, 0)
+
+	for rows.Next() {
+		var row agg.Invoice
+		err := rows.Scan(
+			&row.Id,
+			&row.ProjectId,
+			&row.ProjectName,
+			&row.IsInvoice,
+			&row.Status,
+			&row.IssuedAt,
+			&row.DueAt,
+			&row.Total,
+			&row.Discount,
+			&row.Tax,
+			&row.CurrencyCode,
+			&row.Note,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
+
+func (q *InvoiceStoreSqlite) CountSummaryByUserId(
+	ctx context.Context,
+	userId int64,
+	arg *params.InvoiceSearch) (int64, error) {
+
+	var query strings.Builder
+	query.WriteString(`
 	SELECT COUNT(i.id)
 	FROM project_users pu
 	JOIN projects p ON p.id = pu.project_id
@@ -299,79 +366,32 @@ func (q *InvoiceStoreSqlite) GetWithProjectByUserId(
 	`)
 
 	queryArgs := []any{userId}
-	countQueryArgs := []any{userId}
 
-	if arg.Type == params.InvoiceTypeInvoice {
+	switch arg.Type {
+	case params.InvoiceTypeInvoice:
 		query.WriteString(" AND i.is_invoice = true")
-		countQuery.WriteString(" AND i.is_invoice = true")
-	}
 
-	if arg.Type == params.InvoiceTypeQuote {
+	case params.InvoiceTypeQuote:
 		query.WriteString(" AND i.is_invoice = false")
-		countQuery.WriteString(" AND i.is_invoice = false")
 	}
 
 	if len(arg.Keyword) > 0 {
 		query.WriteString(" AND p.name LIKE ?")
-		countQuery.WriteString(" AND p.name LIKE ?")
-
-		keyword := "%" + arg.Keyword + "%"
-
-		queryArgs = append(queryArgs, keyword)
-		countQueryArgs = append(countQueryArgs, keyword)
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
 	}
 
 	if len(arg.Status) > 0 {
 		query.WriteString(" AND ins.name = ?")
-		countQuery.WriteString(" AND ins.name = ?")
-
 		queryArgs = append(queryArgs, arg.Status)
-		countQueryArgs = append(countQueryArgs, arg.Status)
 	}
 
-	query.WriteString(" LIMIT ? OFFSET ?")
-	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
-
-	var totalInvoices int64
-	err := q.db.QueryRowContext(ctx, countQuery.String(), countQueryArgs...).Scan(&totalInvoices)
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
 	if err != nil {
-		return nil, store.ErrQueryFailed
+		return 0, store.ErrQueryFailed
 	}
 
-	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
-	if err != nil {
-		return nil, store.ErrQueryFailed
-	}
-
-	defer rows.Close()
-
-	result := agg.WithCount[agg.InvoiceWithProject]{
-		Total: totalInvoices,
-		Items: make([]agg.InvoiceWithProject, 0),
-	}
-
-	for rows.Next() {
-		var row agg.InvoiceWithProject
-		err := rows.Scan(
-			&row.Id,
-			&row.ProjectId,
-			&row.ProjectName,
-			&row.IsInvoice,
-			&row.IssuedAt,
-			&row.DueAt,
-			&row.Total,
-			&row.CurrencyCode,
-			&row.Status,
-		)
-
-		if err != nil {
-			return nil, store.ErrQueryFailed
-		}
-
-		result.Items = append(result.Items, row)
-	}
-
-	return &result, nil
+	return count, nil
 }
 
 func (q *InvoiceStoreSqlite) GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error) {
