@@ -129,52 +129,48 @@ func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, userId int64, arg 
 	return invoiceId, nil
 }
 
-// GetInvoiceStatsByProject returns the total number of invoices/quotes
-// found and a list of invoices with status for
+// GetSummaryByProjectId returns the total number of invoices/quotes
+// found and a list of invoices for
 // a specified project using the project ID.
 // The search criteria parameter can be used to filter results
 // by the type (invoice/quote), limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStorePostgres) GetInvoiceStatsByProject(
+func (q *InvoiceStorePostgres) GetSummaryByProjectId(
 	ctx context.Context,
 	projectId int64,
-	arg *params.InvoiceSearch) (*agg.WithCount[agg.InvoiceWithStatus], error) {
+	arg *params.InvoiceSearch) ([]agg.Invoice, error) {
 
 	var query strings.Builder
-	var countQuery strings.Builder
 
 	query.WriteString(`
 	SELECT 
-		i.id, 
-		i.is_invoice, 
-		i.issued_at, 
-		i.due_at, 
-		i.total, 
-		i.currency_code, 
-		ins.name
-	FROM invoices i 
+		i.id,
+		p.id,
+		p.name,
+		i.is_invoice,
+		ins.name,
+		i.issued_at,
+		i.due_at,
+		i.total,
+		i.discount,
+		i.tax,
+		i.currency_code,
+		i.note
+	FROM invoices i
 	JOIN invoice_statuses ins ON ins.id = i.status
-	WHERE i.project_id = $1 
-	`)
-
-	countQuery.WriteString(`
-	SELECT COUNT(i.id) FROM invoices i
-	JOIN invoice_statuses ins ON ins.id = i.status
-	WHERE i.project_id = $1 
+	JOIN projects p ON p.id = i.project_id
+	WHERE p.id = $1
 	`)
 
 	queryArgs := []any{projectId}
-	countQueryArgs := []any{projectId}
 
-	if arg.Type == params.InvoiceTypeInvoice {
+	switch arg.Type {
+	case params.InvoiceTypeInvoice:
 		query.WriteString(" AND i.is_invoice = true")
-		countQuery.WriteString(" AND i.is_invoice = true")
-	}
 
-	if arg.Type == params.InvoiceTypeQuote {
+	case params.InvoiceTypeQuote:
 		query.WriteString(" AND i.is_invoice = false")
-		countQuery.WriteString(" AND i.is_invoice = false")
 	}
 
 	paramCount := 1
@@ -183,27 +179,18 @@ func (q *InvoiceStorePostgres) GetInvoiceStatsByProject(
 		paramCount++
 		query.WriteString(" AND ins.name = $")
 		query.WriteString(strconv.Itoa(paramCount))
-		countQuery.WriteString(" AND ins.name = $")
-		countQuery.WriteString(strconv.Itoa(paramCount))
 
 		queryArgs = append(queryArgs, arg.Status)
-		countQueryArgs = append(countQueryArgs, arg.Status)
 	}
 
 	paramCount++
 	query.WriteString(" LIMIT $")
-	countQuery.WriteString(strconv.Itoa(paramCount))
+	query.WriteString(strconv.Itoa(paramCount))
 
 	paramCount++
 	query.WriteString(" OFFSET $")
-	countQuery.WriteString(strconv.Itoa(paramCount))
+	query.WriteString(strconv.Itoa(paramCount))
 	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
-
-	var totalInvoices int64
-	err := q.db.QueryRowContext(ctx, countQuery.String(), countQueryArgs...).Scan(&totalInvoices)
-	if err != nil {
-		return nil, store.ErrQueryFailed
-	}
 
 	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
 	if err != nil {
@@ -212,31 +199,75 @@ func (q *InvoiceStorePostgres) GetInvoiceStatsByProject(
 
 	defer rows.Close()
 
-	result := agg.WithCount[agg.InvoiceWithStatus]{
-		Total: totalInvoices,
-		Items: make([]agg.InvoiceWithStatus, 0),
-	}
+	result := make([]agg.Invoice, 0)
 
 	for rows.Next() {
-		var row agg.InvoiceWithStatus
+		var row agg.Invoice
 		err := rows.Scan(
 			&row.Id,
+			&row.ProjectId,
+			&row.ProjectName,
 			&row.IsInvoice,
+			&row.Status,
 			&row.IssuedAt,
 			&row.DueAt,
 			&row.Total,
+			&row.Discount,
+			&row.Tax,
 			&row.CurrencyCode,
-			&row.Status,
+			&row.Note,
 		)
 
 		if err != nil {
 			return nil, store.ErrQueryFailed
 		}
 
-		result.Items = append(result.Items, row)
+		result = append(result, row)
 	}
 
-	return &result, nil
+	return result, nil
+}
+
+func (q *InvoiceStorePostgres) CountSummaryByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.InvoiceSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT COUNT(i.id) FROM invoices i
+	JOIN invoice_statuses ins ON ins.id = i.status
+	WHERE i.project_id = $1 
+	`)
+
+	queryArgs := []any{projectId}
+
+	switch arg.Type {
+	case params.InvoiceTypeInvoice:
+		query.WriteString(" AND i.is_invoice = true")
+
+	case params.InvoiceTypeQuote:
+		query.WriteString(" AND i.is_invoice = false")
+	}
+
+	paramCount := 1
+
+	if len(arg.Status) > 0 {
+		paramCount++
+		query.WriteString(" AND ins.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
 }
 
 // GetWithProjectByUserId returns the total number of invoices/quotes
