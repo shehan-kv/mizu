@@ -30,7 +30,7 @@
 
 		abortController = new AbortController();
 		try {
-			rejectVersion(version.id);
+			rejectVersion(version.id, abortController.signal);
 			toast.success('Successfully Rejected');
 			onSuccess && onSuccess();
 			open = false;

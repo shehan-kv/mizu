@@ -30,7 +30,7 @@
 
 		abortController = new AbortController();
 		try {
-			signVersion(version.id);
+			signVersion(version.id, abortController.signal);
 			toast.success('Successfully Signed');
 			onSuccess && onSuccess();
 			open = false;
