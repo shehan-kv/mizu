@@ -152,13 +152,15 @@
 										<Table.Cell>{formatDate(req.createdAt)}</Table.Cell>
 										<Table.Cell>{req.requestedBy.firstName} {req.requestedBy.lastName}</Table.Cell>
 										<Table.Cell>
-											<button
-												class="cursor-pointer px-1.5 text-xs
-										text-neutral-500 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-neutral-50"
+											<a
+												href={`/change-requests/${req.id}`}
+												class="inline-block cursor-pointer px-1.5 text-xs
+												text-neutral-500 hover:text-neutral-950 dark:text-neutral-400
+												dark:hover:text-neutral-50"
 												title="View"
 											>
 												<ArrowRight size={18} />
-											</button>
+											</a>
 										</Table.Cell>
 									</Table.Row>
 								{/each}

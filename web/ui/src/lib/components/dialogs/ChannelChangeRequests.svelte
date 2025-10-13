@@ -3,7 +3,6 @@
 
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import * as Table from '$lib/components/ui/table';
-	import type { Channel } from '../message/types';
 	import Pagination from '../Pagination.svelte';
 	import SearchBar from '../SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
@@ -20,6 +19,7 @@
 	} from '$lib/api/errors';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { formatDate } from '$lib/utils/formatDate';
+	import type { Channel } from '$lib/api/messages';
 
 	interface Props {
 		open: Boolean;
@@ -170,5 +170,9 @@
 </FullScreenDialog>
 
 {#if selectedRequest}
-	<ChannelViewChangeRequest bind:open={viewRequestDialog.isOpen} request={selectedRequest} />
+	<ChannelViewChangeRequest
+		bind:open={viewRequestDialog.isOpen}
+		requestId={selectedRequest.id}
+		requestTitle={selectedRequest.title}
+	/>
 {/if}
