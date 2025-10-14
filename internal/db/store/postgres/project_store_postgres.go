@@ -403,3 +403,30 @@ func (q *ProjectStorePostgres) CountTasksByProjectId(
 
 	return count, nil
 }
+
+func (q *ProjectStorePostgres) GetById(ctx context.Context, projectId int64) (*agg.Project, error) {
+
+	query := `
+	SELECT 
+		p.id,
+		p.name,
+		p.created_at,
+		ps.name AS status
+	FROM projects p
+	JOIN project_statuses ps ON ps.id = p.status
+	WHERE p.id = $1
+	`
+
+	var project agg.Project
+	err := q.db.QueryRowContext(ctx, query, projectId).Scan(
+		&project.Id,
+		&project.Name,
+		&project.CreatedAt,
+		&project.Status,
+	)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	return &project, nil
+}

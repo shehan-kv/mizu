@@ -51,6 +51,8 @@ type ProjectStore interface {
 	//   - store.ErrQueryFailed: if query fails
 	GetWithStats(ctx context.Context, arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error)
 
+	GetById(ctx context.Context, projectId int64) (*agg.Project, error)
+
 	GetTasksByProjectId(ctx context.Context, projectId int64, arg *params.TaskSearch) ([]agg.Task, error)
 
 	CountTasksByProjectId(ctx context.Context, projectId int64, arg *params.TaskSearch) (int64, error)
