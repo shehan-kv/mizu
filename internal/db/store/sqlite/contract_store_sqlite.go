@@ -904,3 +904,40 @@ func (q *ContractStoreSqlite) GetVersionsByContractId(
 
 	return result, nil
 }
+
+func (q *ContractStoreSqlite) CountByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.ContractSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT 
+		COUNT(c.id)
+	FROM contracts c
+	JOIN contract_statuses cs ON cs.id = c.status
+	WHERE c.project_id = ?
+	`)
+
+	queryArgs := []any{projectId}
+
+	if len(arg.Keyword) > 0 {
+		query.WriteString(" AND c.name LIKE ?")
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) > 0 {
+		query.WriteString(" AND cs.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	var count int64
+
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}
