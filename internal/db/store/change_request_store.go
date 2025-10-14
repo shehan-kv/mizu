@@ -26,4 +26,6 @@ type ChangeRequestStore interface {
 	GetByUserId(ctx context.Context, userId int64, arg *params.ChangeRequestSearch) ([]agg.ChangeRequest, error)
 
 	CountByUserId(ctx context.Context, userId int64, arg *params.ChangeRequestSearch) (int64, error)
+
+	CountByProjectId(ctx context.Context, projectId int64, arg *params.ChangeRequestSearch) (int64, error)
 }

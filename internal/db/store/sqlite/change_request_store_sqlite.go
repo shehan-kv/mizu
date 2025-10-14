@@ -515,3 +515,42 @@ func (q *ChangeRequestStoreSqlite) CountByUserId(
 
 	return count, nil
 }
+
+func (q *ChangeRequestStoreSqlite) CountByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.ChangeRequestSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT 
+		COUNT(cr.id)
+	FROM change_requests cr
+	JOIN change_request_statuses crs ON crs.id = cr.status
+	JOIN projects p ON p.id = cr.project_id
+	WHERE cr.project_id = ?
+	`)
+
+	queryArgs := []any{projectId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND ( cr.title LIKE ? OR p.name LIKE ? )")
+
+		keyword := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, keyword, keyword)
+	}
+
+	if len(arg.Status) != 0 {
+		query.WriteString(" AND crs.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}
