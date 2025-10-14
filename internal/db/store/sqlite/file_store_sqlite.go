@@ -135,3 +135,33 @@ func (q *FileStoreSqlite) GetByChannelId(
 
 	return &result, nil
 }
+
+func (q *FileStoreSqlite) CountByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.FileSearch) (int64, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	SELECT 
+		COUNT(f.id) 
+	FROM files f
+	JOIN channels c ON c.id = f.channel_id
+	WHERE c.project_id = ? 
+	`)
+
+	queryArgs := []any{projectId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND f.orig_name LIKE ?")
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}

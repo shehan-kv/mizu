@@ -17,4 +17,6 @@ type FileStore interface {
 		ctx context.Context,
 		channelId int64,
 		arg *params.FileSearch) (*agg.WithCount[agg.FileWithUser], error)
+
+	CountByProjectId(ctx context.Context, projectId int64, arg *params.FileSearch) (int64, error)
 }
