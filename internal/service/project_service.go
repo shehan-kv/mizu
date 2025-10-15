@@ -14,8 +14,12 @@ import (
 
 // Handles project related operations.
 type ProjectService struct {
-	lg    logger.Logger
-	prjSt store.ProjectStore
+	lg      logger.Logger
+	prjSt   store.ProjectStore
+	invSt   store.InvoiceStore
+	contSt  store.ContractStore
+	chReqSt store.ChangeRequestStore
+	fileSt  store.FileStore
 }
 
 // Creates a new instance of ProjectService.
@@ -27,10 +31,22 @@ type ProjectService struct {
 //
 // Returns:
 //   - a pointer to a new ProjectService
-func NewProjectService(lg logger.Logger, prjSt store.ProjectStore) *ProjectService {
+func NewProjectService(
+	lg logger.Logger,
+	prjSt store.ProjectStore,
+	invSt store.InvoiceStore,
+	contSt store.ContractStore,
+	chReqSt store.ChangeRequestStore,
+	fileSt store.FileStore,
+) *ProjectService {
+
 	return &ProjectService{
-		lg:    lg,
-		prjSt: prjSt,
+		lg:      lg,
+		prjSt:   prjSt,
+		invSt:   invSt,
+		contSt:  contSt,
+		chReqSt: chReqSt,
+		fileSt:  fileSt,
 	}
 }
 
@@ -340,6 +356,210 @@ func (prjSrv *ProjectService) GetTasksByProject(
 
 	for i, taskId := range orderedTaskIds {
 		resp.Data[i] = *taskMap[taskId]
+	}
+
+	return &resp, nil
+}
+
+func (prjSrv *ProjectService) GetOneById(
+	ctx context.Context,
+	projectId int64) (*dto.ProjectDetailsResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	if err != nil {
+		prjSrv.lg.Error("could not get project by id",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := dto.ProjectDetailsResponse{
+		Id:        project.Id,
+		Name:      project.Name,
+		CreatedAt: project.CreatedAt,
+		Status:    project.Status,
+	}
+
+	taskCount, err := prjSrv.prjSt.CountTasksByProjectId(ctx, projectId, &params.TaskSearch{})
+	if err != nil {
+		prjSrv.lg.Error("could not get project tasks count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.TaskCount = taskCount
+
+	taskCompletedCount, err := prjSrv.prjSt.CountTasksByProjectId(ctx, projectId, &params.TaskSearch{
+		Status: "completed",
+	})
+	if err != nil {
+		prjSrv.lg.Error("could not get completed project tasks count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.TaskCompletedCount = taskCompletedCount
+
+	invoiceCount, err := prjSrv.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
+		Type: params.InvoiceTypeInvoice,
+	})
+	if err != nil {
+		prjSrv.lg.Error("could not get invoices count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.InvoiceCount = invoiceCount
+
+	invoicePaidCount, err := prjSrv.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
+		Type:   params.InvoiceTypeInvoice,
+		Status: params.InvoiceStatusPaid,
+	})
+	if err != nil {
+		prjSrv.lg.Error("could not get paid invoices count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.InvoicePaidCount = invoicePaidCount
+
+	quoteCount, err := prjSrv.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
+		Type: params.InvoiceTypeQuote,
+	})
+	if err != nil {
+		prjSrv.lg.Error("could not get invoices count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.QuoteCount = quoteCount
+
+	contractCount, err := prjSrv.contSt.CountByProjectId(ctx, projectId, &params.ContractSearch{})
+	if err != nil {
+		prjSrv.lg.Error("could not get contract count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.ContractCount = contractCount
+
+	contractSignedCount, err := prjSrv.contSt.CountByProjectId(ctx, projectId, &params.ContractSearch{
+		Status: params.ContractStatusSigned,
+	})
+	if err != nil {
+		prjSrv.lg.Error("could not get contract count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.ContractSignedCount = contractSignedCount
+
+	chReqCount, err := prjSrv.chReqSt.CountByProjectId(ctx, projectId, &params.ChangeRequestSearch{})
+	if err != nil {
+		prjSrv.lg.Error("could not get change request count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.ChangeReqCount = chReqCount
+
+	chReqClosedCount, err := prjSrv.chReqSt.CountByProjectId(ctx, projectId, &params.ChangeRequestSearch{
+		Status: params.ChangeRequestClosed,
+	})
+	if err != nil {
+		prjSrv.lg.Error("could not get change request closed count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.ChangeReqClosedCount = chReqClosedCount
+
+	fileCount, err := prjSrv.fileSt.CountByProjectId(ctx, projectId, &params.FileSearch{})
+	if err != nil {
+		prjSrv.lg.Error("could not get file count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.FileCount = fileCount
+
+	members, err := prjSrv.prjSt.GetUsersByProjectId(ctx, projectId)
+	if err != nil {
+		prjSrv.lg.Error("could not get project members",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"user_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp.Members = make([]dto.ProjectMemberResponse, len(members))
+
+	for i, v := range members {
+		resp.Members[i] = dto.ProjectMemberResponse{
+			Id:        v.Id,
+			FirstName: v.FirstName,
+			LastName:  v.LastName,
+			Role:      v.Role,
+			Title:     v.Title,
+			Image:     v.Image,
+		}
 	}
 
 	return &resp, nil
