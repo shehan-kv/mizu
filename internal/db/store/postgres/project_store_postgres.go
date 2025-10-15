@@ -430,3 +430,51 @@ func (q *ProjectStorePostgres) GetById(ctx context.Context, projectId int64) (*a
 
 	return &project, nil
 }
+
+func (q *ProjectStorePostgres) GetUsersByProjectId(
+	ctx context.Context,
+	projectId int64) ([]agg.ProjectUser, error) {
+
+	query := `
+	SELECT 
+		u.id,
+		u.first_name,
+		u.last_name,
+		r.name AS role,
+		u.image,
+		u.title
+	FROM project_users pu
+	JOIN users u ON u.id = pu.user_id
+	JOIN roles r ON r.id = u.role
+	WHERE pu.project_id = $1
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, projectId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	resp := make([]agg.ProjectUser, 0)
+
+	for rows.Next() {
+		var row agg.ProjectUser
+
+		err := rows.Scan(
+			&row.Id,
+			&row.FirstName,
+			&row.LastName,
+			&row.Role,
+			&row.Image,
+			&row.Title,
+		)
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		resp = append(resp, row)
+	}
+
+	return resp, nil
+}
