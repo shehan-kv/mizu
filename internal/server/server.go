@@ -57,7 +57,14 @@ func RunServer() {
 
 	// Services
 	authService := service.NewAuthService(logger, userStore, sessionStore)
-	projectService := service.NewProjectService(logger, projectStore)
+	projectService := service.NewProjectService(
+		logger,
+		projectStore,
+		invoiceStore,
+		contractStore,
+		changeReqStore,
+		fileStore,
+	)
 	invoiceService := service.NewInvoiceService(logger, invoiceStore)
 	userService := service.NewUserService(logger, userStore, emailSender)
 	messageService := service.NewMessageService(logger, eventSender, messageStore)
