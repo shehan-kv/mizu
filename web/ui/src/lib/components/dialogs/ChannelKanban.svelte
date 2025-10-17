@@ -1,8 +1,8 @@
 <script lang="ts">
 	import FullScreenDialog from './FullScreenDialog.svelte';
-	import type { Channel } from '$lib/components/message/types';
 	import ErrorMessage from '../ErrorMessage.svelte';
-	import KanbanTaskList from './KanbanTaskList.svelte';
+	import KanbanTaskList from '../KanbanTaskList.svelte';
+	import type { Channel } from '$lib/api/messages';
 
 	interface Props {
 		open: Boolean;

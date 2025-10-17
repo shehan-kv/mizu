@@ -4,10 +4,10 @@
 	import CellSignalLow from 'phosphor-svelte/lib/CellSignalLow';
 	import CellSignalMedium from 'phosphor-svelte/lib/CellSignalMedium';
 	import { onMount } from 'svelte';
-	import Spinner from '../Spinner.svelte';
+	import Spinner from './Spinner.svelte';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { formatMinutes } from '$lib/utils/formatMinutes';
-	import ErrorMessage from '../ErrorMessage.svelte';
+	import ErrorMessage from './ErrorMessage.svelte';
 	import {
 		APIBadRequestError,
 		APIForbiddenError,
