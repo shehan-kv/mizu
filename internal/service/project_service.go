@@ -538,7 +538,7 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.FileCount = fileCount
 
-	members, err := prjSrv.prjSt.GetUsersByProjectId(ctx, projectId)
+	members, err := prjSrv.prjSt.GetMembersByProjectId(ctx, projectId)
 	if err != nil {
 		prjSrv.lg.Error("could not get project members",
 			"event", event.EventInternalError,
