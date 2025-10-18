@@ -143,3 +143,64 @@ export async function getProjectTasks(projectId: number, query: TaskQuery, signa
 	const payload = (await res.json()) as PaginatedResponse<ProjectTask>;
 	return payload;
 }
+
+export interface ProjectMember {
+	id: number;
+	firstName: string;
+	lastName: string;
+	title?: string;
+	image?: string;
+	role: string;
+}
+
+export interface ProjectDetails {
+	id: number;
+	name: string;
+	createdAt: Date;
+	status: string;
+	taskCount: number;
+	taskCompletedCount: number;
+	invoiceCount: number;
+	invoicePaidCount: number;
+	quoteCount: number;
+	contractCount: number;
+	contractSignedCount: number;
+	changeReqCount: number;
+	changeReqClosedCount: number;
+	fileCount: number;
+	members: ProjectMember[];
+}
+
+export async function getProjectDetails(projectId: number, signal?: AbortSignal) {
+	const url = new URLSearchParams();
+
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch project: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Project not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as ProjectDetails;
+	return payload;
+}
