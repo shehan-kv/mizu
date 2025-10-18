@@ -431,7 +431,7 @@ func (q *ProjectStorePostgres) GetById(ctx context.Context, projectId int64) (*a
 	return &project, nil
 }
 
-func (q *ProjectStorePostgres) GetUsersByProjectId(
+func (q *ProjectStorePostgres) GetMembersByProjectId(
 	ctx context.Context,
 	projectId int64) ([]agg.ProjectUser, error) {
 

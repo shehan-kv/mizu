@@ -422,7 +422,7 @@ func (q *ProjectStoreSqlite) GetById(ctx context.Context, projectId int64) (*agg
 	return &project, nil
 }
 
-func (q *ProjectStoreSqlite) GetUsersByProjectId(
+func (q *ProjectStoreSqlite) GetMembersByProjectId(
 	ctx context.Context,
 	projectId int64) ([]agg.ProjectUser, error) {
 
