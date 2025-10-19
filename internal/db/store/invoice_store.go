@@ -109,4 +109,6 @@ type InvoiceStore interface {
 	// 	- if the quote status is invalid, store.ErrUnexpectedType is returned.
 	// 	- If any other error occurs, store.ErrUpdateFailed is returned.
 	QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error)
+
+	GetMetricsByProjectId(ctx context.Context, projectId int64, event string) ([]agg.InvoiceMetric, error)
 }

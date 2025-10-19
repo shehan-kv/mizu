@@ -1,13 +1,15 @@
 package params
 
+type InvoiceHistoryEvent = string
+
 const (
-	InvoiceHistoryEventCreated       = "created"
-	InvoiceHistoryEventStatusChanged = "status_changed"
-	InvoiceHistoryEventConverted     = "converted"
-	InvoiceHistoryEventAccepted      = "accepted"
-	InvoiceHistoryEventRejected      = "rejected"
-	InvoiceHistoryEventCancelled     = "cancelled"
-	InvoiceHistoryEventPaid          = "paid"
-	InvoiceHistoryEventEmailed       = "emailed"
-	InvoiceHistoryEventDownloaded    = "downloaded"
+	InvoiceHistoryEventCreated       InvoiceHistoryEvent = "created"
+	InvoiceHistoryEventStatusChanged InvoiceHistoryEvent = "status_changed"
+	InvoiceHistoryEventConverted     InvoiceHistoryEvent = "converted"
+	InvoiceHistoryEventAccepted      InvoiceHistoryEvent = "accepted"
+	InvoiceHistoryEventRejected      InvoiceHistoryEvent = "rejected"
+	InvoiceHistoryEventCancelled     InvoiceHistoryEvent = "cancelled"
+	InvoiceHistoryEventPaid          InvoiceHistoryEvent = "paid"
+	InvoiceHistoryEventEmailed       InvoiceHistoryEvent = "emailed"
+	InvoiceHistoryEventDownloaded    InvoiceHistoryEvent = "downloaded"
 )

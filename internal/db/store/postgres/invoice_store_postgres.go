@@ -1006,3 +1006,50 @@ func (q *InvoiceStorePostgres) QuoteToInvoice(ctx context.Context, userId int64,
 
 	return false, nil
 }
+
+func (q *InvoiceStorePostgres) GetMetricsByProjectId(
+	ctx context.Context,
+	projectId int64,
+	event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error) {
+
+	query := `
+	WITH RECURSIVE months AS (
+  		SELECT to_char(date_trunc('month', current_date), 'YYYY-MM') AS year_month,
+         	date_trunc('month', current_date)::date AS start_date
+  		UNION ALL
+  		SELECT to_char(start_date - interval '1 month', 'YYYY-MM'),
+        	(start_date - interval '1 month')::date
+  		FROM months
+  		WHERE start_date > (current_date - interval '11 months')
+	)
+	SELECT
+  		m.year_month,
+  		COUNT(*) FILTER (WHERE i.project_id = $1 AND ihe.name = $2) AS paid_count
+	FROM months m
+	LEFT JOIN invoice_history ih ON to_char(date_trunc('month', ih.recorded_at), 'YYYY-MM') = m.year_month
+	LEFT JOIN invoice_history_events ihe ON ihe.id = ih.event
+	LEFT JOIN invoices i ON i.id = ih.invoice_id
+	GROUP BY m.year_month
+	ORDER BY m.year_month
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, event)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	resp := make([]agg.InvoiceMetric, 0)
+
+	for rows.Next() {
+		var row agg.InvoiceMetric
+		if err := rows.Scan(&row.Key, &row.Value); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		resp = append(resp, row)
+	}
+
+	return resp, nil
+}
