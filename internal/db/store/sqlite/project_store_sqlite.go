@@ -469,3 +469,47 @@ func (q *ProjectStoreSqlite) GetMembersByProjectId(
 
 	return resp, nil
 }
+
+func (q *ProjectStoreSqlite) GetTaskMetricsByProjectId(
+	ctx context.Context,
+	projectId int64,
+	status params.TaskStatus) ([]agg.TaskMetric, error) {
+
+	query := `
+	WITH last_two_weeks(day) AS (
+    	SELECT date('now')
+    	UNION ALL
+    	SELECT date(day, '-1 day')
+    	FROM last_two_weeks
+    	WHERE day > date('now', '-13 days')
+	)
+	SELECT 
+		ltw.day,
+		COUNT(*) FILTER( WHERE t.project_id = ? AND ts.name = ?  ) AS completed_count
+	FROM last_two_weeks ltw
+	LEFT JOIN tasks t ON date(t.updated_at) = ltw.day
+	LEFT JOIN task_statuses ts ON ts.id = t.status
+	GROUP BY ltw.day
+	ORDER BY ltw.day
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, projectId, status)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	resp := make([]agg.TaskMetric, 0)
+
+	for rows.Next() {
+		var row agg.TaskMetric
+		if err := rows.Scan(&row.Key, &row.Value); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		resp = append(resp, row)
+	}
+
+	return resp, nil
+}
