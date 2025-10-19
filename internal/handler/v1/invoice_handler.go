@@ -68,6 +68,7 @@ func (invHndl *InvoiceHandler) GetMux(
 	// eg, /invoices/project/{projectId}
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
 	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
+	mux.Handle("GET /project/{projectId}/metrics/paid", mwChain.Handle(invHndl.GetPaidMetricsByProjectId))
 
 	return mux
 }
@@ -455,4 +456,23 @@ func (invHndl *InvoiceHandler) QuoteToInvoice(w http.ResponseWriter, r *http.Req
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (invHndl *InvoiceHandler) GetPaidMetricsByProjectId(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := invHndl.invSrv.GetPaidCountByProjectId(r.Context(), parsedId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
