@@ -7,6 +7,7 @@ CREATE TABLE tasks (
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     estimated_time_minutes INTEGER NOT NULL,
     UNIQUE (project_id, name),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE ON UPDATE CASCADE,
