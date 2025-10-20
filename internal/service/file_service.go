@@ -153,3 +153,78 @@ func (fileSrv *FileService) GetByChannelId(
 
 	return &resp, nil
 }
+
+func (fileSrv *FileService) GetByProjectId(
+	ctx context.Context,
+	projectId int64,
+	query *dto.FileSearch) (*common.Page[[]dto.FileResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		fileSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "file_service",
+			"project_id", projectId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	search := params.FileSearch{
+		Keyword: query.Keyword,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	}
+
+	files, err := fileSrv.fileSt.GetByProjectId(ctx, projectId, &search)
+
+	if err != nil {
+		fileSrv.lg.Error("could not retrieve files for project",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "file_service",
+			"project_id", projectId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	count, err := fileSrv.fileSt.CountByProjectId(ctx, projectId, &search)
+	if err != nil {
+		fileSrv.lg.Error("could not retrieve file count for project",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "file_service",
+			"project_id", projectId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.FileResponse]{
+		Count: count,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  make([]dto.FileResponse, len(files)),
+	}
+
+	for i, file := range files {
+		resp.Data[i] = dto.FileResponse{
+			Id:        file.Id,
+			ChannelId: file.ChannelId,
+			User: dto.FileUserResponse{
+				Id:        file.UserId,
+				FirstName: file.UserFirstName,
+				LastName:  file.UserLastName,
+			},
+			OriginalName: file.OriginalName,
+			SavedName:    file.SavedName,
+			UploadedAt:   file.UploadedAt,
+			Url:          file.Url,
+			Size:         file.Size,
+		}
+	}
+
+	return &resp, nil
+}
