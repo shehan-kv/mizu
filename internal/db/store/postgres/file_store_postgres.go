@@ -151,6 +151,86 @@ func (q *FileStorePostgres) GetByChannelId(
 	return &result, nil
 }
 
+func (q *FileStorePostgres) GetByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.FileSearch) ([]agg.FileWithUser, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	SELECT 
+		f.id,
+		f.channel_id,
+		u.id AS user_id,
+		u.first_name,
+		u.last_name,
+		f.orig_name,
+		f.saved_name,
+		f.uploaded_at,
+		f.url,
+		f.size
+	FROM files f 
+	JOIN users u ON u.id = f.user_id
+	JOIN channels c ON c.id = f.channel_id
+	WHERE c.project_id = $1
+	`)
+
+	queryArgs := []any{projectId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramCount++
+		query.WriteString(" AND f.orig_name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	query.WriteString(" ORDER BY f.uploaded_at DESC")
+
+	paramCount++
+	query.WriteString(" LIMIT $")
+	query.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	query.WriteString(" OFFSET $")
+	query.WriteString(strconv.Itoa(paramCount))
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.FileWithUser, 0)
+
+	for rows.Next() {
+		var row agg.FileWithUser
+		err := rows.Scan(
+			&row.Id,
+			&row.ChannelId,
+			&row.UserId,
+			&row.UserFirstName,
+			&row.UserLastName,
+			&row.OriginalName,
+			&row.SavedName,
+			&row.UploadedAt,
+			&row.Url,
+			&row.Size,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
+
 func (q *FileStorePostgres) CountByProjectId(
 	ctx context.Context,
 	projectId int64,
