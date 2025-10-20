@@ -159,9 +159,9 @@
 											<div
 												class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
 											>
-												<button title="View">
+												<a href={`/projects/${project.id}`} class="inline-block" title="View">
 													<ArrowRight size={18} />
-												</button>
+												</a>
 											</div>
 										</Table.Cell>
 									</Table.Row>
