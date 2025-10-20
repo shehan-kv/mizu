@@ -65,6 +65,7 @@ func (fileHndl *FileHandler) GetMux(
 
 	mux.Handle("POST /", mwChain.Handle(fileHndl.StoreFile))
 	mux.Handle("GET /{channelId}", mwChain.Handle(fileHndl.GetByChannel))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(fileHndl.GetByProject))
 
 	return mux
 }
@@ -144,6 +145,58 @@ func (fileHndl *FileHandler) GetByChannel(w http.ResponseWriter, r *http.Request
 	}
 
 	result, err := fileHndl.fileSrv.GetByChannelId(r.Context(), parsedChId, &file.FileSearch{
+		Keyword: keyword,
+		Page:    page,
+		Limit:   limit,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+func (fileHndl *FileHandler) GetByProject(w http.ResponseWriter, r *http.Request) {
+
+	prjId := r.PathValue("projectId")
+	parsedPrjId, err := strconv.ParseInt(prjId, 10, 64)
+	if err != nil || parsedPrjId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	keyword := r.URL.Query().Get("q")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	result, err := fileHndl.fileSrv.GetByProjectId(r.Context(), parsedPrjId, &file.FileSearch{
 		Keyword: keyword,
 		Page:    page,
 		Limit:   limit,
