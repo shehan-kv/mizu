@@ -5,6 +5,7 @@ import "time"
 type ContractWithStats struct {
 	Id                int64
 	Name              string
+	ProjectName       *string
 	Status            string
 	CreatedAt         time.Time
 	Versions          int64

@@ -987,3 +987,111 @@ func (q *ContractStorePostgres) CountByProjectId(
 
 	return count, nil
 }
+
+func (q *ContractStorePostgres) GetByUserId(
+	ctx context.Context,
+	userId int64,
+	arg *params.ContractSearch) ([]agg.ContractWithStats, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	WITH version_counts AS (
+		SELECT
+			contract_id,
+    		COUNT(*) AS versions
+  		FROM contract_versions
+  		GROUP BY contract_id
+	),
+	revision_counts AS (
+  		SELECT
+    		contract_id,
+    		COUNT(*) AS revisions
+  		FROM contract_revisions
+  		GROUP BY contract_id
+	),
+	accepted_revisions AS (
+		SELECT 
+			cr.contract_id AS contract_id,
+			COUNT(*) AS accepted
+		FROM contract_revisions cr
+		JOIN contract_revision_statuses crs ON crs.id = cr.status
+		WHERE crs.name = $1
+		GROUP BY cr.contract_id
+	)
+	SELECT
+		c.id,
+  		c.name,
+		p.name AS project_name,
+  		cs.name AS status,
+  		c.created_at,
+  		COALESCE(v.versions,  0) AS versions,
+  		COALESCE(r.revisions, 0) AS revisions,
+  		COALESCE(ar.accepted, 0) AS accepted_revisions
+	FROM project_users pu
+	JOIN projects p ON p.id = pu.project_id
+	JOIN contracts c ON c.project_id = pu.project_id
+	JOIN contract_statuses cs ON cs.id = c.status
+	LEFT JOIN version_counts v ON v.contract_id = c.id
+	LEFT JOIN revision_counts r ON r.contract_id = c.id
+	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id
+	WHERE pu.user_id = $2
+	`)
+
+	queryArgs := []any{params.ContractRevisionAccepted, userId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) > 0 {
+		paramCount++
+		query.WriteString(" AND c.name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) > 0 {
+		paramCount++
+		query.WriteString(" AND cs.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	paramCount++
+	query.WriteString(" LIMIT $")
+	query.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	query.WriteString(" OFFSET $")
+	query.WriteString(strconv.Itoa(paramCount))
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.ContractWithStats, 0)
+
+	for rows.Next() {
+		var row agg.ContractWithStats
+		err := rows.Scan(
+			&row.Id,
+			&row.Name,
+			&row.ProjectName,
+			&row.Status,
+			&row.CreatedAt,
+			&row.Versions,
+			&row.Revisions,
+			&row.AcceptedRevisions,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
