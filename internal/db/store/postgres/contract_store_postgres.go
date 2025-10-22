@@ -1095,3 +1095,47 @@ func (q *ContractStorePostgres) GetByUserId(
 
 	return result, nil
 }
+
+func (q *ContractStorePostgres) CountByUserId(
+	ctx context.Context,
+	userId int64,
+	arg *params.ContractSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT 
+		COUNT(c.id)
+	FROM project_users pu
+	JOIN contracts c ON c.project_id = pu.project_id
+	JOIN contract_statuses cs ON cs.id = c.status
+	WHERE c.project_id = $1
+	`)
+
+	queryArgs := []any{userId}
+
+	paramCount := 1
+
+	if len(arg.Keyword) > 0 {
+		paramCount++
+		query.WriteString(" AND c.name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) > 0 {
+		paramCount++
+		query.WriteString(" AND cs.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	var count int64
+
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
+}
