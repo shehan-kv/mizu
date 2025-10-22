@@ -1039,7 +1039,7 @@ func (q *ContractStorePostgres) GetByUserId(
 
 	queryArgs := []any{params.ContractRevisionAccepted, userId}
 
-	paramCount := 1
+	paramCount := 2
 
 	if len(arg.Keyword) > 0 {
 		paramCount++
