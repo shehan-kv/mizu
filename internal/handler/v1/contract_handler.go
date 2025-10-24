@@ -50,7 +50,7 @@ func (contHndl *ContractHandler) GetMux(
 
 	mux.Handle("GET /", mwChain.Handle(contHndl.GetAll))
 	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
-	mux.Handle("GET /{projectId}", mwChain.Handle(contHndl.GetContractsByProject))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(contHndl.GetContractsByProject))
 	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
 	mux.Handle("POST /reject/{versionId}", mwChain.Handle(contHndl.RejectContractVersion))
 	mux.Handle("POST /revision/{contractId}", mwChain.Handle(contHndl.CreateContractRevision))
