@@ -63,6 +63,7 @@ func (prjHndl *ProjectHandler) GetMux(
 	mux.Handle("POST /{projectId}/task", mwChain.Handle(prjHndl.CreateTask))
 	mux.Handle("GET /{projectId}/task", mwChain.Handle(prjHndl.GetTasksByProject))
 	mux.Handle("GET /{projectId}/task/metrics/complete", mwChain.Handle(prjHndl.GetTaskCompleteCountByProject))
+	mux.Handle("GET /metrics/create", mwChain.Handle(prjHndl.GetCreatedCount))
 
 	return mux
 }
@@ -303,6 +304,18 @@ func (prjHndl *ProjectHandler) GetTaskCompleteCountByProject(w http.ResponseWrit
 	}
 
 	resp, err := prjHndl.prjSrv.GetTaskCompleteCountByProjectId(r.Context(), parsedPrjId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (prjHndl *ProjectHandler) GetCreatedCount(w http.ResponseWriter, r *http.Request) {
+
+	resp, err := prjHndl.prjSrv.GetCreatedCount(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
