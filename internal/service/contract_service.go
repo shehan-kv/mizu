@@ -689,3 +689,70 @@ func (contSrv *ContractService) GetVersionSignatures(
 
 	return resp, nil
 }
+
+func (contSrv *ContractService) GetByCurrentUser(
+	ctx context.Context,
+	query *dto.ContractSearchQuery) (*common.Page[[]dto.ContractStatsResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	search := params.ContractSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	}
+
+	contracts, err := contSrv.contSt.GetByUserId(ctx, actor.Id, &search)
+	if err != nil {
+		contSrv.lg.Error("could not get contracts of signed in user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	count, err := contSrv.contSt.CountByUserId(ctx, actor.Id, &search)
+	if err != nil {
+		contSrv.lg.Error("could not count contracts of signed in user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.ContractStatsResponse]{
+		Count: count,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Data:  make([]dto.ContractStatsResponse, len(contracts)),
+	}
+
+	for i, v := range contracts {
+		resp.Data[i] = dto.ContractStatsResponse{
+			Id:                v.Id,
+			Name:              v.Name,
+			ProjectName:       v.ProjectName,
+			Status:            v.Status,
+			CreatedAt:         v.CreatedAt,
+			Versions:          v.Versions,
+			Revisions:         v.Revisions,
+			AcceptedRevisions: v.AcceptedRevisions,
+		}
+	}
+
+	return &resp, nil
+}
