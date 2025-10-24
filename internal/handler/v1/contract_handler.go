@@ -49,6 +49,7 @@ func (contHndl *ContractHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /", mwChain.Handle(contHndl.GetAll))
+	mux.Handle("GET /{contractId}", mwChain.Handle(contHndl.GetStatById))
 	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(contHndl.GetContractsByProject))
 	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
@@ -507,4 +508,22 @@ func (contHndl *ContractHandler) GetAll(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(result)
+}
+
+func (contHndl *ContractHandler) GetStatById(w http.ResponseWriter, r *http.Request) {
+	contractId := r.PathValue("contractId")
+	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
+	if err != nil || parsedContractId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := contHndl.contSrv.GetStatById(r.Context(), parsedContractId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
