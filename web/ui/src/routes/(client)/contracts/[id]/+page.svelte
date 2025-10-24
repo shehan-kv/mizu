@@ -16,13 +16,20 @@
 
 		abort = new AbortController();
 
-		contractStatPromise = getContractById(id, abort.signal);
+		contractStatPromise = getContractById(id, abort.signal).then((c) => {
+			document.title = 'Contract - ' + c.name;
+			return c;
+		});
 	}
 
 	$effect(() => {
 		loadContractStat();
 	});
 </script>
+
+<svelte:head>
+	<title>Contract</title>
+</svelte:head>
 
 <div class="mx-auto grid h-full grid-rows-[min-content_1fr] gap-4 lg:container">
 	<div class="flex w-fit items-center gap-3 text-sm text-neutral-700 dark:text-neutral-400">
