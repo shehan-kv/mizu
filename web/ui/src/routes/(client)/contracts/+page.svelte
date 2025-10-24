@@ -120,7 +120,7 @@
 		{#if res && res.data}
 			<div class="mx-auto gap-4 overflow-y-auto lg:container">
 				{#if res.data.length == 0}
-					<ErrorMessage variant="info" text="Invoices/Quotes Not Found" />
+					<ErrorMessage variant="info" text="Contracts Not Found" />
 				{/if}
 				<div class="overflow-y-auto">
 					{#if res.data.length > 0}
