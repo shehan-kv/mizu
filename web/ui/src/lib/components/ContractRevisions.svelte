@@ -13,9 +13,9 @@
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 
 	interface Props {
-		contract: Contract;
+		contractId: number;
 	}
-	let { contract }: Props = $props();
+	let { contractId }: Props = $props();
 
 	let revisionsPromise: Promise<PaginatedResponse<ContractRevision>> | null = $state(null);
 	let abortController = new AbortController();
@@ -28,7 +28,7 @@
 		abortController = new AbortController();
 
 		revisionsPromise = getContractRevisions(
-			contract.id,
+			contractId,
 			{ page: 1, limit: 30 },
 			abortController.signal
 		);
