@@ -756,3 +756,43 @@ func (contSrv *ContractService) GetByCurrentUser(
 
 	return &resp, nil
 }
+
+func (contSrv *ContractService) GetStatById(
+	ctx context.Context,
+	contractId int64) (*dto.ContractStatsResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		contSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	stat, err := contSrv.contSt.GetStatById(ctx, contractId)
+	if err != nil {
+		contSrv.lg.Error("could not stats by contract id",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := dto.ContractStatsResponse{
+		Id:                stat.Id,
+		Name:              stat.Name,
+		ProjectName:       stat.ProjectName,
+		Status:            stat.Status,
+		CreatedAt:         stat.CreatedAt,
+		Versions:          stat.Versions,
+		Revisions:         stat.Revisions,
+		AcceptedRevisions: stat.AcceptedRevisions,
+	}
+
+	return &resp, nil
+}
