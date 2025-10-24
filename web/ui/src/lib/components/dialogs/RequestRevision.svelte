@@ -16,10 +16,10 @@
 
 	interface Props {
 		open: boolean;
-		contract: Contract;
+		contractId: number;
 		onSuccess?: () => any;
 	}
-	let { open = $bindable(), contract, onSuccess }: Props = $props();
+	let { open = $bindable(), contractId, onSuccess }: Props = $props();
 	let revision = $state({ title: '', description: '' });
 
 	function resetRevision() {
@@ -46,7 +46,7 @@
 		abortController = new AbortController();
 
 		try {
-			await createContractRevision(contract.id, revision, abortController.signal);
+			await createContractRevision(contractId, revision, abortController.signal);
 			toast.success('Successfully Created');
 			resetRevision();
 			onSuccess && onSuccess();
