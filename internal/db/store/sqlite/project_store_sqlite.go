@@ -513,3 +513,46 @@ func (q *ProjectStoreSqlite) GetTaskMetricsByProjectId(
 
 	return resp, nil
 }
+
+func (q *ProjectStoreSqlite) GetCreatedMetricsByUserId(
+	ctx context.Context,
+	userId int64) ([]agg.ProjectMetric, error) {
+
+	query := `
+	WITH months(year_month, start_date) AS (
+  		SELECT strftime('%Y-%m', 'now'), date(strftime('%Y-%m', 'now') || '-01')
+  		UNION ALL
+  		SELECT strftime('%Y-%m', date(start_date, '-1 month')), date(start_date, '-1 month')
+  		FROM months
+  		WHERE start_date > date('now', '-11 months')
+	)
+	SELECT 
+		m.year_month,
+		COUNT(*) FILTER( WHERE pu.user_id = ? ) AS completed_count
+	FROM months m
+	LEFT JOIN projects p ON strftime('%Y-%m', p.created_at) = m.year_month
+	LEFT JOIN project_users pu ON pu.project_id = p.id
+	GROUP BY m.year_month
+	ORDER BY m.year_month
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, userId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.ProjectMetric, 0)
+
+	for rows.Next() {
+		var row agg.ProjectMetric
+		if err := rows.Scan(&row.Key, &row.Value); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}

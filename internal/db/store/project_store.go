@@ -63,4 +63,6 @@ type ProjectStore interface {
 		ctx context.Context,
 		projectId int64,
 		status params.TaskStatus) ([]agg.TaskMetric, error)
+
+	GetCreatedMetricsByUserId(ctx context.Context, userId int64) ([]agg.ProjectMetric, error)
 }

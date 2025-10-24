@@ -522,3 +522,48 @@ func (q *ProjectStorePostgres) GetTaskMetricsByProjectId(
 
 	return resp, nil
 }
+
+func (q *ProjectStorePostgres) GetCreatedMetricsByUserId(
+	ctx context.Context,
+	userId int64) ([]agg.ProjectMetric, error) {
+
+	query := `
+	WITH RECURSIVE months AS (
+  		SELECT to_char(date_trunc('month', current_date), 'YYYY-MM') AS year_month,
+         	date_trunc('month', current_date)::date AS start_date
+  		UNION ALL
+  		SELECT to_char(start_date - interval '1 month', 'YYYY-MM'),
+        	(start_date - interval '1 month')::date
+  		FROM months
+  		WHERE start_date > (current_date - interval '11 months')
+	)
+	SELECT 
+		m.year_month,
+		COUNT(*) FILTER( WHERE pu.user_id = ? ) AS completed_count
+	FROM months m
+	LEFT JOIN projects p ON to_char(date_trunc('month', p.created_at), 'YYYY-MM') = m.year_month
+	LEFT JOIN project_users pu ON pu.project_id = p.id
+	GROUP BY m.year_month
+	ORDER BY m.year_month
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, userId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.ProjectMetric, 0)
+
+	for rows.Next() {
+		var row agg.ProjectMetric
+		if err := rows.Scan(&row.Key, &row.Value); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
