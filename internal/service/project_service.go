@@ -606,3 +606,37 @@ func (prjSrv *ProjectService) GetTaskCompleteCountByProjectId(
 
 	return resp, nil
 }
+
+func (prjSrv *ProjectService) GetCreatedCount(ctx context.Context) ([]dto.ProjectMetricResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	metrics, err := prjSrv.prjSt.GetCreatedMetricsByUserId(ctx, actor.Id)
+	if err != nil {
+		prjSrv.lg.Error("could not get project created metrics",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.ProjectMetricResponse, len(metrics))
+
+	for i, v := range metrics {
+		resp[i] = dto.ProjectMetricResponse{Key: v.Key, Value: v.Value}
+	}
+
+	return resp, nil
+}
