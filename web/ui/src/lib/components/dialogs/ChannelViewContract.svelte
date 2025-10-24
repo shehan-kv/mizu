@@ -128,7 +128,7 @@
 							</p>
 						</div>
 					</div>
-					<div class="grid auto-rows-[min-content_1fr] space-y-2 overflow-y-auto overflow-y-auto">
+					<div class="grid auto-rows-[min-content_1fr] space-y-2 overflow-y-auto">
 						<div
 							class="grid grid-cols-2 gap-2 text-neutral-500 transition
 					*:cursor-pointer *:border-neutral-900 *:px-8 *:py-3 *:text-left
