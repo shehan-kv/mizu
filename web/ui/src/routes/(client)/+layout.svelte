@@ -9,6 +9,7 @@
 	import { page } from '$app/state';
 	import Header from '$lib/components/Header.svelte';
 	import { fade, fly } from 'svelte/transition';
+	import FileText from 'phosphor-svelte/lib/FileText';
 
 	let { children } = $props();
 	let isMobileMenuOpen = $state(false);
@@ -45,6 +46,17 @@
 					onclick={closeMobileMenu}
 				>
 					<Folder size={20} /> Projects
+				</a>
+			</li>
+			<li>
+				<a
+					href="/contracts"
+					class="block flex items-center gap-2 border-l py-2 pl-4
+					hover:border-neutral-400 dark:hover:border-neutral-700"
+					class:border-sky-500={page.url.pathname.startsWith('/contracts')}
+					onclick={closeMobileMenu}
+				>
+					<FileText size={20} /> Contracts
 				</a>
 			</li>
 			<li>
