@@ -1139,3 +1139,70 @@ func (q *ContractStorePostgres) CountByUserId(
 
 	return count, nil
 }
+
+func (q *ContractStorePostgres) GetStatById(
+	ctx context.Context,
+	contractId int64) (*agg.ContractWithStats, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	WITH version_counts AS (
+		SELECT
+			contract_id,
+    		COUNT(*) AS versions
+  		FROM contract_versions
+  		GROUP BY contract_id
+	),
+	revision_counts AS (
+  		SELECT
+    		contract_id,
+    		COUNT(*) AS revisions
+  		FROM contract_revisions
+  		GROUP BY contract_id
+	),
+	accepted_revisions AS (
+		SELECT 
+			cr.contract_id AS contract_id,
+			COUNT(*) AS accepted
+		FROM contract_revisions cr
+		JOIN contract_revision_statuses crs ON crs.id = cr.status
+		WHERE crs.name = $1
+		GROUP BY cr.contract_id
+	)
+	SELECT
+		c.id,
+  		c.name,
+		p.name AS project_name,
+  		cs.name AS status,
+  		c.created_at,
+  		COALESCE(v.versions,  0) AS versions,
+  		COALESCE(r.revisions, 0) AS revisions,
+  		COALESCE(ar.accepted, 0) AS accepted_revisions
+	FROM project_users pu
+	JOIN projects p ON p.id = pu.project_id
+	JOIN contracts c ON c.project_id = pu.project_id
+	JOIN contract_statuses cs ON cs.id = c.status
+	LEFT JOIN version_counts v ON v.contract_id = c.id
+	LEFT JOIN revision_counts r ON r.contract_id = c.id
+	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id
+	WHERE c.id = $2
+	`)
+
+	var result agg.ContractWithStats
+	err := q.db.QueryRowContext(ctx, query.String(), params.ContractRevisionAccepted, contractId).Scan(
+		&result.Id,
+		&result.Name,
+		&result.ProjectName,
+		&result.Status,
+		&result.CreatedAt,
+		&result.Versions,
+		&result.Revisions,
+		&result.AcceptedRevisions,
+	)
+
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	return &result, nil
+}

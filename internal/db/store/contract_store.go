@@ -104,4 +104,6 @@ type ContractStore interface {
 		arg *params.ContractSearch) ([]agg.ContractWithStats, error)
 
 	CountByUserId(ctx context.Context, userId int64, arg *params.ContractSearch) (int64, error)
+
+	GetStatById(ctx context.Context, contractId int64) (*agg.ContractWithStats, error)
 }
