@@ -19,7 +19,7 @@
 	} from '$lib/api/invoices';
 	import {
 		getProjectDetails,
-		getTaskCompletedCountByProject,
+		getTaskCompletedMetricsByProject,
 		type ProjectDetails,
 		type TaskMetric
 	} from '$lib/api/projects';
@@ -107,15 +107,18 @@
 		InvoicePaidCountPromise = getPaidInvoiceCountByProject(id, InvoicePaidCountAbort.signal);
 	}
 
-	let taskCompleteCountPromise: Promise<TaskMetric[]> | null = $state(null);
-	let taskCompleteCountAbort: AbortController | null = null;
+	let taskCompleteMetricsPromise: Promise<TaskMetric[]> | null = $state(null);
+	let taskCompleteMetricsAbort: AbortController | null = null;
 	function loadTaskCompleteMetrics() {
-		if (taskCompleteCountAbort) {
-			taskCompleteCountAbort.abort();
+		if (taskCompleteMetricsAbort) {
+			taskCompleteMetricsAbort.abort();
 		}
-		taskCompleteCountAbort = new AbortController();
+		taskCompleteMetricsAbort = new AbortController();
 
-		taskCompleteCountPromise = getTaskCompletedCountByProject(id, taskCompleteCountAbort.signal);
+		taskCompleteMetricsPromise = getTaskCompletedMetricsByProject(
+			id,
+			taskCompleteMetricsAbort.signal
+		);
 	}
 
 	const invChartConfig = {
@@ -346,7 +349,7 @@
 				<p class="text-sm">Tasks Completed</p>
 			</div>
 			<div class="px-6 py-2">
-				{#await taskCompleteCountPromise}
+				{#await taskCompleteMetricsPromise}
 					<Spinner />
 				{:then res}
 					{#if res && res.length > 0}

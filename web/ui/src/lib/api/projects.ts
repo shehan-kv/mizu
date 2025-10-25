@@ -210,7 +210,7 @@ export interface TaskMetric {
 	value: number;
 }
 
-export async function getTaskCompletedCountByProject(projectId: number, signal?: AbortSignal) {
+export async function getTaskCompletedMetricsByProject(projectId: number, signal?: AbortSignal) {
 	let res: Response;
 
 	try {
