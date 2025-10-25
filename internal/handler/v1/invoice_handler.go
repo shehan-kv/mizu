@@ -68,7 +68,7 @@ func (invHndl *InvoiceHandler) GetMux(
 	// eg, /invoices/project/{projectId}
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
 	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
-	mux.Handle("GET /project/{projectId}/metrics/paid", mwChain.Handle(invHndl.GetPaidMetricsByProjectId))
+	mux.Handle("GET /metrics/paid/{projectId}", mwChain.Handle(invHndl.GetPaidMetricsByProjectId))
 
 	return mux
 }
