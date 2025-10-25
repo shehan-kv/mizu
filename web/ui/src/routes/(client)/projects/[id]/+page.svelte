@@ -10,7 +10,7 @@
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
-	import { getFilesByChannel, getFilesByProject, type File } from '$lib/api/files';
+	import { getFilesByProject, type File } from '$lib/api/files';
 	import {
 		getInvoicesByProjectId,
 		getPaidInvoiceCountByProject,
@@ -104,7 +104,7 @@
 		}
 		InvoicePaidCountAbort = new AbortController();
 
-		InvoicePaidCountPromise = getPaidInvoiceCountByProject(1, InvoicePaidCountAbort.signal);
+		InvoicePaidCountPromise = getPaidInvoiceCountByProject(id, InvoicePaidCountAbort.signal);
 	}
 
 	let taskCompleteCountPromise: Promise<TaskMetric[]> | null = $state(null);
@@ -115,7 +115,7 @@
 		}
 		taskCompleteCountAbort = new AbortController();
 
-		taskCompleteCountPromise = getTaskCompletedCountByProject(1, taskCompleteCountAbort.signal);
+		taskCompleteCountPromise = getTaskCompletedCountByProject(id, taskCompleteCountAbort.signal);
 	}
 
 	const invChartConfig = {
