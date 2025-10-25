@@ -39,7 +39,7 @@
 	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
 
 	let abort: AbortController | null = null;
-	function loadInvoices() {
+	function loadContracts() {
 		if (abort) {
 			abort.abort();
 		}
@@ -73,11 +73,11 @@
 		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
 		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
-		loadInvoices();
+		loadContracts();
 	}
 
 	onMount(() => {
-		loadInvoices();
+		loadContracts();
 	});
 </script>
 
@@ -182,19 +182,19 @@
 		{/if}
 	{:catch err}
 		{#if err instanceof APIBadRequestError}
-			<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="Invalid Request" retry={loadContracts} />
 		{:else if err instanceof APIForbiddenError}
 			<ErrorMessage
 				variant="warn"
 				text="You Don't Have Permission To View These Invoices/Quotes"
-				retry={loadInvoices}
+				retry={loadContracts}
 			/>
 		{:else if err instanceof APINotFoundError}
-			<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
+			<ErrorMessage variant="info" text="Not Found" retry={loadContracts} />
 		{:else if err instanceof APIServerError}
-			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadContracts} />
 		{:else}
-			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadContracts} />
 		{/if}
 	{/await}
 </div>

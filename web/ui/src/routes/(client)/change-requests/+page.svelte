@@ -34,9 +34,8 @@
 	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
 	let chReqPromise: Promise<PaginatedResponse<ChangeRequest>> | null = $state(null);
-
 	let abortController: AbortController | null = null;
-	function loadInvoices() {
+	function loadChangeRequests() {
 		if (abortController) {
 			abortController.abort();
 		}
@@ -76,11 +75,11 @@
 		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
 		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
-		loadInvoices();
+		loadChangeRequests();
 	}
 
 	onMount(() => {
-		loadInvoices();
+		loadChangeRequests();
 	});
 </script>
 
@@ -177,19 +176,19 @@
 		{/if}
 	{:catch err}
 		{#if err instanceof APIBadRequestError}
-			<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="Invalid Request" retry={loadChangeRequests} />
 		{:else if err instanceof APIForbiddenError}
 			<ErrorMessage
 				variant="warn"
 				text="You Don't Have Permission To View These Change Requests"
-				retry={loadInvoices}
+				retry={loadChangeRequests}
 			/>
 		{:else if err instanceof APINotFoundError}
-			<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
+			<ErrorMessage variant="info" text="Not Found" retry={loadChangeRequests} />
 		{:else if err instanceof APIServerError}
-			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadChangeRequests} />
 		{:else}
-			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadChangeRequests} />
 		{/if}
 	{/await}
 </div>
