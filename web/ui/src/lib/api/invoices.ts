@@ -288,7 +288,7 @@ export interface InvoiceMetric {
 export async function getPaidInvoiceCountByProject(projectId: number, signal?: AbortSignal) {
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/invoices/project/${projectId}/metrics/paid`, {
+		res = await fetch(`/api/v1/invoices/metrics/paid/${projectId}`, {
 			method: 'GET',
 			signal
 		});
