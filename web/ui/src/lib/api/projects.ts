@@ -242,3 +242,41 @@ export async function getTaskCompletedCountByProject(projectId: number, signal?:
 	const payload = (await res.json()) as TaskMetric[];
 	return payload;
 }
+
+export interface ProjectMetric {
+	key: string;
+	value: number;
+}
+
+export async function getProjectCreatedMetrics(signal?: AbortSignal) {
+	let res: Response;
+
+	try {
+		res = await fetch(`/api/v1/projects/metrics/create`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch projects created metrics: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as ProjectMetric[];
+	return payload;
+}
