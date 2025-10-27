@@ -116,4 +116,10 @@ type InvoiceStore interface {
 		ctx context.Context,
 		userId int64,
 		event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error)
+
+	GetAmountSumByUserId(
+		ctx context.Context,
+		userId int64,
+		isInvoice bool,
+		status params.InvoiceStatus) ([]agg.InvoiceSum, error)
 }

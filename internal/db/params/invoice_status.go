@@ -1,9 +1,11 @@
 package params
 
+type InvoiceStatus = string
+
 const (
-	InvoiceStatusPaid      = "paid"
-	InvoiceStatusPending   = "pending"
-	InvoiceStatusAccepted  = "accepted"
-	InvoiceStatusRejected  = "rejected"
-	InvoiceStatusCancelled = "cancelled"
+	InvoiceStatusPaid      InvoiceStatus = "paid"
+	InvoiceStatusPending   InvoiceStatus = "pending"
+	InvoiceStatusAccepted  InvoiceStatus = "accepted"
+	InvoiceStatusRejected  InvoiceStatus = "rejected"
+	InvoiceStatusCancelled InvoiceStatus = "cancelled"
 )

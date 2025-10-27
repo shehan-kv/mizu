@@ -1100,3 +1100,42 @@ func (q *InvoiceStorePostgres) GetMetricsByUserId(
 
 	return resp, nil
 }
+
+func (q *InvoiceStorePostgres) GetAmountSumByUserId(
+	ctx context.Context,
+	userId int64,
+	isInvoice bool,
+	status params.InvoiceStatus) ([]agg.InvoiceSum, error) {
+
+	query := `
+	SELECT 
+		i.currency_code,
+		SUM(i.total) AS sum,
+		COUNT(i.id) AS inv_count
+	FROM project_users pu
+	JOIN invoices i ON i.project_id = pu.project_id
+	JOIN invoice_statuses ins ON ins.id = i.status
+	WHERE pu.user_id = $1 AND i.is_invoice = $2 AND ins.name = $3
+	GROUP BY i.currency_code
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, userId, isInvoice, status)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.InvoiceSum, 0)
+
+	for rows.Next() {
+		var row agg.InvoiceSum
+		if err := rows.Scan(&row.CurrencyCode, &row.Sum, &row.Count); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
