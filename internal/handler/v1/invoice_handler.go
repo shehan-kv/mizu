@@ -70,6 +70,7 @@ func (invHndl *InvoiceHandler) GetMux(
 	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
 	mux.Handle("GET /metrics/paid/{projectId}", mwChain.Handle(invHndl.GetPaidMetricsByProjectId))
 	mux.Handle("GET /metrics/paid", mwChain.Handle(invHndl.GetPaidMetricsByCurrentUser))
+	mux.Handle("GET /metrics/overview", mwChain.Handle(invHndl.GetOverview))
 
 	return mux
 }
@@ -481,6 +482,18 @@ func (invHndl *InvoiceHandler) GetPaidMetricsByProjectId(w http.ResponseWriter, 
 func (invHndl *InvoiceHandler) GetPaidMetricsByCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := invHndl.invSrv.GetPaidMetricsByCurrentUser(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (invHndl *InvoiceHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
+
+	resp, err := invHndl.invSrv.GetOverview(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
