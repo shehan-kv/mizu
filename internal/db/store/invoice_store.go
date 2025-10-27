@@ -111,4 +111,9 @@ type InvoiceStore interface {
 	QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error)
 
 	GetMetricsByProjectId(ctx context.Context, projectId int64, event string) ([]agg.InvoiceMetric, error)
+
+	GetMetricsByUserId(
+		ctx context.Context,
+		userId int64,
+		event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error)
 }

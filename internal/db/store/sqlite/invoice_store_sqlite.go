@@ -1014,3 +1014,50 @@ func (q *InvoiceStoreSqlite) GetMetricsByProjectId(
 
 	return resp, nil
 }
+
+func (q *InvoiceStoreSqlite) GetMetricsByUserId(
+	ctx context.Context,
+	userId int64,
+	event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error) {
+
+	query := `
+	WITH months(year_month, start_date) AS (
+  		SELECT strftime('%Y-%m', 'now'), date(strftime('%Y-%m', 'now') || '-01')
+  		UNION ALL
+  		SELECT strftime('%Y-%m', date(start_date, '-1 month')), date(start_date, '-1 month')
+  		FROM months
+  		WHERE start_date > date('now', '-11 months')
+	)
+	SELECT
+  		m.year_month,
+  		COUNT(*) FILTER (
+			WHERE pu.user_id = ? AND ihe.name = ?
+		) AS paid_count
+	FROM months m
+	LEFT JOIN invoice_history ih ON strftime('%Y-%m', ih.recorded_at) = m.year_month
+	LEFT JOIN invoice_history_events ihe ON ihe.id = ih.event
+	LEFT JOIN invoices i ON i.id = ih.invoice_id
+	LEFT JOIN project_users pu ON pu.project_id = i.project_id
+	GROUP BY m.year_month
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, userId, event)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	resp := make([]agg.InvoiceMetric, 0)
+
+	for rows.Next() {
+		var row agg.InvoiceMetric
+		if err := rows.Scan(&row.Key, &row.Value); err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		resp = append(resp, row)
+	}
+
+	return resp, nil
+}
