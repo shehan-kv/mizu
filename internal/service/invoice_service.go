@@ -849,3 +849,37 @@ func (invSrv *InvoiceService) GetPaidCountByProjectId(
 
 	return resp, nil
 }
+
+func (invSrv *InvoiceService) GetPaidMetricsByCurrentUser(
+	ctx context.Context) ([]dto.InvoiceMetricResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	metrics, err := invSrv.invSt.GetMetricsByUserId(ctx, actor.Id, params.InvoiceHistoryEventPaid)
+	if err != nil {
+		invSrv.lg.Error("could not get paid invoice metrics",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"actor_id", actor.Id,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.InvoiceMetricResponse, len(metrics))
+
+	for i, v := range metrics {
+		resp[i] = dto.InvoiceMetricResponse{Key: v.Key, Value: v.Value}
+	}
+
+	return resp, nil
+}
