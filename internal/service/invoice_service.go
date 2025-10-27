@@ -883,3 +883,112 @@ func (invSrv *InvoiceService) GetPaidMetricsByCurrentUser(
 
 	return resp, nil
 }
+
+func (invSrv *InvoiceService) GetOverview(
+	ctx context.Context) (*dto.InvoiceOverviewResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		invSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := dto.InvoiceOverviewResponse{}
+
+	paid, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusPaid,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.Paid = paid
+
+	pending, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusPending,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.Pending = pending
+
+	accepted, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusAccepted,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.Accepted = accepted
+
+	rejected, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusRejected,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.Rejected = rejected
+
+	cancelled, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusCancelled,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.Cancelled = cancelled
+
+	quoteRejected, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, false, params.InvoiceStatusRejected,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.QuotesRejected = quoteRejected
+
+	quotePending, err := invSrv.getSumForUser(
+		ctx, correlationId, actor.Id, actor.Id, false, params.InvoiceStatusPending,
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.QuotesPending = quotePending
+
+	return &resp, nil
+}
+
+func (invSrv *InvoiceService) getSumForUser(
+	ctx context.Context,
+	correlationId string,
+	actorId int64,
+	userId int64,
+	isInvoice bool,
+	status params.InvoiceStatus) ([]dto.OverviewMetric, error) {
+
+	result, err := invSrv.invSt.GetAmountSumByUserId(ctx, userId, isInvoice, status)
+	if err != nil {
+		invSrv.lg.Error("could not get sum",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "invoice_service",
+			"actor_id", actorId,
+			"is_invoice", isInvoice,
+			"status", status,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.OverviewMetric, len(result))
+
+	for i, v := range result {
+		resp[i] = dto.OverviewMetric{
+			CurrencyCode: v.CurrencyCode,
+			Amount:       v.Sum,
+			Count:        v.Count,
+		}
+	}
+
+	return resp, nil
+}
