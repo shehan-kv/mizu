@@ -285,41 +285,43 @@
 		<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 			<p class="text-sm">Invoices Paid</p>
 		</div>
-		<div class="px-6 py-2">
+		<div class="h-70 relative px-6 py-2">
 			{#await InvoicePaidCountPromise}
 				<Spinner />
 			{:then res}
 				{#if res}
-					<Chart.Container config={invChartConfig} class="h-70 w-full">
-						<LineChart
-							data={res}
-							x="key"
-							xScale={scalePoint()}
-							yDomain={[0, Math.max(1, ...res.map((d) => d.value))]}
-							axis="x"
-							series={[
-								{
-									key: 'value',
-									label: invChartConfig.paid.label,
-									color: invChartConfig.paid.color
-								}
-							]}
-							props={{
-								spline: { curve: curveLinear, motion: 'none', strokeWidth: 2 },
-								xAxis: {
-									format: (v: string) =>
-										new Date(v + '-01').toLocaleString(undefined, {
-											month: 'short'
-										})
-								},
-								highlight: { points: { r: 4 } }
-							}}
-						>
-							{#snippet tooltip()}
-								<Chart.Tooltip hideLabel />
-							{/snippet}
-						</LineChart>
-					</Chart.Container>
+					<div class="absolute inset-x-6 inset-y-2">
+						<Chart.Container config={invChartConfig} class="h-full w-full">
+							<LineChart
+								data={res}
+								x="key"
+								xScale={scalePoint()}
+								yDomain={[0, Math.max(1, ...res.map((d) => d.value))]}
+								axis="x"
+								series={[
+									{
+										key: 'value',
+										label: invChartConfig.paid.label,
+										color: invChartConfig.paid.color
+									}
+								]}
+								props={{
+									spline: { curve: curveLinear, motion: 'none', strokeWidth: 2 },
+									xAxis: {
+										format: (v: string) =>
+											new Date(v + '-01').toLocaleString(undefined, {
+												month: 'short'
+											})
+									},
+									highlight: { points: { r: 4 } }
+								}}
+							>
+								{#snippet tooltip()}
+									<Chart.Tooltip hideLabel />
+								{/snippet}
+							</LineChart>
+						</Chart.Container>
+					</div>
 				{:else}
 					<ErrorMessage variant="warn" text="Metrics Not Found" />
 				{/if}
