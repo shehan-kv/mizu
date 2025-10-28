@@ -53,6 +53,11 @@
 	}
 
 	function updateUrlParam() {
+		// A quote cannot have a 'paid' state.
+		if (status == 'paid') {
+			type = 'invoice';
+		}
+
 		if (q) {
 			params.set('q', q);
 		} else {
@@ -106,6 +111,7 @@
 				name="Status"
 				options={[
 					{ value: '', label: 'All' },
+					{ value: 'paid', label: 'Paid' },
 					{ value: 'accepted', label: 'Accepted' },
 					{ value: 'rejected', label: 'Rejected' },
 					{ value: 'cancelled', label: 'Cancelled' },
@@ -119,7 +125,7 @@
 				options={[
 					{ value: '', label: 'All' },
 					{ value: 'invoice', label: 'Invoice' },
-					{ value: 'quote', label: 'Quote' }
+					...(status !== 'paid' ? [{ value: 'quote', label: 'Quote' }] : [])
 				]}
 			/>
 			<FilterInput
