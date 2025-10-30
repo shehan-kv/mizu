@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"mizu/internal/db/models"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strconv"
+	"strings"
 
 	"github.com/lib/pq"
 )
@@ -364,4 +367,105 @@ func (q *UserStorePostgres) OnboardVerify(ctx context.Context, arg *params.UserO
 	}
 
 	return nil
+}
+
+func (q *UserStorePostgres) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	SELECT 
+		u.id,
+		u.first_name,
+		u.last_name,
+		u.email,
+		r.name AS role,
+		u.title,
+		u.image,
+		u.created_at,
+		u.last_login,
+		u.is_active
+	FROM users u
+	JOIN roles r ON r.id = u.role
+	`)
+
+	queryArgs := []any{}
+
+	var conditions []string
+	paramCount := 0
+
+	if len(arg.Keyword) > 0 {
+
+		var sb strings.Builder
+		sb.WriteString(" ( u.first_name LIKE $")
+		paramCount++
+		sb.WriteString(strconv.Itoa(paramCount))
+
+		sb.WriteString(" OR u.last_name LIKE $")
+		paramCount++
+		sb.WriteString(strconv.Itoa(paramCount))
+
+		sb.WriteString(" OR u.title LIKE $")
+		paramCount++
+		sb.WriteString(strconv.Itoa(paramCount))
+
+		sb.WriteString(" )")
+
+		conditions = append(conditions, sb.String())
+
+		keyword := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, keyword, keyword, keyword)
+	}
+
+	if len(arg.Role) > 0 {
+		conditions = append(conditions, "r.name = $")
+		queryArgs = append(queryArgs, arg.Role)
+	}
+
+	if len(conditions) > 0 {
+		query.WriteString(" WHERE ")
+		query.WriteString(strings.Join(conditions, " AND "))
+	}
+
+	query.WriteString(" LIMIT $")
+	paramCount++
+	query.WriteString(strconv.Itoa(paramCount))
+
+	query.WriteString(" OFFSET $")
+	paramCount++
+	query.WriteString(strconv.Itoa(paramCount))
+
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.User, 0)
+
+	for rows.Next() {
+		var row agg.User
+		err := rows.Scan(
+			&row.Id,
+			&row.FirstName,
+			&row.LastName,
+			&row.Email,
+			&row.Role,
+			&row.Title,
+			&row.Image,
+			&row.CreatedAt,
+			&row.LastLogin,
+			&row.IsActive,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
 }

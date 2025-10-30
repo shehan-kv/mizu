@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"mizu/internal/db/models"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"strings"
 
 	"github.com/mattn/go-sqlite3"
 )
@@ -385,4 +387,80 @@ func (q *UserStoreSqlite) OnboardVerify(ctx context.Context, arg *params.UserOnb
 	}
 
 	return nil
+}
+
+func (q *UserStoreSqlite) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error) {
+
+	var query strings.Builder
+	query.WriteString(`
+	SELECT 
+		u.id,
+		u.first_name,
+		u.last_name,
+		u.email,
+		r.name AS role,
+		u.title,
+		u.image,
+		u.created_at,
+		u.last_login,
+		u.is_active
+	FROM users u
+	JOIN roles r ON r.id = u.role
+	`)
+
+	queryArgs := []any{}
+
+	var conditions []string
+
+	if len(arg.Keyword) > 0 {
+		conditions = append(conditions, "( u.first_name LIKE ? OR u.last_name LIKE ? OR u.title LIKE ? )")
+		keyword := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, keyword, keyword, keyword)
+	}
+
+	if len(arg.Role) > 0 {
+		conditions = append(conditions, "r.name = ?")
+		queryArgs = append(queryArgs, arg.Role)
+	}
+
+	if len(conditions) > 0 {
+		query.WriteString("WHERE ")
+		query.WriteString(strings.Join(conditions, " AND "))
+	}
+
+	query.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.User, 0)
+
+	for rows.Next() {
+		var row agg.User
+		err := rows.Scan(
+			&row.Id,
+			&row.FirstName,
+			&row.LastName,
+			&row.Email,
+			&row.Role,
+			&row.Title,
+			&row.Image,
+			&row.CreatedAt,
+			&row.LastLogin,
+			&row.IsActive,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
 }

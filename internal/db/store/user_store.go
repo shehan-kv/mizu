@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"mizu/internal/db/models"
+	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
 )
 
@@ -170,4 +171,6 @@ type UserStore interface {
 	//	 - store.ErrDeleteFailed: if onboard request delete fails
 	//	 - store.ErrQueryFailed: if transaction fails
 	OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error
+
+	GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error)
 }
