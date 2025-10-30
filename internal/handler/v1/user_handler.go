@@ -58,6 +58,7 @@ func (usrHndl *UserHandler) GetMux(
 	mux := http.NewServeMux()
 
 	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
+	mux.Handle("GET /", mwChain.Handle(usrHndl.GetAll))
 	mux.Handle("GET /self", mwChain.Handle(usrHndl.GetSelf))
 	mux.Handle("POST /verify/onboard/{token}", mwChain.Handle(usrHndl.OnboardVerify))
 	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(usrHndl.CreateVerifyRequest))
@@ -186,6 +187,53 @@ func (usrHndl *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request
 func (usrHndl *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := usrHndl.usrSrv.GetSelf(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (usrHndl *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+
+	keyword := r.URL.Query().Get("q")
+	role := r.URL.Query().Get("role")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	resp, err := usrHndl.usrSrv.GetAll(r.Context(), &dto.UserSearch{
+		Keyword: keyword,
+		Role:    role,
+		Page:    page,
+		Limit:   limit,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

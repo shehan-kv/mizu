@@ -6,6 +6,7 @@ import (
 	"mizu/internal/auth"
 	"mizu/internal/db/params"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/common"
 	dto "mizu/internal/dto/user"
 	"mizu/internal/email"
 	emlPrms "mizu/internal/email/params"
@@ -359,4 +360,79 @@ func (usrSrv *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, 
 	}
 
 	return &selfResponse, nil
+}
+
+func (usrSrv *UserService) GetAll(
+	ctx context.Context,
+	query *dto.UserSearch) (*common.Page[[]dto.UserResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	user, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		usrSrv.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"err", err,
+		)
+
+		return nil, ErrInternalError
+	}
+
+	search := params.UserSearch{
+		Keyword: query.Keyword,
+		Role:    query.Role,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	}
+
+	users, err := usrSrv.usrSt.GetAll(ctx, &search)
+	if err != nil {
+		usrSrv.lg.Error("could not get users",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", user.Id,
+			"err", err,
+		)
+
+		return nil, ErrInternalError
+	}
+
+	count, err := usrSrv.usrSt.CountAll(ctx, &search)
+	if err != nil {
+		usrSrv.lg.Error("could not get user count",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", user.Id,
+			"err", err,
+		)
+
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.UserResponse]{
+		Count: count,
+		Page:  query.Page,
+		Limit: query.Page,
+		Data:  make([]dto.UserResponse, len(users)),
+	}
+
+	for i, v := range users {
+		resp.Data[i] = dto.UserResponse{
+			Id:        v.Id,
+			FirstName: v.FirstName,
+			LastName:  v.LastName,
+			Title:     v.Title,
+			Email:     v.Email,
+			Role:      v.Role,
+			Image:     v.Image,
+			CreatedAt: v.CreatedAt,
+			LastLogin: v.LastLogin,
+			IsActive:  v.IsActive,
+		}
+	}
+
+	return &resp, nil
 }
