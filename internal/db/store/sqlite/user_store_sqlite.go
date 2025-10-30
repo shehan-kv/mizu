@@ -139,12 +139,40 @@ func (q *UserStoreSqlite) GetPasswordById(ctx context.Context, id int64) (string
 }
 
 // Implementation of CountAll defined in UserStore interface
-func (q *UserStoreSqlite) CountAll(ctx context.Context) (int64, error) {
+func (q *UserStoreSqlite) CountAll(ctx context.Context, arg *params.UserSearch) (int64, error) {
 
-	query := `SELECT COUNT(*) FROM users`
+	var query strings.Builder
+	query.WriteString(`
+	SELECT 
+		COUNT(*) 
+	FROM users u 
+	JOIN roles r ON r.id = u.role
+	`)
+
+	queryArgs := []any{}
+
+	var conditions []string
+
+	if arg != nil {
+		if len(arg.Keyword) > 0 {
+			conditions = append(conditions, "( u.first_name LIKE ? OR u.last_name LIKE ? OR u.title LIKE ? )")
+			keyword := "%" + arg.Keyword + "%"
+			queryArgs = append(queryArgs, keyword, keyword, keyword)
+		}
+
+		if len(arg.Role) > 0 {
+			conditions = append(conditions, "r.name = ?")
+			queryArgs = append(queryArgs, arg.Role)
+		}
+
+		if len(conditions) > 0 {
+			query.WriteString("WHERE ")
+			query.WriteString(strings.Join(conditions, " AND "))
+		}
+	}
 
 	var count int64
-	err := q.db.QueryRowContext(ctx, query).Scan(&count)
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
 
 	if err != nil {
 		return 0, store.ErrQueryFailed

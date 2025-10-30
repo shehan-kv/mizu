@@ -18,7 +18,7 @@ import (
 func CreateDefaultAdminUser(usrSt store.UserStore, lg logger.Logger) {
 	ctx := context.Background()
 
-	userCount, err := usrSt.CountAll(ctx)
+	userCount, err := usrSt.CountAll(ctx, nil)
 	if err != nil {
 		lg.Error(err.Error())
 		return

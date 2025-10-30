@@ -64,7 +64,7 @@ type UserStore interface {
 	// Returns:
 	//   - int64: number of users
 	//   - store.ErrQueryFailed: if query fails
-	CountAll(ctx context.Context) (int64, error)
+	CountAll(ctx context.Context, arg *params.UserSearch) (int64, error)
 
 	// Sets password by user id
 	//
