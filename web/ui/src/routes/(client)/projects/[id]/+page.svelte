@@ -25,7 +25,7 @@
 	} from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
-	import User from '$lib/components/User.svelte';
+	import UserCard from '$lib/components/UserCard.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { onMount } from 'svelte';
@@ -248,7 +248,7 @@
 			{:then res}
 				{#if res && res.members.length > 0}
 					{#each res.members as member}
-						<User
+						<UserCard
 							image={member.image}
 							role={member.role}
 							title={member.title}

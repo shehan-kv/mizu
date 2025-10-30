@@ -14,7 +14,7 @@
 		APIServerError
 	} from '$lib/api/errors';
 	import Spinner from './Spinner.svelte';
-	import User from './User.svelte';
+	import UserCard from './UserCard.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { onMount } from 'svelte';
 	import Checks from 'phosphor-svelte/lib/Checks';
@@ -235,7 +235,7 @@
 								</p>
 							{/if}
 							<div class="mt-2">
-								<User
+								<UserCard
 									image={entry.user.image}
 									name={`${entry.user.firstName} ${entry.user.lastName}`}
 									role={entry.user.role}

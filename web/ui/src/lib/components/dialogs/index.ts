@@ -5,6 +5,7 @@ import ChannelViewContract from './ChannelViewContract.svelte';
 import ChannelKanban from './ChannelKanban.svelte';
 import ChannelChangeRequests from './ChannelChangeRequests.svelte';
 import NewChangeRequest from './NewChangeRequest.svelte';
+import NewProject from './NewProject.svelte';
 
 export {
 	NewChangeRequest,
@@ -13,5 +14,6 @@ export {
 	ChannelContracts,
 	ChannelInvoices,
 	ChannelViewContract,
-	ChannelKanban
+	ChannelKanban,
+	NewProject
 };
