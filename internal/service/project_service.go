@@ -772,3 +772,47 @@ func (prjSrv *ProjectService) SetStatusCancelled(ctx context.Context, projectId 
 
 	return nil
 }
+
+func (prjSrv *ProjectService) SetStatusCompleted(ctx context.Context, projectId int64) error {
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	if err != nil {
+		prjSrv.lg.Error("could not get project by id ",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if project.Status == params.ProjectStatusCompleted {
+		return ErrAlreadyExists
+	}
+
+	err = prjSrv.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusCompleted)
+	if err != nil {
+		prjSrv.lg.Error("could not set project as completed",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	return nil
+}

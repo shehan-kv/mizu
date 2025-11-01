@@ -66,6 +66,7 @@ func (prjHndl *ProjectHandler) GetMux(
 	mux.Handle("POST /{projectId}/status/started", mwChain.Handle(prjHndl.SetStatusStarted))
 	mux.Handle("POST /{projectId}/status/paused", mwChain.Handle(prjHndl.SetStatusPaused))
 	mux.Handle("POST /{projectId}/status/cancelled", mwChain.Handle(prjHndl.SetStatusCancelled))
+	mux.Handle("POST /{projectId}/status/completed", mwChain.Handle(prjHndl.SetStatusCompleted))
 	mux.Handle("GET /metrics/create", mwChain.Handle(prjHndl.GetCreatedCount))
 
 	return mux
@@ -384,6 +385,29 @@ func (prjHndl *ProjectHandler) SetStatusCancelled(w http.ResponseWriter, r *http
 	}
 
 	err = prjHndl.prjSrv.SetStatusCancelled(r.Context(), parsedPrjId)
+	if err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (prjHndl *ProjectHandler) SetStatusCompleted(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedPrjId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = prjHndl.prjSrv.SetStatusCompleted(r.Context(), parsedPrjId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
