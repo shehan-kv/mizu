@@ -1,6 +1,7 @@
 import { goto } from '$app/navigation';
 import {
 	APIBadRequestError,
+	APIConflictError,
 	APIError,
 	APIForbiddenError,
 	APINotFoundError,
@@ -309,6 +310,130 @@ export async function createProject(req: CreateProjectParams, signal?: AbortSign
 				throw new APIForbiddenError('Forbidden');
 			case 404:
 				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markProjectStarted(projectId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}/status/started`, {
+			method: 'POST',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change project status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already started`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markProjectPaused(projectId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}/status/paused`, {
+			method: 'POST',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change project status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already paused`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markProjectCancelled(projectId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}/status/cancelled`, {
+			method: 'POST',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change project status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already cancelled`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markProjectCompleted(projectId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}/status/completed`, {
+			method: 'POST',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change project status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already completed`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
