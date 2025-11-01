@@ -640,3 +640,47 @@ func (prjSrv *ProjectService) GetCreatedCount(ctx context.Context) ([]dto.Projec
 
 	return resp, nil
 }
+
+func (prjSrv *ProjectService) SetStatusStarted(ctx context.Context, projectId int64) error {
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	if err != nil {
+		prjSrv.lg.Error("could not get project by id ",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	if project.Status == params.ProjectStatusStarted {
+		return ErrAlreadyExists
+	}
+
+	err = prjSrv.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusStarted)
+	if err != nil {
+		prjSrv.lg.Error("could not set project as started",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	return nil
+}
