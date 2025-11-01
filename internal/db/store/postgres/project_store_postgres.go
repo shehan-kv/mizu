@@ -567,3 +567,22 @@ func (q *ProjectStorePostgres) GetCreatedMetricsByUserId(
 
 	return result, nil
 }
+
+func (q *ProjectStorePostgres) SetStatusById(
+	ctx context.Context,
+	projectId int64,
+	status params.ProjectStatus) error {
+
+	query := `
+	UPDATE projects
+	SET status = (SELECT id FROM project_statuses WHERE name = $1)
+	WHERE id = $2
+	`
+
+	_, err := q.db.ExecContext(ctx, query, status, projectId)
+	if err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	return nil
+}

@@ -556,3 +556,22 @@ func (q *ProjectStoreSqlite) GetCreatedMetricsByUserId(
 
 	return result, nil
 }
+
+func (q *ProjectStoreSqlite) SetStatusById(
+	ctx context.Context,
+	projectId int64,
+	status params.ProjectStatus) error {
+
+	query := `
+	UPDATE projects
+	SET status = (SELECT id FROM project_statuses WHERE name = ?)
+	WHERE id = ?
+	`
+
+	_, err := q.db.ExecContext(ctx, query, status, projectId)
+	if err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	return nil
+}
