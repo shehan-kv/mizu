@@ -89,7 +89,7 @@
 
 	let selectedProject: SelectedProject | null = $state(null);
 
-	function selectProject(project: Project, action: ProjectStatus) {
+	function openStatusDialog(project: Project, action: ProjectStatus) {
 		selectedProject = { ...project, action };
 		projectStatusDialog.open();
 	}
@@ -214,7 +214,7 @@
 															{#if project.status != 'started'}
 																<DropdownMenu.Item
 																	class="pl-4 text-xs"
-																	onclick={() => selectProject(project, 'started')}
+																	onclick={() => openStatusDialog(project, 'started')}
 																>
 																	Started
 																</DropdownMenu.Item>
@@ -222,7 +222,7 @@
 															{#if project.status != 'paused'}
 																<DropdownMenu.Item
 																	class="pl-4 text-xs"
-																	onclick={() => selectProject(project, 'paused')}
+																	onclick={() => openStatusDialog(project, 'paused')}
 																>
 																	Paused
 																</DropdownMenu.Item>
@@ -230,7 +230,7 @@
 															{#if project.status != 'cancelled'}
 																<DropdownMenu.Item
 																	class="pl-4 text-xs"
-																	onclick={() => selectProject(project, 'cancelled')}
+																	onclick={() => openStatusDialog(project, 'cancelled')}
 																>
 																	Cancelled
 																</DropdownMenu.Item>
@@ -238,7 +238,7 @@
 															{#if project.status != 'completed'}
 																<DropdownMenu.Item
 																	class="pl-4 text-xs"
-																	onclick={() => selectProject(project, 'completed')}
+																	onclick={() => openStatusDialog(project, 'completed')}
 																>
 																	Completed
 																</DropdownMenu.Item>
@@ -246,9 +246,7 @@
 														</DropdownMenu.Group>
 														<DropdownMenu.Separator />
 														<DropdownMenu.Item class="py-2">
-															<button class="flex items-center gap-3">
-																<Trash />Delete
-															</button>
+															<Trash />Delete
 														</DropdownMenu.Item>
 													</DropdownMenu.Content>
 												</DropdownMenu.Root>
