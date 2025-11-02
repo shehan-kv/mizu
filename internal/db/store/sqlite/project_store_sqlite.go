@@ -585,7 +585,7 @@ func (q *ProjectStoreSqlite) DeleteById(ctx context.Context, projectId int64) er
 
 	_, err := q.db.ExecContext(ctx, query, projectId)
 	if err != nil {
-		return store.ErrUpdateFailed
+		return store.ErrDeleteFailed
 	}
 
 	return nil

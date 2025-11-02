@@ -596,7 +596,7 @@ func (q *ProjectStorePostgres) DeleteById(ctx context.Context, projectId int64) 
 
 	_, err := q.db.ExecContext(ctx, query, projectId)
 	if err != nil {
-		return store.ErrUpdateFailed
+		return store.ErrDeleteFailed
 	}
 
 	return nil
