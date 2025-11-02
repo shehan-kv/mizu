@@ -17,12 +17,10 @@
 	} from '$lib/api/errors';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import Info from 'phosphor-svelte/lib/Info';
-	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
-	import Spinner from '../Spinner.svelte';
-	import { debounce } from '$lib/utils/debounce';
-	import { getUsers, type User } from '$lib/api/users';
+	import { type User } from '$lib/api/users';
 	import UserCard from '../UserCard.svelte';
 	import { createProject, type ProjectStatus } from '$lib/api/projects';
+	import SearchUser from '../SearchUser.svelte';
 
 	interface Props {
 		open: boolean;
@@ -105,31 +103,6 @@
 		}
 	}
 
-	let membersPromise: Promise<PaginatedResponse<User>> | null = $state(null);
-	let membersAbort: AbortController | null = null;
-	function loadMembers() {
-		if (!req.memberSearchTerm) {
-			if (membersAbort) {
-				membersAbort.abort();
-				membersAbort = null;
-			}
-
-			membersPromise = null;
-			return;
-		}
-
-		if (membersAbort) {
-			membersAbort.abort();
-		}
-
-		membersAbort = new AbortController();
-
-		membersPromise = getUsers(
-			{ q: req.memberSearchTerm.trim(), page: 1, limit: 50 },
-			membersAbort.signal
-		);
-	}
-
 	function addMember(member: User) {
 		const exists = req.members.find((m) => m.id == member.id);
 		if (!exists) {
@@ -144,10 +117,6 @@
 			req.members = req.members.filter((m) => m.id != member.id);
 		}
 	}
-
-	const memberSearchDebounced = debounce(() => {
-		loadMembers();
-	}, 300);
 </script>
 
 <Dialog.Root bind:open onOpenChange={resetState}>
@@ -279,64 +248,8 @@
 						</div>
 
 						<div class="space-y-2 border-t py-2">
-							<div
-								class="relative flex items-center gap-1 rounded border
-									border-neutral-200 bg-neutral-100
-									dark:border-neutral-800 dark:bg-neutral-900 focus-within:[&>div.absolute]:block"
-							>
-								<input
-									bind:value={req.memberSearchTerm}
-									oninput={memberSearchDebounced}
-									type="text"
-									class="outline-hidden peer grow p-2 text-sm placeholder:text-xs placeholder:italic"
-									placeholder="Search For Members..."
-								/>
-								<MagnifyingGlass size={16} class="mx-2" />
+							<SearchUser onSelect={addMember} />
 
-								<div
-									class="max-h-50 absolute left-0 top-10 hidden min-h-10 w-full overflow-scroll
-									rounded bg-neutral-900 px-2 py-3 ring-0 transition"
-								>
-									{#if !req.memberSearchTerm && !membersPromise}
-										<p class="text-xs text-neutral-300">Start Typing To Search</p>
-									{/if}
-
-									{#await membersPromise}
-										<Spinner size={16} />
-									{:then res}
-										{#if res && res.data.length > 0}
-											<div>
-												{#each res.data as member}
-													<div
-														class="cursor-pointer rounded p-2 hover:bg-neutral-950"
-														onmousedown={() => {
-															console.log('clicked');
-															addMember(member);
-														}}
-														role="button"
-														tabindex="0"
-														onkeydown={(e) => {
-															if (e.key === 'Enter' || e.key === ' ') {
-																e.preventDefault();
-																addMember(member);
-															}
-														}}
-													>
-														<UserCard
-															image={member.image}
-															role={member.role}
-															title={member.title}
-															name={`${member.firstName} ${member.lastName}`}
-														/>
-													</div>
-												{/each}
-											</div>
-										{:else if res && req.memberSearchTerm}
-											<ErrorMessage variant="info" text="Members Not Found" />
-										{/if}
-									{/await}
-								</div>
-							</div>
 							<div class="flex items-center gap-1 text-xs text-neutral-500">
 								<Info size={16} />
 								<p>You Are Automatically Added As A Member</p>
