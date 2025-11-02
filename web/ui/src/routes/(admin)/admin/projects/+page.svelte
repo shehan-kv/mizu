@@ -83,15 +83,21 @@
 
 	const newProjectDialog = createDialogState();
 	const projectStatusDialog = createDialogState();
+	const projectDeleteDialog = createDialogState();
 
 	type ProjectStatus = 'started' | 'paused' | 'cancelled' | 'completed';
-	type SelectedProject = Project & { action: ProjectStatus };
+	type SelectedProject = Project & { action?: ProjectStatus };
 
 	let selectedProject: SelectedProject | null = $state(null);
 
 	function openStatusDialog(project: Project, action: ProjectStatus) {
 		selectedProject = { ...project, action };
 		projectStatusDialog.open();
+	}
+
+	function openDeleteDialog(project: Project) {
+		selectedProject = { ...project };
+		projectDeleteDialog.open();
 	}
 </script>
 
@@ -245,7 +251,10 @@
 															{/if}
 														</DropdownMenu.Group>
 														<DropdownMenu.Separator />
-														<DropdownMenu.Item class="py-2">
+														<DropdownMenu.Item
+															class="py-2"
+															onclick={() => openDeleteDialog(project)}
+														>
 															<Trash />Delete
 														</DropdownMenu.Item>
 													</DropdownMenu.Content>
@@ -287,10 +296,18 @@
 <Dialog.NewProject bind:open={newProjectDialog.isOpen} onSuccess={loadProjects} />
 
 {#if selectedProject}
-	<Dialog.ProjectStatusConfirm
-		bind:open={projectStatusDialog.isOpen}
-		status={selectedProject.action}
+	<Dialog.ProjectDeleteDialog
+		bind:open={projectDeleteDialog.isOpen}
 		projectId={selectedProject.id}
 		onSuccess={loadProjects}
 	/>
+
+	{#if selectedProject.action}
+		<Dialog.ProjectStatusConfirm
+			bind:open={projectStatusDialog.isOpen}
+			status={selectedProject.action}
+			projectId={selectedProject.id}
+			onSuccess={loadProjects}
+		/>
+	{/if}
 {/if}

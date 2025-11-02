@@ -441,3 +441,32 @@ export async function markProjectCompleted(projectId: number, signal?: AbortSign
 		}
 	}
 }
+
+export async function deleteProject(projectId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}`, {
+			method: 'DELETE',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to delete project: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
