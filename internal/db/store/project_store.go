@@ -67,4 +67,6 @@ type ProjectStore interface {
 	GetCreatedMetricsByUserId(ctx context.Context, userId int64) ([]agg.ProjectMetric, error)
 
 	SetStatusById(ctx context.Context, projectId int64, status params.ProjectStatus) error
+
+	DeleteById(ctx context.Context, projectId int64) error
 }

@@ -586,3 +586,18 @@ func (q *ProjectStorePostgres) SetStatusById(
 
 	return nil
 }
+
+func (q *ProjectStorePostgres) DeleteById(ctx context.Context, projectId int64) error {
+
+	query := `
+	DELETE FROM projects
+	WHERE id = ?
+	`
+
+	_, err := q.db.ExecContext(ctx, query, projectId)
+	if err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	return nil
+}
