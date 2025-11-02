@@ -60,6 +60,7 @@ func (prjHndl *ProjectHandler) GetMux(
 	mux.Handle("POST /", mwChain.Handle(prjHndl.CreateProject))
 	mux.Handle("GET /", mwChain.Handle(prjHndl.GetProjects))
 	mux.Handle("GET /{projectId}", mwChain.Handle(prjHndl.GetOneById))
+	mux.Handle("DELETE /{projectId}", mwChain.Handle(prjHndl.DeleteById))
 	mux.Handle("POST /{projectId}/task", mwChain.Handle(prjHndl.CreateTask))
 	mux.Handle("GET /{projectId}/task", mwChain.Handle(prjHndl.GetTasksByProject))
 	mux.Handle("GET /{projectId}/task/metrics/complete", mwChain.Handle(prjHndl.GetTaskCompleteCountByProject))
@@ -419,4 +420,22 @@ func (prjHndl *ProjectHandler) SetStatusCompleted(w http.ResponseWriter, r *http
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (prjHndl *ProjectHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedPrjId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = prjHndl.prjSrv.DeleteById(r.Context(), parsedPrjId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
