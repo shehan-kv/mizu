@@ -591,7 +591,7 @@ func (q *ProjectStorePostgres) DeleteById(ctx context.Context, projectId int64) 
 
 	query := `
 	DELETE FROM projects
-	WHERE id = ?
+	WHERE id = $1
 	`
 
 	_, err := q.db.ExecContext(ctx, query, projectId)
