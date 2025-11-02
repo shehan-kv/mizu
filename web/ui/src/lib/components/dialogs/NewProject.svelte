@@ -22,7 +22,7 @@
 	import { debounce } from '$lib/utils/debounce';
 	import { getUsers, type User } from '$lib/api/users';
 	import UserCard from '../UserCard.svelte';
-	import { createProject } from '$lib/api/projects';
+	import { createProject, type ProjectStatus } from '$lib/api/projects';
 
 	interface Props {
 		open: boolean;
@@ -31,7 +31,7 @@
 
 	let { open = $bindable(), onSuccess }: Props = $props();
 
-	const statuses = [
+	const statuses: { value: ProjectStatus; label: string }[] = [
 		{ value: 'started', label: 'Started' },
 		{ value: 'paused', label: 'Paused' },
 		{ value: 'cancelled', label: 'Cancelled' },
@@ -40,7 +40,7 @@
 
 	let req = $state<{
 		name: string;
-		status: string;
+		status: ProjectStatus;
 		members: User[];
 		memberSearchTerm: string;
 	}>({

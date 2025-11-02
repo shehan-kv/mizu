@@ -8,7 +8,7 @@
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import Pagination from '$lib/components/Pagination.svelte';
-	import { getProjects, type Project } from '$lib/api/projects';
+	import { getProjects, type Project, type ProjectStatus } from '$lib/api/projects';
 	import {
 		APIBadRequestError,
 		APIForbiddenError,
@@ -85,7 +85,6 @@
 	const projectStatusDialog = createDialogState();
 	const projectDeleteDialog = createDialogState();
 
-	type ProjectStatus = 'started' | 'paused' | 'cancelled' | 'completed';
 	type SelectedProject = Project & { action?: ProjectStatus };
 
 	let selectedProject: SelectedProject | null = $state(null);

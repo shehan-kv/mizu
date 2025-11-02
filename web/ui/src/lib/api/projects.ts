@@ -9,11 +9,13 @@ import {
 	NetworkError
 } from './errors';
 
+export type ProjectStatus = 'started' | 'paused' | 'cancelled' | 'completed';
+
 export interface Project {
 	id: number;
 	name: string;
 	createdAt: Date;
-	status: string;
+	status: ProjectStatus;
 	totalTasks: number;
 	tasksCompleted: number;
 	totalInvoices: number;
@@ -78,7 +80,7 @@ export interface ProjectTask {
 	id: number;
 	projectId: number;
 	name: string;
-	status: string;
+	status: ProjectStatus;
 	priority: string;
 	description: string;
 	createdAt: Date;
@@ -158,7 +160,7 @@ export interface ProjectDetails {
 	id: number;
 	name: string;
 	createdAt: Date;
-	status: string;
+	status: ProjectStatus;
 	taskCount: number;
 	taskCompletedCount: number;
 	invoiceCount: number;
@@ -284,7 +286,7 @@ export async function getProjectCreatedMetrics(signal?: AbortSignal) {
 
 export interface CreateProjectParams {
 	name: string;
-	status: string;
+	status: ProjectStatus;
 	members: number[];
 }
 export async function createProject(req: CreateProjectParams, signal?: AbortSignal) {
