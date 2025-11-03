@@ -844,3 +844,47 @@ func (prjSrv *ProjectService) DeleteById(ctx context.Context, projectId int64) e
 
 	return nil
 }
+
+func (prjSrv *ProjectService) GetMembers(
+	ctx context.Context,
+	projectId int64) ([]dto.ProjectMemberResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	members, err := prjSrv.prjSt.GetMembersByProjectId(ctx, projectId)
+	if err != nil {
+		prjSrv.lg.Error("could not get project members",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.ProjectMemberResponse, len(members))
+
+	for i, v := range members {
+		resp[i] = dto.ProjectMemberResponse{
+			Id:        v.Id,
+			FirstName: v.FirstName,
+			LastName:  v.LastName,
+			Title:     v.Title,
+			Image:     v.Image,
+			Role:      v.Role,
+		}
+	}
+
+	return resp, nil
+}
