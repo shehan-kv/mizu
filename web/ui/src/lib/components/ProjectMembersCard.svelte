@@ -28,6 +28,10 @@
 		members = getProjectMembers(projectId, membersAbort.signal);
 	}
 
+	export function refresh() {
+		loadMembers();
+	}
+
 	onMount(() => {
 		loadMembers();
 	});
