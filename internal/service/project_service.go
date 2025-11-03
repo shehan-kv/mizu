@@ -888,3 +888,47 @@ func (prjSrv *ProjectService) GetMembers(
 
 	return resp, nil
 }
+
+func (prjSrv *ProjectService) SetMembers(
+	ctx context.Context,
+	projectId int64,
+	request *dto.MemberSetRequest) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		prjSrv.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = prjSrv.prjSt.DeleteMembersByProjectId(ctx, projectId)
+	if err != nil {
+		prjSrv.lg.Error("could not get delete members by project id",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = prjSrv.prjSt.AddMembers(ctx, projectId, request.Members)
+	if err != nil {
+		prjSrv.lg.Error("could not add members by project id",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	return nil
+}

@@ -61,6 +61,7 @@ func (prjHndl *ProjectHandler) GetMux(
 	mux.Handle("GET /", mwChain.Handle(prjHndl.GetProjects))
 	mux.Handle("GET /{projectId}", mwChain.Handle(prjHndl.GetOneById))
 	mux.Handle("GET /{projectId}/members", mwChain.Handle(prjHndl.GetMembers))
+	mux.Handle("PUT /{projectId}/members", mwChain.Handle(prjHndl.SetMembers))
 	mux.Handle("DELETE /{projectId}", mwChain.Handle(prjHndl.DeleteById))
 	mux.Handle("POST /{projectId}/task", mwChain.Handle(prjHndl.CreateTask))
 	mux.Handle("GET /{projectId}/task", mwChain.Handle(prjHndl.GetTasksByProject))
@@ -458,4 +459,34 @@ func (prjHndl *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (prjHndl *ProjectHandler) SetMembers(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("projectId")
+	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedPrjId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var setRequest dto.MemberSetRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&setRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if ok := setRequest.Validate(); !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = prjHndl.prjSrv.SetMembers(r.Context(), parsedPrjId, &setRequest)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
