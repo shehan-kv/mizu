@@ -69,4 +69,6 @@ type ProjectStore interface {
 	SetStatusById(ctx context.Context, projectId int64, status params.ProjectStatus) error
 
 	DeleteById(ctx context.Context, projectId int64) error
+
+	DeleteMembersByProjectId(ctx context.Context, projectId int64) error
 }

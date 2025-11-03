@@ -601,3 +601,18 @@ func (q *ProjectStorePostgres) DeleteById(ctx context.Context, projectId int64) 
 
 	return nil
 }
+
+func (q *ProjectStorePostgres) DeleteMembersByProjectId(ctx context.Context, projectId int64) error {
+
+	query := `
+	DELETE FROM project_users
+	WHERE project_id = $1
+	`
+
+	_, err := q.db.ExecContext(ctx, query, projectId)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}

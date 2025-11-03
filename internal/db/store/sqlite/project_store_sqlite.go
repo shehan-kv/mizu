@@ -590,3 +590,18 @@ func (q *ProjectStoreSqlite) DeleteById(ctx context.Context, projectId int64) er
 
 	return nil
 }
+
+func (q *ProjectStoreSqlite) DeleteMembersByProjectId(ctx context.Context, projectId int64) error {
+
+	query := `
+	DELETE FROM project_users
+	WHERE project_id = ?
+	`
+
+	_, err := q.db.ExecContext(ctx, query, projectId)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}
