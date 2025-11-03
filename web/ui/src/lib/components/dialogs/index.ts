@@ -8,6 +8,7 @@ import NewChangeRequest from './NewChangeRequest.svelte';
 import NewProject from './NewProject.svelte';
 import ProjectStatusConfirm from './ProjectStatusConfirm.svelte';
 import ProjectDeleteDialog from './ProjectDeleteDialog.svelte';
+import ManageMembers from './ManageMembers.svelte';
 
 export {
 	NewChangeRequest,
@@ -19,5 +20,6 @@ export {
 	ChannelKanban,
 	NewProject,
 	ProjectStatusConfirm,
-	ProjectDeleteDialog
+	ProjectDeleteDialog,
+	ManageMembers
 };
