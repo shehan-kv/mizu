@@ -616,3 +616,40 @@ func (q *ProjectStorePostgres) DeleteMembersByProjectId(ctx context.Context, pro
 
 	return nil
 }
+
+func (q *ProjectStorePostgres) AddMembers(ctx context.Context, projectId int64, members []int64) error {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	INSERT INTO project_users(project_id, user_id)
+	VALUES
+	`)
+
+	queryArgs := []any{}
+	paramCount := 0
+
+	for i, v := range members {
+		if i > 0 {
+			query.WriteString(",")
+		}
+
+		paramCount++
+		query.WriteString(" ($")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		paramCount++
+		query.WriteString(",$")
+		query.WriteString(strconv.Itoa(paramCount))
+		query.WriteString(")")
+
+		queryArgs = append(queryArgs, projectId, v)
+	}
+
+	_, err := q.db.ExecContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}
