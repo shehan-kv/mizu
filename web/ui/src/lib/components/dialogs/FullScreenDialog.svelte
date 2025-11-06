@@ -2,10 +2,15 @@
 	import { Dialog } from 'bits-ui';
 	import X from 'phosphor-svelte/lib/X';
 
-	let { open = $bindable(), children } = $props();
+	interface Props {
+		open: boolean;
+		onOpenChange?: (state: boolean) => any;
+		children: any;
+	}
+	let { open = $bindable(), children, onOpenChange }: Props = $props();
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open {onOpenChange}>
 	<Dialog.Portal>
 		<Dialog.Overlay
 			class="data-[state=open]:animate-in data-[state=closed]:animate-out 
