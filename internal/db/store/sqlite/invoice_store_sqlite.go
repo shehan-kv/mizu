@@ -54,7 +54,6 @@ func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, userId int64, arg *p
 		arg.Note).Scan(&invoiceId)
 
 	if err != nil {
-
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
 				return 0, store.ErrForeignKeyViolation
@@ -70,7 +69,7 @@ func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, userId int64, arg *p
 
 	insertItem := `
 	INSERT INTO invoice_items(
-		invoice_id, description, qty, unit_price, unit_tax, tax_type, unit_discount, discount_type, tax, discount, total)
+		invoice_id, description, qty, unit_price, unit_tax, tax_type, unit_discount, discount_type, total_tax, total_discount, total)
 	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 

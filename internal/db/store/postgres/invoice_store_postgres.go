@@ -70,21 +70,23 @@ func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, userId int64, arg 
 
 	insertItem := `
 	INSERT INTO invoice_items(
-		invoice_id, description, qty, unit_price, tax, tax_type, discount, discount_type, total)
-	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		invoice_id, description, qty, unit_price, unit_tax, tax_type, unit_discount, discount_type, total_tax, total_discount, total)
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
 	for _, item := range arg.Items {
 		if _, err = tx.ExecContext(ctx, insertItem,
 			invoiceId,
 			item.Description,
-			item.Qty,
-			item.UnitPrice,
-			item.Tax,
+			item.Qty.String(),
+			item.UnitPrice.String(),
+			item.UnitTax.String(),
 			item.TaxType,
-			item.Discount,
+			item.UnitDiscount.String(),
 			item.DiscountType,
-			item.Total); err != nil {
+			item.Tax.String(),
+			item.Discount.String(),
+			item.Total.String()); err != nil {
 
 			if err, ok := err.(*pq.Error); ok {
 				if err.Code.Name() == "not_null_violation" {
