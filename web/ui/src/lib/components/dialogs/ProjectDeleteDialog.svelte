@@ -1,21 +1,13 @@
 <script lang="ts">
 	import {
 		APIBadRequestError,
-		APIConflictError,
 		APIError,
 		APIForbiddenError,
 		APINotFoundError,
 		APIServerError,
 		NetworkError
 	} from '$lib/api/errors';
-	import {
-		deleteProject,
-		markProjectCancelled,
-		markProjectCompleted,
-		markProjectPaused,
-		markProjectStarted
-	} from '$lib/api/projects';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { deleteProject } from '$lib/api/projects';
 	import { Dialog } from 'bits-ui';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import X from 'phosphor-svelte/lib/X';

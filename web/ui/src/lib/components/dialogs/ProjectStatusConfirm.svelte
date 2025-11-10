@@ -8,7 +8,6 @@
 		APIServerError,
 		NetworkError
 	} from '$lib/api/errors';
-	import { getInvoicesByProjectId } from '$lib/api/invoices';
 	import {
 		markProjectCancelled,
 		markProjectCompleted,

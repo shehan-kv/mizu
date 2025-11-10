@@ -2,7 +2,6 @@
 	import X from 'phosphor-svelte/lib/X';
 	import { Dialog } from 'bits-ui';
 	import { createContractRevision } from '$lib/api/contracts';
-	import type { Contract } from '$lib/api/contracts';
 	import { toast } from 'svelte-sonner';
 	import {
 		APIBadRequestError,
