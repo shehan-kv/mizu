@@ -396,3 +396,54 @@ export async function getInvoiceOverview(signal?: AbortSignal) {
 	const payload = (await res.json()) as InvoiceOverview;
 	return payload;
 }
+
+export interface InvoiceItemParams {
+	description: string;
+	qty: string;
+	unitPrice: string;
+	tax: string;
+	taxType: string;
+	discount: string;
+	discountType: string;
+}
+export interface CreateInvoiceParams {
+	isInvoice: boolean;
+	status: string;
+	currencyCode: string;
+	note: string;
+	items: InvoiceItemParams[];
+}
+export async function createInvoice(
+	projectId: number,
+	req: CreateInvoiceParams,
+	signal: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/invoices/project/${projectId}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to create invoice: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
