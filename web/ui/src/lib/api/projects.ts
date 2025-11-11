@@ -544,3 +544,43 @@ export async function setProjectMembers(
 		}
 	}
 }
+
+export interface CreateTaskParams {
+	priority: 'high' | 'medium' | 'low';
+	status: 'backlog' | 'in-progress' | 'completed';
+	name: string;
+	description: string;
+	estimatedTimeMinutes: number;
+	assignees: number[];
+}
+
+export async function createTask(projectId: number, req: CreateTaskParams, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${projectId}/task`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to create task: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}

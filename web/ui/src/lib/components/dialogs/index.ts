@@ -10,6 +10,7 @@ import ProjectStatusConfirm from './ProjectStatusConfirm.svelte';
 import ProjectDeleteDialog from './ProjectDeleteDialog.svelte';
 import ManageMembers from './ManageMembers.svelte';
 import NewInvoice from './NewInvoice.svelte';
+import NewTask from './NewTask.svelte';
 
 export {
 	NewChangeRequest,
@@ -23,5 +24,6 @@ export {
 	ProjectStatusConfirm,
 	ProjectDeleteDialog,
 	ManageMembers,
-	NewInvoice
+	NewInvoice,
+	NewTask
 };
