@@ -52,17 +52,15 @@
 		requestPromise = getChangeRequestDetails(requestId, loadAbortController.signal);
 	}
 
-	// svelte-ignore non_reactive_update
-	let editor: TextEditor | null = null;
-
-	async function createEntry(content: string) {
-		if (!content) {
+	let reply = $state('');
+	async function createEntry() {
+		if (!reply) {
 			toast.error('Required Field Missing');
 			return;
 		}
 
 		try {
-			await createChangeRequestEntry(requestId, { content }, entryAbortController?.signal);
+			await createChangeRequestEntry(requestId, { content: reply }, entryAbortController?.signal);
 			toast.success('Entry Created Successfully');
 			loadRequest();
 		} catch (error) {
@@ -136,10 +134,9 @@
 							<div class="space-y-2 rounded bg-neutral-100 p-4 dark:bg-neutral-900">
 								<div class="border-b pb-2">
 									<TextEditor
-										bind:this={editor}
+										bind:value={reply}
 										autoSuggest={isAiEnabled}
 										placeholder="Write your reply here"
-										onSubmit={createEntry}
 									/>
 								</div>
 								<div class="flex items-end justify-end text-xs">
@@ -148,7 +145,7 @@
 										class="cursor-pointer rounded p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800"
 										onclick={() => (isAiEnabled = !isAiEnabled)}
 									/>
-									<SendButton onclick={() => editor?.submit()} />
+									<SendButton onclick={createEntry} />
 								</div>
 							</div>
 						{/if}

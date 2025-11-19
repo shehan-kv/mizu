@@ -33,8 +33,6 @@
 	import { toast } from 'svelte-sonner';
 
 	// svelte-ignore non_reactive_update
-	let editor: TextEditor | null = null;
-	// svelte-ignore non_reactive_update
 	let chatWindow: HTMLDivElement | null = null;
 
 	let isAiEnabled = $state(false);
@@ -345,9 +343,9 @@
 					</div>
 					<div class="grid grid-cols-[1fr_min-content]">
 						<div class="max-h-15 overflow-y-auto border-b">
-							<TextEditor bind:this={editor} autoSuggest={isAiEnabled} onSubmit={sendMessage} />
+							<TextEditor bind:value={messageToSend} autoSuggest={isAiEnabled} />
 						</div>
-						<SendButton onclick={() => editor?.submit()} />
+						<SendButton onclick={appendMessage} />
 					</div>
 				</div>
 			</div>
