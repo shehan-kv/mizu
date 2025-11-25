@@ -4,8 +4,9 @@ CREATE TABLE contract_versions (
     contract_id INTEGER NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status INTEGER NOT NULL,
-    version TEXT NOT NULL UNIQUE,
+    version TEXT NOT NULL,
     contract TEXT NOT NULL,
+    UNIQUE (contract_id, version),
     FOREIGN KEY (status) REFERENCES contract_version_statuses(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
