@@ -98,7 +98,7 @@
 		showSuggestionSpan();
 	}, 250);
 
-	function extractText() {
+	function setValue() {
 		let text = '';
 
 		if (!textInput) return text;
@@ -181,7 +181,7 @@
 		}
 
 		removeSuggestionSpan();
-		extractText();
+		setValue();
 	}
 
 	function normalizeText() {
@@ -216,7 +216,7 @@
 
 		normalizeText();
 
-		extractText();
+		setValue();
 
 		if (autoSuggest) {
 			suggest();
@@ -247,6 +247,8 @@
 				selection.addRange(range);
 			}
 		}
+
+		setValue();
 	}
 
 	onMount(() => {
