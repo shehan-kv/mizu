@@ -403,3 +403,46 @@ export async function getContractRevisions(
 	const payload = (await res.json()) as PaginatedResponse<ContractRevision>;
 	return payload;
 }
+
+export interface ContractCreateParams {
+	name: string;
+	version: string;
+	contract: string;
+}
+
+export async function createContract(
+	projectId: number,
+	req: ContractCreateParams,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/${projectId}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to create contract : ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already exists`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}

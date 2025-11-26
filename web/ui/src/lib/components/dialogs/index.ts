@@ -11,6 +11,7 @@ import ProjectDeleteDialog from './ProjectDeleteDialog.svelte';
 import ManageMembers from './ManageMembers.svelte';
 import NewInvoice from './NewInvoice.svelte';
 import NewTask from './NewTask.svelte';
+import NewContract from './NewContract.svelte';
 
 export {
 	NewChangeRequest,
@@ -25,5 +26,6 @@ export {
 	ProjectDeleteDialog,
 	ManageMembers,
 	NewInvoice,
-	NewTask
+	NewTask,
+	NewContract
 };
