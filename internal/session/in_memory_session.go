@@ -22,7 +22,7 @@ func NewInMemorySession() *InMemorySession {
 // Not-implemented.
 // Not required for the in-memory session management
 // Added to comply with the interface
-func (ims *InMemorySession) Init() {
+func (s *InMemorySession) Init() {
 }
 
 // Adds a session to the in-memory store
@@ -33,9 +33,9 @@ func (ims *InMemorySession) Init() {
 //
 // Returns:
 //   - nil as error for this implementation, for compliance with the interface
-func (ims *InMemorySession) SetSession(key string, userId int64) error {
+func (s *InMemorySession) SetSession(key string, userId int64) error {
 
-	ims.sessions.Store(key, Session{UserId: userId, IssuedAt: time.Now()})
+	s.sessions.Store(key, Session{UserId: userId, IssuedAt: time.Now()})
 	return nil
 }
 
@@ -48,9 +48,9 @@ func (ims *InMemorySession) SetSession(key string, userId int64) error {
 //   - *Session: if session is found
 //   - ErrNotFound: if session not found
 //   - ErrInvalidType: if type is invalid
-func (ims *InMemorySession) GetSession(key string) (*Session, error) {
+func (s *InMemorySession) GetSession(key string) (*Session, error) {
 
-	value, ok := ims.sessions.Load(key)
+	value, ok := s.sessions.Load(key)
 	if !ok {
 		return &Session{}, ErrNotFound
 	}
@@ -71,15 +71,15 @@ func (ims *InMemorySession) GetSession(key string) (*Session, error) {
 //
 // Returns:
 //   - nil, this implementation doesn't cause errors
-func (ims *InMemorySession) RevokeSession(key string) error {
+func (s *InMemorySession) RevokeSession(key string) error {
 
-	ims.sessions.Delete(key)
+	s.sessions.Delete(key)
 	return nil
 }
 
 // Not-implemented.
 // Not required for the in-memory session management
 // Added to comply with the interface
-func (ims *InMemorySession) Close() {
+func (s *InMemorySession) Close() {
 
 }

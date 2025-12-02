@@ -16,13 +16,13 @@ import (
 // ChangeRequestHandler provides HTTP handlers
 // for change-request related endpoints.
 type ChangeRequestHandler struct {
-	chngReqSrv *service.ChangeRequestService
+	srv *service.ChangeRequestService
 }
 
 // NewChangeRequestHandler constructs a new ChangeRequestHandler.
-func NewChangeRequestHandler(chngReqSrv *service.ChangeRequestService) *ChangeRequestHandler {
+func NewChangeRequestHandler(srv *service.ChangeRequestService) *ChangeRequestHandler {
 	return &ChangeRequestHandler{
-		chngReqSrv: chngReqSrv,
+		srv: srv,
 	}
 }
 
@@ -37,7 +37,7 @@ func NewChangeRequestHandler(chngReqSrv *service.ChangeRequestService) *ChangeRe
 //
 // Returns:
 //   - a *http.ServeMux
-func (chngReqHndl *ChangeRequestHandler) GetMux(
+func (h *ChangeRequestHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -49,19 +49,19 @@ func (chngReqHndl *ChangeRequestHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /", mwChain.Handle(chngReqHndl.GetAllBySignedInUser))
-	mux.Handle("POST /{projectId}", mwChain.Handle(chngReqHndl.CreateRequest))
-	mux.Handle("GET /{requestId}", mwChain.Handle(chngReqHndl.GetById))
-	mux.Handle("POST /entry/{requestId}", mwChain.Handle(chngReqHndl.CreateEntry))
-	mux.Handle("POST /close/{requestId}", mwChain.Handle(chngReqHndl.CloseById))
+	mux.Handle("GET /", mwChain.Handle(h.GetAllBySignedInUser))
+	mux.Handle("POST /{projectId}", mwChain.Handle(h.CreateRequest))
+	mux.Handle("GET /{requestId}", mwChain.Handle(h.GetById))
+	mux.Handle("POST /entry/{requestId}", mwChain.Handle(h.CreateEntry))
+	mux.Handle("POST /close/{requestId}", mwChain.Handle(h.CloseById))
 
 	// eg, /change-requests/project/{projectId}
-	mux.Handle("GET /project/{projectId}", mwChain.Handle(chngReqHndl.GetAllByProject))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(h.GetAllByProject))
 
 	return mux
 }
 
-func (chngReqHndl *ChangeRequestHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
+func (h *ChangeRequestHandler) CreateRequest(w http.ResponseWriter, r *http.Request) {
 
 	prjId := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(prjId, 10, 64)
@@ -82,7 +82,7 @@ func (chngReqHndl *ChangeRequestHandler) CreateRequest(w http.ResponseWriter, r 
 		return
 	}
 
-	err = chngReqHndl.chngReqSrv.Create(r.Context(), parsedPrjId, &createRequest)
+	err = h.srv.Create(r.Context(), parsedPrjId, &createRequest)
 
 	if err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
@@ -97,7 +97,7 @@ func (chngReqHndl *ChangeRequestHandler) CreateRequest(w http.ResponseWriter, r 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (chngReqHndl *ChangeRequestHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
+func (h *ChangeRequestHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 
 	reqId := r.PathValue("requestId")
 	parsedReqId, err := strconv.ParseInt(reqId, 10, 64)
@@ -118,7 +118,7 @@ func (chngReqHndl *ChangeRequestHandler) CreateEntry(w http.ResponseWriter, r *h
 		return
 	}
 
-	err = chngReqHndl.chngReqSrv.CreateEntry(r.Context(), parsedReqId, &createRequest)
+	err = h.srv.CreateEntry(r.Context(), parsedReqId, &createRequest)
 
 	if err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
@@ -138,7 +138,7 @@ func (chngReqHndl *ChangeRequestHandler) CreateEntry(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (chngReqHndl *ChangeRequestHandler) GetAllByProject(w http.ResponseWriter, r *http.Request) {
+func (h *ChangeRequestHandler) GetAllByProject(w http.ResponseWriter, r *http.Request) {
 
 	prjId := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(prjId, 10, 64)
@@ -177,7 +177,7 @@ func (chngReqHndl *ChangeRequestHandler) GetAllByProject(w http.ResponseWriter, 
 		limit = parsedLimit
 	}
 
-	result, err := chngReqHndl.chngReqSrv.GetAllByProject(r.Context(), parsedPrjId, &dto.ChangeReqSearch{
+	result, err := h.srv.GetAllByProject(r.Context(), parsedPrjId, &dto.ChangeReqSearch{
 		Keyword: keyword,
 		Status:  status,
 		Page:    page,
@@ -193,7 +193,7 @@ func (chngReqHndl *ChangeRequestHandler) GetAllByProject(w http.ResponseWriter, 
 	json.NewEncoder(w).Encode(result)
 }
 
-func (chngReqHndl *ChangeRequestHandler) CloseById(w http.ResponseWriter, r *http.Request) {
+func (h *ChangeRequestHandler) CloseById(w http.ResponseWriter, r *http.Request) {
 
 	reqId := r.PathValue("requestId")
 	parsedReqId, err := strconv.ParseInt(reqId, 10, 64)
@@ -202,7 +202,7 @@ func (chngReqHndl *ChangeRequestHandler) CloseById(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err = chngReqHndl.chngReqSrv.CloseById(r.Context(), parsedReqId)
+	err = h.srv.CloseById(r.Context(), parsedReqId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -216,7 +216,7 @@ func (chngReqHndl *ChangeRequestHandler) CloseById(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusOK)
 }
 
-func (chngReqHndl *ChangeRequestHandler) GetById(w http.ResponseWriter, r *http.Request) {
+func (h *ChangeRequestHandler) GetById(w http.ResponseWriter, r *http.Request) {
 
 	reqId := r.PathValue("requestId")
 	parsedReqId, err := strconv.ParseInt(reqId, 10, 64)
@@ -225,7 +225,7 @@ func (chngReqHndl *ChangeRequestHandler) GetById(w http.ResponseWriter, r *http.
 		return
 	}
 
-	result, err := chngReqHndl.chngReqSrv.GetById(r.Context(), parsedReqId)
+	result, err := h.srv.GetById(r.Context(), parsedReqId)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -236,7 +236,7 @@ func (chngReqHndl *ChangeRequestHandler) GetById(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(result)
 }
 
-func (chngReqHndl *ChangeRequestHandler) GetAllBySignedInUser(w http.ResponseWriter, r *http.Request) {
+func (h *ChangeRequestHandler) GetAllBySignedInUser(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("q")
 	status := r.URL.Query().Get("status")
@@ -268,7 +268,7 @@ func (chngReqHndl *ChangeRequestHandler) GetAllBySignedInUser(w http.ResponseWri
 		limit = parsedLimit
 	}
 
-	result, err := chngReqHndl.chngReqSrv.GetAllBySignedInUser(r.Context(), &dto.ChangeReqSearch{
+	result, err := h.srv.GetAllBySignedInUser(r.Context(), &dto.ChangeReqSearch{
 		Keyword: keyword,
 		Status:  status,
 		Page:    page,

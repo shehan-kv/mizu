@@ -18,18 +18,18 @@ import (
 // Uses a MessageService to perform
 // message operations
 type MessageHandler struct {
-	msgSrv *service.MessageService
+	srv *service.MessageService
 }
 
 // Creates a new instance of MessageHandler
 //
 // Parameters:
-//   - msgSrv: a pointer to a MessageService
+//   - srv: a pointer to a MessageService
 //
 // Returns:
 //   - a pointer to a new MessageHandler
-func NewMessageHandler(msgSrv *service.MessageService) *MessageHandler {
-	return &MessageHandler{msgSrv: msgSrv}
+func NewMessageHandler(srv *service.MessageService) *MessageHandler {
+	return &MessageHandler{srv: srv}
 }
 
 // Creates a ServeMux for message routes and middleware.
@@ -43,7 +43,7 @@ func NewMessageHandler(msgSrv *service.MessageService) *MessageHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (msgHndl *MessageHandler) GetMux(lg logger.Logger,
+func (h *MessageHandler) GetMux(lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
 
@@ -54,10 +54,10 @@ func (msgHndl *MessageHandler) GetMux(lg logger.Logger,
 
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /{channelId}", mwChain.Handle(msgHndl.CreateMessage))
-	mux.Handle("GET /{channelId}", mwChain.Handle(msgHndl.GetMessages))
-	mux.Handle("GET /channels", mwChain.Handle(msgHndl.GetChannels))
-	mux.Handle("GET /members/{channelId}", mwChain.Handle(msgHndl.GetMembersByChannel))
+	mux.Handle("POST /{channelId}", mwChain.Handle(h.CreateMessage))
+	mux.Handle("GET /{channelId}", mwChain.Handle(h.GetMessages))
+	mux.Handle("GET /channels", mwChain.Handle(h.GetChannels))
+	mux.Handle("GET /members/{channelId}", mwChain.Handle(h.GetMembersByChannel))
 
 	return mux
 }
@@ -71,7 +71,7 @@ func (msgHndl *MessageHandler) GetMux(lg logger.Logger,
 //   - 400 BadRequest – Invalid input or user doesn't exist in the database
 //   - 500 InternalServerError - Server error
 //   - 201 OK - Created successfully
-func (msgHndl *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
+func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 
 	channelId := r.PathValue("channelId")
 	parsedChId, err := strconv.ParseInt(channelId, 10, 64)
@@ -91,7 +91,7 @@ func (msgHndl *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	resp, err := msgHndl.msgSrv.CreateMessage(r.Context(), parsedChId, &createRequest)
+	resp, err := h.srv.CreateMessage(r.Context(), parsedChId, &createRequest)
 	if err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -125,7 +125,7 @@ func (msgHndl *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Requ
 // If the channelId is missing or invalid, HTTP 400 BadRequest is returned.
 // If user doesn't have access to channel, HTTP 401 Unauthorized is returned.
 // If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (msgHndl *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
+func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 
 	strPage := r.URL.Query().Get("page")
 	strLimit := r.URL.Query().Get("limit")
@@ -162,7 +162,7 @@ func (msgHndl *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp, err := msgHndl.msgSrv.GetMessages(r.Context(), parsedChId, &dto.MessageSearchQuery{
+	resp, err := h.srv.GetMessages(r.Context(), parsedChId, &dto.MessageSearchQuery{
 		Page:  page,
 		Limit: limit,
 	})
@@ -180,9 +180,9 @@ func (msgHndl *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (msgHndl *MessageHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
+func (h *MessageHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
 
-	result, err := msgHndl.msgSrv.GetChannels(r.Context())
+	result, err := h.srv.GetChannels(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -192,7 +192,7 @@ func (msgHndl *MessageHandler) GetChannels(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(result)
 }
 
-func (msgHndl *MessageHandler) GetMembersByChannel(w http.ResponseWriter, r *http.Request) {
+func (h *MessageHandler) GetMembersByChannel(w http.ResponseWriter, r *http.Request) {
 
 	channelId := r.PathValue("channelId")
 	parsedChId, err := strconv.ParseInt(channelId, 10, 64)
@@ -201,7 +201,7 @@ func (msgHndl *MessageHandler) GetMembersByChannel(w http.ResponseWriter, r *htt
 		return
 	}
 
-	result, err := msgHndl.msgSrv.GetMembersByChannel(r.Context(), parsedChId)
+	result, err := h.srv.GetMembersByChannel(r.Context(), parsedChId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

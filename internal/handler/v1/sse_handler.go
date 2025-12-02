@@ -14,7 +14,7 @@ import (
 // Uses an SseSender to to perform
 // SSE operations
 type SseHandler struct {
-	sseSndr *sse.SseSender
+	sender *sse.SseSender
 }
 
 // Creates a new instance of SseHandler
@@ -24,9 +24,9 @@ type SseHandler struct {
 //
 // Returns:
 //   - a pointer to a new SseHandler
-func NewSseHandler(sseSndr *sse.SseSender) *SseHandler {
+func NewSseHandler(sender *sse.SseSender) *SseHandler {
 	return &SseHandler{
-		sseSndr: sseSndr,
+		sender: sender,
 	}
 }
 
@@ -41,7 +41,7 @@ func NewSseHandler(sseSndr *sse.SseSender) *SseHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (sseHndl *SseHandler) GetMux(
+func (h *SseHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -51,7 +51,7 @@ func (sseHndl *SseHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /", mwChain.Handle(sseHndl.Events))
+	mux.Handle("GET /", mwChain.Handle(h.Events))
 
 	return mux
 }
@@ -62,7 +62,7 @@ func (sseHndl *SseHandler) GetMux(
 //
 // Possible Response Codes:
 //   - 500 InternalServerError - Server error
-func (sseHndl *SseHandler) Events(w http.ResponseWriter, r *http.Request) {
+func (h *SseHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -80,14 +80,14 @@ func (sseHndl *SseHandler) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch := sseHndl.sseSndr.AddClient(r.RemoteAddr, user.Id)
+	ch := h.sender.AddClient(r.RemoteAddr, user.Id)
 
 	disconnected := r.Context().Done()
 
 	for {
 		select {
 		case <-disconnected:
-			sseHndl.sseSndr.RemoveClient(r.RemoteAddr, user.Id)
+			h.sender.RemoveClient(r.RemoteAddr, user.Id)
 			return
 
 		case msg := <-ch:

@@ -18,7 +18,7 @@ import (
 // Holds info and methods needed to connect
 // to databases
 type DbConn struct {
-	logger     logger.Logger
+	lg         logger.Logger
 	sqlDb      *sql.DB
 	dbEngine   string
 	connString string
@@ -32,51 +32,51 @@ type DbConn struct {
 // Returns:
 //   - *DbConn
 func New(l logger.Logger) *DbConn {
-	return &DbConn{logger: l}
+	return &DbConn{lg: l}
 }
 
 // Initializes the database connection based on the DB_DRIVER
 // and DB_CONNECTION_STRING environment variables.
 // Runs migrations once connected.
-func (dbs *DbConn) Init() {
-	dbs.dbEngine = strings.TrimSpace(strings.ToLower(os.Getenv("DB_DRIVER")))
-	dbs.connString = strings.TrimSpace(strings.ToLower(os.Getenv("DB_CONNECTION_STRING")))
+func (d *DbConn) Init() {
+	d.dbEngine = strings.TrimSpace(strings.ToLower(os.Getenv("DB_DRIVER")))
+	d.connString = strings.TrimSpace(strings.ToLower(os.Getenv("DB_CONNECTION_STRING")))
 
-	switch dbs.dbEngine {
+	switch d.dbEngine {
 	case "sqlite":
-		dbs.logger.Info("SQLite selected")
+		d.lg.Info("SQLite selected")
 
-		if dbs.connString == "" {
-			dbs.logger.Info("SQLite connection string not found")
-			dbs.logger.Info("Using default SQLite database")
-			dbs.sqlDb = dbs.connectToSQL("sqlite3", "file:mizu.db")
+		if d.connString == "" {
+			d.lg.Info("SQLite connection string not found")
+			d.lg.Info("Using default SQLite database")
+			d.sqlDb = d.connectToSQL("sqlite3", "file:mizu.db")
 		}
 
-		dbs.logger.Info("SQLite connection string found")
-		dbs.sqlDb = dbs.connectToSQL("sqlite3", dbs.connString)
+		d.lg.Info("SQLite connection string found")
+		d.sqlDb = d.connectToSQL("sqlite3", d.connString)
 
 		// Run migrations
-		migrations.MigrateSQLite(dbs.sqlDb, dbs.logger)
+		migrations.MigrateSQLite(d.sqlDb, d.lg)
 
 	case "postgres":
-		dbs.logger.Info("PostgreSQL selected")
-		if dbs.connString == "" {
-			dbs.logger.Fatal("PostgreSQL connection string not found")
+		d.lg.Info("PostgreSQL selected")
+		if d.connString == "" {
+			d.lg.Fatal("PostgreSQL connection string not found")
 		}
 
-		dbs.sqlDb = dbs.connectToSQL("postgres", dbs.connString)
+		d.sqlDb = d.connectToSQL("postgres", d.connString)
 
 		// Run migrations
-		migrations.MigratePostgres(dbs.sqlDb, dbs.logger)
+		migrations.MigratePostgres(d.sqlDb, d.lg)
 
 	default:
-		dbs.logger.Info("No valid database driver selected")
-		dbs.logger.Info("Using SQLite with default settings")
+		d.lg.Info("No valid database driver selected")
+		d.lg.Info("Using SQLite with default settings")
 
-		dbs.sqlDb = dbs.connectToSQL("sqlite3", "file:mizu.db")
+		d.sqlDb = d.connectToSQL("sqlite3", "file:mizu.db")
 
 		// Run migrations
-		migrations.MigrateSQLite(dbs.sqlDb, dbs.logger)
+		migrations.MigrateSQLite(d.sqlDb, d.lg)
 	}
 }
 
@@ -88,21 +88,21 @@ func (dbs *DbConn) Init() {
 //
 // Returns:
 //   - *sql.DB
-func (store *DbConn) connectToSQL(engine string, connString string) *sql.DB {
+func (d *DbConn) connectToSQL(engine string, connString string) *sql.DB {
 
-	store.logger.Info("Connecting to database...")
+	d.lg.Info("Connecting to database...")
 
 	db, err := sql.Open(engine, connString)
 	if err != nil {
-		store.logger.Fatal("Could not open database connection, check connection string")
+		d.lg.Fatal("Could not open database connection, check connection string")
 	}
 
 	err = db.Ping()
 	if err != nil {
-		store.logger.Fatal("Could not connect to database")
+		d.lg.Fatal("Could not connect to database")
 	}
 
-	store.logger.Info("Connected to database")
+	d.lg.Info("Connected to database")
 	return db
 }
 
@@ -110,16 +110,16 @@ func (store *DbConn) connectToSQL(engine string, connString string) *sql.DB {
 //
 // Returns:
 //   - a pointer to an implementation of UserStore
-func (dbs *DbConn) NewUserStore() store.UserStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewUserStore() store.UserStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewUserStore(dbs.sqlDb)
+		return sqlite.NewUserStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewUserStore(dbs.sqlDb)
+		return postgres.NewUserStore(d.sqlDb)
 
 	default:
-		return sqlite.NewUserStore(dbs.sqlDb)
+		return sqlite.NewUserStore(d.sqlDb)
 	}
 }
 
@@ -127,16 +127,16 @@ func (dbs *DbConn) NewUserStore() store.UserStore {
 //
 // Returns:
 //   - a pointer to an implementation of ProjectStore
-func (dbs *DbConn) NewProjectStore() store.ProjectStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewProjectStore() store.ProjectStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewProjectStore(dbs.sqlDb)
+		return sqlite.NewProjectStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewProjectStore(dbs.sqlDb)
+		return postgres.NewProjectStore(d.sqlDb)
 
 	default:
-		return sqlite.NewProjectStore(dbs.sqlDb)
+		return sqlite.NewProjectStore(d.sqlDb)
 	}
 }
 
@@ -144,16 +144,16 @@ func (dbs *DbConn) NewProjectStore() store.ProjectStore {
 //
 // Returns:
 //   - a pointer to an implementation of InvoiceStore
-func (dbs *DbConn) NewInvoiceStore() store.InvoiceStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewInvoiceStore() store.InvoiceStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewInvoiceStore(dbs.sqlDb)
+		return sqlite.NewInvoiceStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewInvoiceStore(dbs.sqlDb)
+		return postgres.NewInvoiceStore(d.sqlDb)
 
 	default:
-		return sqlite.NewInvoiceStore(dbs.sqlDb)
+		return sqlite.NewInvoiceStore(d.sqlDb)
 	}
 }
 
@@ -161,16 +161,16 @@ func (dbs *DbConn) NewInvoiceStore() store.InvoiceStore {
 //
 // Returns:
 //   - a pointer to an implementation of MessageStore
-func (dbs *DbConn) NewMessagetore() store.MessageStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewMessagetore() store.MessageStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewMessageStore(dbs.sqlDb)
+		return sqlite.NewMessageStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewMessageStore(dbs.sqlDb)
+		return postgres.NewMessageStore(d.sqlDb)
 
 	default:
-		return sqlite.NewMessageStore(dbs.sqlDb)
+		return sqlite.NewMessageStore(d.sqlDb)
 	}
 }
 
@@ -178,16 +178,16 @@ func (dbs *DbConn) NewMessagetore() store.MessageStore {
 //
 // Returns:
 //   - a pointer to an implementation of ContractStore
-func (dbs *DbConn) NewContractStore() store.ContractStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewContractStore() store.ContractStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewContractStore(dbs.sqlDb)
+		return sqlite.NewContractStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewContractStore(dbs.sqlDb)
+		return postgres.NewContractStore(d.sqlDb)
 
 	default:
-		return sqlite.NewContractStore(dbs.sqlDb)
+		return sqlite.NewContractStore(d.sqlDb)
 	}
 }
 
@@ -195,16 +195,16 @@ func (dbs *DbConn) NewContractStore() store.ContractStore {
 //
 // Returns:
 //   - a pointer to an implementation of ChangeRequestStore
-func (dbs *DbConn) NewChangeRequestStore() store.ChangeRequestStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewChangeRequestStore() store.ChangeRequestStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewChangeRequestStore(dbs.sqlDb)
+		return sqlite.NewChangeRequestStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewChangeRequestStore(dbs.sqlDb)
+		return postgres.NewChangeRequestStore(d.sqlDb)
 
 	default:
-		return sqlite.NewChangeRequestStore(dbs.sqlDb)
+		return sqlite.NewChangeRequestStore(d.sqlDb)
 	}
 }
 
@@ -212,20 +212,20 @@ func (dbs *DbConn) NewChangeRequestStore() store.ChangeRequestStore {
 //
 // Returns:
 //   - a pointer to an implementation of FileStore
-func (dbs *DbConn) NewFileStore() store.FileStore {
-	switch dbs.dbEngine {
+func (d *DbConn) NewFileStore() store.FileStore {
+	switch d.dbEngine {
 	case "sqlite":
-		return sqlite.NewFileStore(dbs.sqlDb)
+		return sqlite.NewFileStore(d.sqlDb)
 
 	case "postgres":
-		return postgres.NewFileStore(dbs.sqlDb)
+		return postgres.NewFileStore(d.sqlDb)
 
 	default:
-		return sqlite.NewFileStore(dbs.sqlDb)
+		return sqlite.NewFileStore(d.sqlDb)
 	}
 }
 
 // Closes the database connection
-func (dbs *DbConn) Close() {
-	dbs.sqlDb.Close()
+func (d *DbConn) Close() {
+	d.sqlDb.Close()
 }

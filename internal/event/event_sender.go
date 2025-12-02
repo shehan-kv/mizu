@@ -33,9 +33,9 @@ func NewEventSender(sseSndr *sse.SseSender) *EventSender {
 //   - event: event name
 //   - msg: message to send
 //   - to: a list of user-Ids to send the message to
-func (n *EventSender) SendTo(event string, msg []byte, to []int64) {
+func (s *EventSender) SendTo(event string, msg []byte, to []int64) {
 
-	n.sseSndr.SendTo(event, msg, to)
+	s.sseSndr.SendTo(event, msg, to)
 }
 
 // Broadcasts a message to all connected users.
@@ -44,7 +44,7 @@ func (n *EventSender) SendTo(event string, msg []byte, to []int64) {
 // Parameters:
 //   - event: event name
 //   - msg: message to send
-func (n *EventSender) SendToAll(event string, msg []byte) {
+func (s *EventSender) SendToAll(event string, msg []byte) {
 
-	n.sseSndr.SendAll(event, msg)
+	s.sseSndr.SendAll(event, msg)
 }

@@ -18,19 +18,19 @@ import (
 // Uses an UserService to perform
 // user operations
 type UserHandler struct {
-	usrSrv *service.UserService
+	srv *service.UserService
 }
 
 // Creates a new instance of UserHandler
 //
 // Parameters:
-//   - usrSrv: a pointer to a UserService
+//   - srv: a pointer to a UserService
 //
 // Returns:
 //   - a pointer to a new UserHandler
-func NewUserHandler(usrSrv *service.UserService) *UserHandler {
+func NewUserHandler(srv *service.UserService) *UserHandler {
 	return &UserHandler{
-		usrSrv: usrSrv,
+		srv: srv,
 	}
 }
 
@@ -45,7 +45,7 @@ func NewUserHandler(usrSrv *service.UserService) *UserHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (usrHndl *UserHandler) GetMux(
+func (h *UserHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -57,11 +57,11 @@ func (usrHndl *UserHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /", mwChain.Handle(usrHndl.CreateUser))
-	mux.Handle("GET /", mwChain.Handle(usrHndl.GetAll))
-	mux.Handle("GET /self", mwChain.Handle(usrHndl.GetSelf))
-	mux.Handle("POST /verify/onboard/{token}", mwChain.Handle(usrHndl.OnboardVerify))
-	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(usrHndl.CreateVerifyRequest))
+	mux.Handle("POST /", mwChain.Handle(h.CreateUser))
+	mux.Handle("GET /", mwChain.Handle(h.GetAll))
+	mux.Handle("GET /self", mwChain.Handle(h.GetSelf))
+	mux.Handle("POST /verify/onboard/{token}", mwChain.Handle(h.OnboardVerify))
+	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(h.CreateVerifyRequest))
 
 	return mux
 }
@@ -77,7 +77,7 @@ func (usrHndl *UserHandler) GetMux(
 //   - 409 Conflict - Already exists
 //   - 500 InternalServerError - Server error
 //   - 201 OK - Created successfully
-func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	var createRequest dto.UserCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
@@ -90,7 +90,7 @@ func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := usrHndl.usrSrv.CreateUser(r.Context(), &createRequest); err != nil {
+	if err := h.srv.CreateUser(r.Context(), &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -116,7 +116,7 @@ func (usrHndl *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 //   - 400 BadRequest – Invalid input or user doesn't exist in the database
 //   - 500 InternalServerError - Server error
 //   - 201 OK - Created successfully
-func (usrHndl *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("userId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -125,7 +125,7 @@ func (usrHndl *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := usrHndl.usrSrv.CreateVerifyRequest(r.Context(), parsedId); err != nil {
+	if err := h.srv.CreateVerifyRequest(r.Context(), parsedId); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -148,7 +148,7 @@ func (usrHndl *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.R
 //   - 400 BadRequest – Invalid input or user doesn't exist in the database
 //   - 500 InternalServerError - Server error
 //   - 200 OK - Verified successfully
-func (usrHndl *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request) {
 
 	token := r.PathValue("token")
 
@@ -163,7 +163,7 @@ func (usrHndl *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err := usrHndl.usrSrv.OnboardVerify(r.Context(), token, &verifyRequest)
+	err := h.srv.OnboardVerify(r.Context(), token, &verifyRequest)
 	if err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -184,9 +184,9 @@ func (usrHndl *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request
 // Possible Response Codes:
 //   - 500 InternalServerError - Server error
 //   - 200 OK - Verified successfully
-func (usrHndl *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := usrHndl.usrSrv.GetSelf(r.Context())
+	resp, err := h.srv.GetSelf(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -196,7 +196,7 @@ func (usrHndl *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (usrHndl *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("q")
 	role := r.URL.Query().Get("role")
@@ -228,7 +228,7 @@ func (usrHndl *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		limit = parsedLimit
 	}
 
-	resp, err := usrHndl.usrSrv.GetAll(r.Context(), &dto.UserSearch{
+	resp, err := h.srv.GetAll(r.Context(), &dto.UserSearch{
 		Keyword: keyword,
 		Role:    role,
 		Page:    page,

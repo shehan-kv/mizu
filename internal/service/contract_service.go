@@ -51,7 +51,7 @@ func NewContractService(
 //   - If a request is considered invalid, it returns service.ErrBadRequest.
 //   - If the project already contains a contract by the same name, it returns service.ErrAlreadyExists.
 //   - If an internal error occurs, it returns service.ErrInternalError.
-func (contSrv *ContractService) CreateContract(
+func (s *ContractService) CreateContract(
 	ctx context.Context,
 	projectId int64,
 	request *dto.ContractCreateRequest) error {
@@ -59,7 +59,7 @@ func (contSrv *ContractService) CreateContract(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -68,7 +68,7 @@ func (contSrv *ContractService) CreateContract(
 		return ErrInternalError
 	}
 
-	result, err := contSrv.contSt.CreateOne(ctx, projectId, &params.ContractCreate{
+	result, err := s.contSt.CreateOne(ctx, projectId, &params.ContractCreate{
 		Name:     request.Name,
 		Version:  request.Version,
 		Contract: request.Contract,
@@ -76,7 +76,7 @@ func (contSrv *ContractService) CreateContract(
 
 	if err != nil {
 		if errors.Is(err, store.ErrForeignKeyViolation) {
-			contSrv.lg.Error("contract foreign key violated",
+			s.lg.Error("contract foreign key violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", correlationId,
 				"scope", "contract_service",
@@ -87,7 +87,7 @@ func (contSrv *ContractService) CreateContract(
 		}
 
 		if errors.Is(err, store.ErrUniqueViolation) {
-			contSrv.lg.Error("contract already exists in the project",
+			s.lg.Error("contract already exists in the project",
 				"event", event.EventAlreadyExists,
 				"correlation_id", correlationId,
 				"scope", "contract_service",
@@ -98,7 +98,7 @@ func (contSrv *ContractService) CreateContract(
 		}
 
 		if errors.Is(err, store.ErrNotNullViolation) {
-			contSrv.lg.Error("contract not-null constraint violated",
+			s.lg.Error("contract not-null constraint violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", correlationId,
 				"scope", "contract_service",
@@ -108,7 +108,7 @@ func (contSrv *ContractService) CreateContract(
 			return ErrBadRequest
 		}
 
-		contSrv.lg.Error("failed to create contract",
+		s.lg.Error("failed to create contract",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -124,7 +124,7 @@ func (contSrv *ContractService) CreateContract(
 
 		msgBytes, err := json.Marshal(msg)
 		if err != nil {
-			contSrv.lg.Error("failed to marshal message",
+			s.lg.Error("failed to marshal message",
 				"event", event.EventInternalError,
 				"correlation_id", correlationId,
 				"scope", "contract_service",
@@ -143,11 +143,11 @@ func (contSrv *ContractService) CreateContract(
 			continue
 		}
 
-		contSrv.evtSndr.SendTo(string(event.EventMessage), msgBytes, userIDs)
+		s.evtSndr.SendTo(string(event.EventMessage), msgBytes, userIDs)
 
 	}
 
-	contSrv.lg.Info("contract created successfully",
+	s.lg.Info("contract created successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", correlationId,
 		"scope", "contract_service",
@@ -164,12 +164,12 @@ func (contSrv *ContractService) CreateContract(
 //
 //   - If the contract version is already signed, it returns service.ErrAlreadyExists
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) SignContractVersion(ctx context.Context, versionId int64) error {
+func (s *ContractService) SignContractVersion(ctx context.Context, versionId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -178,9 +178,9 @@ func (contSrv *ContractService) SignContractVersion(ctx context.Context, version
 		return ErrInternalError
 	}
 
-	isAlreadySigned, err := contSrv.contSt.SignVersion(ctx, versionId, actor.Id)
+	isAlreadySigned, err := s.contSt.SignVersion(ctx, versionId, actor.Id)
 	if err != nil {
-		contSrv.lg.Error("failed to sign contract version",
+		s.lg.Error("failed to sign contract version",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -194,9 +194,9 @@ func (contSrv *ContractService) SignContractVersion(ctx context.Context, version
 	}
 
 	// Send contract-signed emails for new signs.
-	signs, err := contSrv.contSt.GetUsersWithSignature(ctx, versionId)
+	signs, err := s.contSt.GetUsersWithSignature(ctx, versionId)
 	if err != nil {
-		contSrv.lg.Error("failed get users with signatures for contract version",
+		s.lg.Error("failed get users with signatures for contract version",
 			"event", event.EventGetFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -223,8 +223,8 @@ func (contSrv *ContractService) SignContractVersion(ctx context.Context, version
 			})
 		}
 
-		if err := contSrv.emlSndr.SendContractSigned(ctx, &emailParams); err != nil {
-			contSrv.lg.Warn("failed to send contract signed email",
+		if err := s.emlSndr.SendContractSigned(ctx, &emailParams); err != nil {
+			s.lg.Warn("failed to send contract signed email",
 				"event", event.EventEmailSendFailed,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -243,12 +243,12 @@ func (contSrv *ContractService) SignContractVersion(ctx context.Context, version
 //
 //   - If the contract version is already signed/rejected, it returns service.ErrAlreadyExists
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versionId int64) error {
+func (s *ContractService) RejectContractVersion(ctx context.Context, versionId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -257,9 +257,9 @@ func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versi
 		return ErrInternalError
 	}
 
-	isAlreadySigned, err := contSrv.contSt.RejectVersion(ctx, versionId, actor.Id)
+	isAlreadySigned, err := s.contSt.RejectVersion(ctx, versionId, actor.Id)
 	if err != nil {
-		contSrv.lg.Error("failed to reject contract version",
+		s.lg.Error("failed to reject contract version",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -273,9 +273,9 @@ func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versi
 	}
 
 	// Send contract-signed emails for new rejections.
-	signs, err := contSrv.contSt.GetUsersWithSignature(ctx, versionId)
+	signs, err := s.contSt.GetUsersWithSignature(ctx, versionId)
 	if err != nil {
-		contSrv.lg.Error("failed get users with signatures for contract version",
+		s.lg.Error("failed get users with signatures for contract version",
 			"event", event.EventGetFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -302,8 +302,8 @@ func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versi
 			})
 		}
 
-		if err := contSrv.emlSndr.SendContractRejected(ctx, &emailParams); err != nil {
-			contSrv.lg.Warn("failed to send contract rejected email",
+		if err := s.emlSndr.SendContractRejected(ctx, &emailParams); err != nil {
+			s.lg.Warn("failed to send contract rejected email",
 				"event", event.EventEmailSendFailed,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -321,7 +321,7 @@ func (contSrv *ContractService) RejectContractVersion(ctx context.Context, versi
 //
 //   - If request is considered invalid, it returns service.ErrBadRequest
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) CreateRevision(
+func (s *ContractService) CreateRevision(
 	ctx context.Context,
 	contractId int64,
 	request *dto.RevisionCreateRequest) error {
@@ -329,7 +329,7 @@ func (contSrv *ContractService) CreateRevision(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -338,7 +338,7 @@ func (contSrv *ContractService) CreateRevision(
 		return ErrInternalError
 	}
 
-	err = contSrv.contSt.CreateRevision(ctx, &params.ContractRevisionCreate{
+	err = s.contSt.CreateRevision(ctx, &params.ContractRevisionCreate{
 		ContractId:  contractId,
 		UserId:      actor.Id,
 		Title:       request.Title,
@@ -347,7 +347,7 @@ func (contSrv *ContractService) CreateRevision(
 
 	if err != nil {
 		if errors.Is(err, store.ErrForeignKeyViolation) {
-			contSrv.lg.Error("contract revision foreign key violated",
+			s.lg.Error("contract revision foreign key violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", correlationId,
 				"scope", "contract_service",
@@ -359,7 +359,7 @@ func (contSrv *ContractService) CreateRevision(
 
 		if errors.Is(err, store.ErrNotNullViolation) {
 			if errors.Is(err, store.ErrNotNullViolation) {
-				contSrv.lg.Error("contract revision not-null constraint violated",
+				s.lg.Error("contract revision not-null constraint violated",
 					"event", event.EventCreateFailed,
 					"correlation_id", correlationId,
 					"scope", "contract_service",
@@ -370,7 +370,7 @@ func (contSrv *ContractService) CreateRevision(
 			}
 		}
 
-		contSrv.lg.Error("failed to create contract revision",
+		s.lg.Error("failed to create contract revision",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -389,12 +389,12 @@ func (contSrv *ContractService) CreateRevision(
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) AcceptRevision(ctx context.Context, revisionId int64) error {
+func (s *ContractService) AcceptRevision(ctx context.Context, revisionId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -403,8 +403,8 @@ func (contSrv *ContractService) AcceptRevision(ctx context.Context, revisionId i
 		return ErrInternalError
 	}
 
-	if err := contSrv.contSt.AcceptRevision(ctx, revisionId, actor.Id); err != nil {
-		contSrv.lg.Error("failed to accept contract revision",
+	if err := s.contSt.AcceptRevision(ctx, revisionId, actor.Id); err != nil {
+		s.lg.Error("failed to accept contract revision",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -422,11 +422,11 @@ func (contSrv *ContractService) AcceptRevision(ctx context.Context, revisionId i
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) RejectRevision(ctx context.Context, revisionId int64) error {
+func (s *ContractService) RejectRevision(ctx context.Context, revisionId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -435,8 +435,8 @@ func (contSrv *ContractService) RejectRevision(ctx context.Context, revisionId i
 		return ErrInternalError
 	}
 
-	if err := contSrv.contSt.RejectRevision(ctx, revisionId, actor.Id); err != nil {
-		contSrv.lg.Error("failed to reject contract revision",
+	if err := s.contSt.RejectRevision(ctx, revisionId, actor.Id); err != nil {
+		s.lg.Error("failed to reject contract revision",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -456,7 +456,7 @@ func (contSrv *ContractService) RejectRevision(ctx context.Context, revisionId i
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) GetRevisions(
+func (s *ContractService) GetRevisions(
 	ctx context.Context,
 	contractId int64,
 	query *dto.RevisionSearchQuery) (*common.Page[[]dto.RevisionResponse], error) {
@@ -464,7 +464,7 @@ func (contSrv *ContractService) GetRevisions(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -476,7 +476,7 @@ func (contSrv *ContractService) GetRevisions(
 		return nil, ErrInternalError
 	}
 
-	revisions, err := contSrv.contSt.GetRevisions(ctx, contractId, &params.ContractRevisionSearch{
+	revisions, err := s.contSt.GetRevisions(ctx, contractId, &params.ContractRevisionSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
@@ -484,7 +484,7 @@ func (contSrv *ContractService) GetRevisions(
 	})
 
 	if err != nil {
-		contSrv.lg.Error("could not get revision list",
+		s.lg.Error("could not get revision list",
 			"event", event.EventGetFailed,
 			"scope", "contract_service",
 			"correlation_id", correlationId,
@@ -538,7 +538,7 @@ func (contSrv *ContractService) GetRevisions(
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (contSrv *ContractService) GetContractsByProject(
+func (s *ContractService) GetContractsByProject(
 	ctx context.Context,
 	projectId int64,
 	query *dto.ContractSearchQuery) (*common.Page[[]dto.ContractStatsResponse], error) {
@@ -546,7 +546,7 @@ func (contSrv *ContractService) GetContractsByProject(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -558,7 +558,7 @@ func (contSrv *ContractService) GetContractsByProject(
 		return nil, ErrInternalError
 	}
 
-	contracts, err := contSrv.contSt.GetContractStatsByProject(ctx, projectId, &params.ContractSearch{
+	contracts, err := s.contSt.GetContractStatsByProject(ctx, projectId, &params.ContractSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
@@ -566,7 +566,7 @@ func (contSrv *ContractService) GetContractsByProject(
 	})
 
 	if err != nil {
-		contSrv.lg.Error("could not get contracts list",
+		s.lg.Error("could not get contracts list",
 			"event", event.EventGetFailed,
 			"scope", "contract_service",
 			"correlation_id", correlationId,
@@ -603,14 +603,14 @@ func (contSrv *ContractService) GetContractsByProject(
 	return &resp, nil
 }
 
-func (contSrv *ContractService) GetVersions(
+func (s *ContractService) GetVersions(
 	ctx context.Context,
 	contractId int64) ([]dto.VersionResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -619,9 +619,9 @@ func (contSrv *ContractService) GetVersions(
 		return nil, ErrInternalError
 	}
 
-	versions, err := contSrv.contSt.GetVersionsByContractId(ctx, contractId)
+	versions, err := s.contSt.GetVersionsByContractId(ctx, contractId)
 	if err != nil {
-		contSrv.lg.Error("could not get versions by contract id",
+		s.lg.Error("could not get versions by contract id",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -646,14 +646,14 @@ func (contSrv *ContractService) GetVersions(
 	return resp, nil
 }
 
-func (contSrv *ContractService) GetVersionSignatures(
+func (s *ContractService) GetVersionSignatures(
 	ctx context.Context,
 	versionId int64) ([]dto.SignatureResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -662,9 +662,9 @@ func (contSrv *ContractService) GetVersionSignatures(
 		return nil, ErrInternalError
 	}
 
-	users, err := contSrv.contSt.GetUsersWithSignature(ctx, versionId)
+	users, err := s.contSt.GetUsersWithSignature(ctx, versionId)
 	if err != nil {
-		contSrv.lg.Error("could not get signatures by version id",
+		s.lg.Error("could not get signatures by version id",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -690,14 +690,14 @@ func (contSrv *ContractService) GetVersionSignatures(
 	return resp, nil
 }
 
-func (contSrv *ContractService) GetByCurrentUser(
+func (s *ContractService) GetByCurrentUser(
 	ctx context.Context,
 	query *dto.ContractSearchQuery) (*common.Page[[]dto.ContractStatsResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -712,9 +712,9 @@ func (contSrv *ContractService) GetByCurrentUser(
 		Limit:   query.Limit,
 	}
 
-	contracts, err := contSrv.contSt.GetByUserId(ctx, actor.Id, &search)
+	contracts, err := s.contSt.GetByUserId(ctx, actor.Id, &search)
 	if err != nil {
-		contSrv.lg.Error("could not get contracts of signed in user",
+		s.lg.Error("could not get contracts of signed in user",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -723,9 +723,9 @@ func (contSrv *ContractService) GetByCurrentUser(
 		return nil, ErrInternalError
 	}
 
-	count, err := contSrv.contSt.CountByUserId(ctx, actor.Id, &search)
+	count, err := s.contSt.CountByUserId(ctx, actor.Id, &search)
 	if err != nil {
-		contSrv.lg.Error("could not count contracts of signed in user",
+		s.lg.Error("could not count contracts of signed in user",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -757,14 +757,14 @@ func (contSrv *ContractService) GetByCurrentUser(
 	return &resp, nil
 }
 
-func (contSrv *ContractService) GetStatById(
+func (s *ContractService) GetStatById(
 	ctx context.Context,
 	contractId int64) (*dto.ContractStatsResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		contSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -772,9 +772,9 @@ func (contSrv *ContractService) GetStatById(
 		return nil, ErrInternalError
 	}
 
-	stat, err := contSrv.contSt.GetStatById(ctx, contractId)
+	stat, err := s.contSt.GetStatById(ctx, contractId)
 	if err != nil {
-		contSrv.lg.Error("could not stats by contract id",
+		s.lg.Error("could not stats by contract id",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",

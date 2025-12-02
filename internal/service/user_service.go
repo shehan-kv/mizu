@@ -52,13 +52,13 @@ func NewUserService(lg logger.Logger, usrSt store.UserStore, emlSndr email.Email
 //   - ErrAlreadyExists: if user already exists in database.
 //   - ErrBadRequest: if required fields are missing.
 //   - ErrInternalError: if internal errors occur.
-func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCreateRequest) error {
+func (s *UserService) CreateUser(ctx context.Context, request *dto.UserCreateRequest) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		usrSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -68,7 +68,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 
 	token, err := uuid.NewRandom()
 	if err != nil {
-		usrSrv.lg.Error("could not create user verify request token",
+		s.lg.Error("could not create user verify request token",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -78,7 +78,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		return ErrInternalError
 	}
 
-	userId, err := usrSrv.usrSt.Onboard(ctx, &params.UserOnboard{
+	userId, err := s.usrSt.Onboard(ctx, &params.UserOnboard{
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Title:     request.Title,
@@ -92,7 +92,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 
 	if err != nil {
 		if errors.Is(err, store.ErrUniqueViolation) {
-			usrSrv.lg.Error("user already exists",
+			s.lg.Error("user already exists",
 				"event", event.EventAlreadyExists,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -102,7 +102,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		}
 
 		if errors.Is(err, store.ErrNotNullViolation) {
-			usrSrv.lg.Error("required field not found",
+			s.lg.Error("required field not found",
 				"event", event.EventCreateFailed,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -111,7 +111,7 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 			return ErrBadRequest
 		}
 
-		usrSrv.lg.Error("could not create user",
+		s.lg.Error("could not create user",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -121,21 +121,21 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 		return ErrInternalError
 	}
 
-	usrSrv.lg.Info("user created successfully",
+	s.lg.Info("user created successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", correlationId,
 		"scope", "user_service",
 		"actor_id", actor.Id,
 		"user_id", userId)
 
-	if err := usrSrv.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
+	if err := s.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Email:     request.Email,
 		Token:     token.String(),
 	}); err != nil {
 
-		usrSrv.lg.Warn("failed to send user verify request email",
+		s.lg.Warn("failed to send user verify request email",
 			"event", event.EventEmailSendFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -158,13 +158,13 @@ func (usrSrv *UserService) CreateUser(ctx context.Context, request *dto.UserCrea
 // Returns:
 //   - ErrInternalError: if internal errors occur.
 //   - ErrBadRequest: if user not found.
-func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64) error {
+func (s *UserService) CreateVerifyRequest(ctx context.Context, userId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		usrSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -173,9 +173,9 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 		return ErrInternalError
 	}
 
-	user, err := usrSrv.usrSt.GetById(ctx, userId)
+	user, err := s.usrSt.GetById(ctx, userId)
 	if err != nil {
-		usrSrv.lg.Error("user not found to create verify request",
+		s.lg.Error("user not found to create verify request",
 			"event", event.EventNotFound,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -187,7 +187,7 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 
 	token, err := uuid.NewRandom()
 	if err != nil {
-		usrSrv.lg.Error("could not create user verify request token",
+		s.lg.Error("could not create user verify request token",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -197,13 +197,13 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 		return ErrInternalError
 	}
 
-	err = usrSrv.usrSt.CreateOnboardReq(ctx, &params.UserOnboardReqCreate{
+	err = s.usrSt.CreateOnboardReq(ctx, &params.UserOnboardReqCreate{
 		UserId:  user.Id,
 		Token:   token.String(),
 		IsValid: true,
 	})
 	if err != nil {
-		usrSrv.lg.Error("could not create user verify request",
+		s.lg.Error("could not create user verify request",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -213,21 +213,21 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 		return ErrInternalError
 	}
 
-	usrSrv.lg.Info("user verify request created successfully",
+	s.lg.Info("user verify request created successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", correlationId,
 		"scope", "user_service",
 		"user_id", user.Id,
 		"actor_id", actor.Id)
 
-	if err := usrSrv.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
+	if err := s.emlSndr.SendVerifyRequest(ctx, &emlPrms.VerifyRequest{
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Token:     token.String(),
 	}); err != nil {
 
-		usrSrv.lg.Error("failed to send verify request email",
+		s.lg.Error("failed to send verify request email",
 			"event", event.EventEmailSendFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -250,12 +250,12 @@ func (usrSrv *UserService) CreateVerifyRequest(ctx context.Context, userId int64
 // Returns:
 //   - ErrInternalError: if internal errors occur.
 //   - ErrBadRequest: if user not found.
-func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, request *dto.UserOnboardVerifyRequest) error {
+func (s *UserService) OnboardVerify(ctx context.Context, token string, request *dto.UserOnboardVerifyRequest) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		usrSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -264,10 +264,10 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 		return ErrInternalError
 	}
 
-	existingToken, err := usrSrv.usrSt.GetOnboardReqByToken(ctx, token)
+	existingToken, err := s.usrSt.GetOnboardReqByToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, store.ErrRecordNotFound) {
-			usrSrv.lg.Error("verification request token does not exist in database",
+			s.lg.Error("verification request token does not exist in database",
 				"event", event.EventNotFound,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -276,7 +276,7 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 			return ErrBadRequest
 		}
 
-		usrSrv.lg.Error("could not get verification request by token",
+		s.lg.Error("could not get verification request by token",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -287,7 +287,7 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 
 	hashedPassword, err := auth.HashPassword(request.Password)
 	if err != nil {
-		usrSrv.lg.Error("could not hash password",
+		s.lg.Error("could not hash password",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -297,11 +297,11 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 		return ErrInternalError
 	}
 
-	err = usrSrv.usrSt.OnboardVerify(ctx, &params.UserOnboardVerify{
+	err = s.usrSt.OnboardVerify(ctx, &params.UserOnboardVerify{
 		UserId:         existingToken.UserId,
 		HashedPassword: hashedPassword})
 	if err != nil {
-		usrSrv.lg.Error("could not verify user",
+		s.lg.Error("could not verify user",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -322,12 +322,12 @@ func (usrSrv *UserService) OnboardVerify(ctx context.Context, token string, requ
 // Returns:
 //   - *dto.UserSelfResponse
 //   - ErrInternalError: if internal errors occur.
-func (usrSrv *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, error) {
+func (s *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		usrSrv.lg.Error("could not get user from context",
+		s.lg.Error("could not get user from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -337,9 +337,9 @@ func (usrSrv *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, 
 		return nil, ErrInternalError
 	}
 
-	role, err := usrSrv.usrSt.GetRoleById(ctx, user.Role)
+	role, err := s.usrSt.GetRoleById(ctx, user.Role)
 	if err != nil {
-		usrSrv.lg.Error("could not get user role",
+		s.lg.Error("could not get user role",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -362,14 +362,14 @@ func (usrSrv *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, 
 	return &selfResponse, nil
 }
 
-func (usrSrv *UserService) GetAll(
+func (s *UserService) GetAll(
 	ctx context.Context,
 	query *dto.UserSearch) (*common.Page[[]dto.UserResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	user, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		usrSrv.lg.Error("could not get user from context",
+		s.lg.Error("could not get user from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -386,9 +386,9 @@ func (usrSrv *UserService) GetAll(
 		Limit:   query.Limit,
 	}
 
-	users, err := usrSrv.usrSt.GetAll(ctx, &search)
+	users, err := s.usrSt.GetAll(ctx, &search)
 	if err != nil {
-		usrSrv.lg.Error("could not get users",
+		s.lg.Error("could not get users",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -399,9 +399,9 @@ func (usrSrv *UserService) GetAll(
 		return nil, ErrInternalError
 	}
 
-	count, err := usrSrv.usrSt.CountAll(ctx, &search)
+	count, err := s.usrSt.CountAll(ctx, &search)
 	if err != nil {
-		usrSrv.lg.Error("could not get user count",
+		s.lg.Error("could not get user count",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",

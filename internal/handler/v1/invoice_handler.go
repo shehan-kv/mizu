@@ -18,19 +18,19 @@ import (
 // Uses an InvoiceService to perform
 // invoice operations
 type InvoiceHandler struct {
-	invSrv *service.InvoiceService
+	srv *service.InvoiceService
 }
 
 // Creates a new instance of InvoiceHandler
 //
 // Parameters:
-//   - invSrv: a pointer to a InvoiceService
+//   - srv: a pointer to a InvoiceService
 //
 // Returns:
 //   - a pointer to a new InvoiceHandler
-func NewInvoiceHandler(invSrv *service.InvoiceService) *InvoiceHandler {
+func NewInvoiceHandler(srv *service.InvoiceService) *InvoiceHandler {
 	return &InvoiceHandler{
-		invSrv: invSrv,
+		srv: srv,
 	}
 }
 
@@ -45,7 +45,7 @@ func NewInvoiceHandler(invSrv *service.InvoiceService) *InvoiceHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (invHndl *InvoiceHandler) GetMux(
+func (h *InvoiceHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -57,20 +57,20 @@ func (invHndl *InvoiceHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /", mwChain.Handle(invHndl.GetAllByUser))
-	mux.Handle("GET /{invoiceId}", mwChain.Handle(invHndl.GetOneById))
-	mux.Handle("POST /accept/{invoiceId}", mwChain.Handle(invHndl.AcceptById))
-	mux.Handle("POST /reject/{invoiceId}", mwChain.Handle(invHndl.RejectById))
-	mux.Handle("POST /cancel/{invoiceId}", mwChain.Handle(invHndl.CancelById))
-	mux.Handle("POST /pay/{invoiceId}", mwChain.Handle(invHndl.PayById))
-	mux.Handle("POST /quote-to-invoice/{quoteId}", mwChain.Handle(invHndl.QuoteToInvoice))
+	mux.Handle("GET /", mwChain.Handle(h.GetAllByUser))
+	mux.Handle("GET /{invoiceId}", mwChain.Handle(h.GetOneById))
+	mux.Handle("POST /accept/{invoiceId}", mwChain.Handle(h.AcceptById))
+	mux.Handle("POST /reject/{invoiceId}", mwChain.Handle(h.RejectById))
+	mux.Handle("POST /cancel/{invoiceId}", mwChain.Handle(h.CancelById))
+	mux.Handle("POST /pay/{invoiceId}", mwChain.Handle(h.PayById))
+	mux.Handle("POST /quote-to-invoice/{quoteId}", mwChain.Handle(h.QuoteToInvoice))
 
 	// eg, /invoices/project/{projectId}
-	mux.Handle("GET /project/{projectId}", mwChain.Handle(invHndl.GetInvoicesByProject))
-	mux.Handle("POST /project/{projectId}", mwChain.Handle(invHndl.CreateInvoice))
-	mux.Handle("GET /metrics/paid/{projectId}", mwChain.Handle(invHndl.GetPaidMetricsByProjectId))
-	mux.Handle("GET /metrics/paid", mwChain.Handle(invHndl.GetPaidMetricsByCurrentUser))
-	mux.Handle("GET /metrics/overview", mwChain.Handle(invHndl.GetOverview))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(h.GetInvoicesByProject))
+	mux.Handle("POST /project/{projectId}", mwChain.Handle(h.CreateInvoice))
+	mux.Handle("GET /metrics/paid/{projectId}", mwChain.Handle(h.GetPaidMetricsByProjectId))
+	mux.Handle("GET /metrics/paid", mwChain.Handle(h.GetPaidMetricsByCurrentUser))
+	mux.Handle("GET /metrics/overview", mwChain.Handle(h.GetOverview))
 
 	return mux
 }
@@ -85,7 +85,7 @@ func (invHndl *InvoiceHandler) GetMux(
 //   - 400 BadRequest – Invalid input, missing fields or constraint violations
 //   - 500 InternalServerError - Server error
 //   - 201 Created - Created successfully
-func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -106,7 +106,7 @@ func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := invHndl.invSrv.CreateInvoice(r.Context(), parsedId, &createRequest); err != nil {
+	if err := h.srv.CreateInvoice(r.Context(), parsedId, &createRequest); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -136,7 +136,7 @@ func (invHndl *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Requ
 //   - If projectId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -175,7 +175,7 @@ func (invHndl *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *ht
 		limit = parsedLimit
 	}
 
-	resp, err := invHndl.invSrv.GetInvoicesByProject(r.Context(), parsedId, &dto.InvoiceSearch{
+	resp, err := h.srv.GetInvoicesByProject(r.Context(), parsedId, &dto.InvoiceSearch{
 		Keyword: "",
 		Status:  status,
 		Type:    invType,
@@ -209,7 +209,7 @@ func (invHndl *InvoiceHandler) GetInvoicesByProject(w http.ResponseWriter, r *ht
 //   - If the request is successful, HTTP 200 is returned.
 //   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) GetAllByUser(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) GetAllByUser(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("q")
 	invType := r.URL.Query().Get("type")
@@ -242,7 +242,7 @@ func (invHndl *InvoiceHandler) GetAllByUser(w http.ResponseWriter, r *http.Reque
 		limit = parsedLimit
 	}
 
-	resp, err := invHndl.invSrv.GetAllByUser(r.Context(), &dto.InvoiceSearch{
+	resp, err := h.srv.GetAllByUser(r.Context(), &dto.InvoiceSearch{
 		Keyword: keyword,
 		Type:    invType,
 		Status:  status,
@@ -268,7 +268,7 @@ func (invHndl *InvoiceHandler) GetAllByUser(w http.ResponseWriter, r *http.Reque
 //   - If the request is successful, HTTP 200 is returned.
 //   - If invoiceId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) GetOneById(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) GetOneById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("invoiceId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -277,7 +277,7 @@ func (invHndl *InvoiceHandler) GetOneById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := invHndl.invSrv.GetOneById(r.Context(), parsedId)
+	resp, err := h.srv.GetOneById(r.Context(), parsedId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -296,7 +296,7 @@ func (invHndl *InvoiceHandler) GetOneById(w http.ResponseWriter, r *http.Request
 //   - If invoiceId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If invoice is already accepted, HTTP 409 Conflict is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) AcceptById(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) AcceptById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("invoiceId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -305,7 +305,7 @@ func (invHndl *InvoiceHandler) AcceptById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = invHndl.invSrv.AcceptById(r.Context(), parsedId)
+	err = h.srv.AcceptById(r.Context(), parsedId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -328,7 +328,7 @@ func (invHndl *InvoiceHandler) AcceptById(w http.ResponseWriter, r *http.Request
 //   - If invoiceId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If invoice is already rejected, HTTP 409 Conflict is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) RejectById(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) RejectById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("invoiceId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -337,7 +337,7 @@ func (invHndl *InvoiceHandler) RejectById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = invHndl.invSrv.RejectById(r.Context(), parsedId)
+	err = h.srv.RejectById(r.Context(), parsedId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -361,7 +361,7 @@ func (invHndl *InvoiceHandler) RejectById(w http.ResponseWriter, r *http.Request
 //   - If invoiceId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If invoice is already cancelled, HTTP 409 Conflict is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) CancelById(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) CancelById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("invoiceId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -370,7 +370,7 @@ func (invHndl *InvoiceHandler) CancelById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = invHndl.invSrv.CancelById(r.Context(), parsedId)
+	err = h.srv.CancelById(r.Context(), parsedId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -394,7 +394,7 @@ func (invHndl *InvoiceHandler) CancelById(w http.ResponseWriter, r *http.Request
 //   - If invoiceId is the ID of a quote, HTTP 400 BadRequest is returned.
 //   - If invoice is already paid, HTTP 409 Conflict is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) PayById(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) PayById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("invoiceId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -403,7 +403,7 @@ func (invHndl *InvoiceHandler) PayById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = invHndl.invSrv.PayById(r.Context(), parsedId)
+	err = h.srv.PayById(r.Context(), parsedId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -432,7 +432,7 @@ func (invHndl *InvoiceHandler) PayById(w http.ResponseWriter, r *http.Request) {
 //   - If quote is in an invalid state to be converted, HTTP 400 BadRequest is returned.
 //   - If quote is already converted, HTTP 409 Conflict is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (invHndl *InvoiceHandler) QuoteToInvoice(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) QuoteToInvoice(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("quoteId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -441,7 +441,7 @@ func (invHndl *InvoiceHandler) QuoteToInvoice(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = invHndl.invSrv.QuoteToInvoice(r.Context(), parsedId)
+	err = h.srv.QuoteToInvoice(r.Context(), parsedId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -460,7 +460,7 @@ func (invHndl *InvoiceHandler) QuoteToInvoice(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusOK)
 }
 
-func (invHndl *InvoiceHandler) GetPaidMetricsByProjectId(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) GetPaidMetricsByProjectId(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -469,7 +469,7 @@ func (invHndl *InvoiceHandler) GetPaidMetricsByProjectId(w http.ResponseWriter, 
 		return
 	}
 
-	resp, err := invHndl.invSrv.GetPaidCountByProjectId(r.Context(), parsedId)
+	resp, err := h.srv.GetPaidCountByProjectId(r.Context(), parsedId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -479,9 +479,9 @@ func (invHndl *InvoiceHandler) GetPaidMetricsByProjectId(w http.ResponseWriter, 
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (invHndl *InvoiceHandler) GetPaidMetricsByCurrentUser(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) GetPaidMetricsByCurrentUser(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := invHndl.invSrv.GetPaidMetricsByCurrentUser(r.Context())
+	resp, err := h.srv.GetPaidMetricsByCurrentUser(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -491,9 +491,9 @@ func (invHndl *InvoiceHandler) GetPaidMetricsByCurrentUser(w http.ResponseWriter
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (invHndl *InvoiceHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
+func (h *InvoiceHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := invHndl.invSrv.GetOverview(r.Context())
+	resp, err := h.srv.GetOverview(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

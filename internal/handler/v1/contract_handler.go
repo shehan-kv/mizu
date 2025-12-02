@@ -15,13 +15,13 @@ import (
 
 // ContractHandler provides HTTP handlers for contract-related endpoints.
 type ContractHandler struct {
-	contSrv *service.ContractService
+	srv *service.ContractService
 }
 
 // NewContractHandler constructs a new ContractHandler.
-func NewContractHandler(contSrv *service.ContractService) *ContractHandler {
+func NewContractHandler(srv *service.ContractService) *ContractHandler {
 	return &ContractHandler{
-		contSrv: contSrv,
+		srv: srv,
 	}
 }
 
@@ -36,7 +36,7 @@ func NewContractHandler(contSrv *service.ContractService) *ContractHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (contHndl *ContractHandler) GetMux(
+func (h *ContractHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -48,18 +48,18 @@ func (contHndl *ContractHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /", mwChain.Handle(contHndl.GetAll))
-	mux.Handle("GET /{contractId}", mwChain.Handle(contHndl.GetStatById))
-	mux.Handle("POST /{projectId}", mwChain.Handle(contHndl.CreateContract))
-	mux.Handle("GET /project/{projectId}", mwChain.Handle(contHndl.GetContractsByProject))
-	mux.Handle("POST /sign/{versionId}", mwChain.Handle(contHndl.SignContractVersion))
-	mux.Handle("POST /reject/{versionId}", mwChain.Handle(contHndl.RejectContractVersion))
-	mux.Handle("POST /revision/{contractId}", mwChain.Handle(contHndl.CreateContractRevision))
-	mux.Handle("GET /revision/{contractId}", mwChain.Handle(contHndl.GetRevisions))
-	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(contHndl.AcceptRevision))
-	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(contHndl.RejectRevision))
-	mux.Handle("GET /version/{contractId}", mwChain.Handle(contHndl.GetVersions))
-	mux.Handle("GET /version/signature/{versionId}", mwChain.Handle(contHndl.GetVersionSignatures))
+	mux.Handle("GET /", mwChain.Handle(h.GetAll))
+	mux.Handle("GET /{contractId}", mwChain.Handle(h.GetStatById))
+	mux.Handle("POST /{projectId}", mwChain.Handle(h.CreateContract))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(h.GetContractsByProject))
+	mux.Handle("POST /sign/{versionId}", mwChain.Handle(h.SignContractVersion))
+	mux.Handle("POST /reject/{versionId}", mwChain.Handle(h.RejectContractVersion))
+	mux.Handle("POST /revision/{contractId}", mwChain.Handle(h.CreateContractRevision))
+	mux.Handle("GET /revision/{contractId}", mwChain.Handle(h.GetRevisions))
+	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(h.AcceptRevision))
+	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(h.RejectRevision))
+	mux.Handle("GET /version/{contractId}", mwChain.Handle(h.GetVersions))
+	mux.Handle("GET /version/signature/{versionId}", mwChain.Handle(h.GetVersionSignatures))
 
 	return mux
 }
@@ -74,7 +74,7 @@ func (contHndl *ContractHandler) GetMux(
 //   - If request body is invalid, HTTP 400 BadRequest is returned
 //   - If contract already exists, HTTP 409 Conflict is returned
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned
-func (contHndl *ContractHandler) CreateContract(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) CreateContract(w http.ResponseWriter, r *http.Request) {
 
 	prjId := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(prjId, 10, 64)
@@ -95,7 +95,7 @@ func (contHndl *ContractHandler) CreateContract(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := contHndl.contSrv.CreateContract(r.Context(), parsedPrjId, &createRequest); err != nil {
+	if err := h.srv.CreateContract(r.Context(), parsedPrjId, &createRequest); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -122,7 +122,7 @@ func (contHndl *ContractHandler) CreateContract(w http.ResponseWriter, r *http.R
 //   - If contract version already signed, HTTP 409 Conflict is returned
 //   - If contract version is rejected, HTTP 409 Conflict is returned
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned
-func (contHndl *ContractHandler) SignContractVersion(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) SignContractVersion(w http.ResponseWriter, r *http.Request) {
 
 	versionId := r.PathValue("versionId")
 	parsedVerId, err := strconv.ParseInt(versionId, 10, 64)
@@ -131,7 +131,7 @@ func (contHndl *ContractHandler) SignContractVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	if err := contHndl.contSrv.SignContractVersion(r.Context(), parsedVerId); err != nil {
+	if err := h.srv.SignContractVersion(r.Context(), parsedVerId); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -158,7 +158,7 @@ func (contHndl *ContractHandler) SignContractVersion(w http.ResponseWriter, r *h
 //   - If contract version already signed, HTTP 409 Conflict is returned
 //   - If contract version is already rejected, HTTP 409 Conflict is returned
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned
-func (contHndl *ContractHandler) RejectContractVersion(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) RejectContractVersion(w http.ResponseWriter, r *http.Request) {
 
 	versionId := r.PathValue("versionId")
 	parsedVerId, err := strconv.ParseInt(versionId, 10, 64)
@@ -167,7 +167,7 @@ func (contHndl *ContractHandler) RejectContractVersion(w http.ResponseWriter, r 
 		return
 	}
 
-	if err := contHndl.contSrv.RejectContractVersion(r.Context(), parsedVerId); err != nil {
+	if err := h.srv.RejectContractVersion(r.Context(), parsedVerId); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -192,7 +192,7 @@ func (contHndl *ContractHandler) RejectContractVersion(w http.ResponseWriter, r 
 //
 //   - If contractId is missing or invalid, HTTP 400 BadRequest is returned
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned
-func (contHndl *ContractHandler) CreateContractRevision(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) CreateContractRevision(w http.ResponseWriter, r *http.Request) {
 	contractId := r.PathValue("contractId")
 	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
 	if err != nil || parsedContractId < 0 {
@@ -212,7 +212,7 @@ func (contHndl *ContractHandler) CreateContractRevision(w http.ResponseWriter, r
 		return
 	}
 
-	err = contHndl.contSrv.CreateRevision(
+	err = h.srv.CreateRevision(
 		r.Context(),
 		parsedContractId,
 		&createRequest)
@@ -238,7 +238,7 @@ func (contHndl *ContractHandler) CreateContractRevision(w http.ResponseWriter, r
 //
 //   - If revisionId is missing or invalid, HTTP 400 BadRequest is returned
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned
-func (contHndl *ContractHandler) AcceptRevision(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) AcceptRevision(w http.ResponseWriter, r *http.Request) {
 	revisionId := r.PathValue("revisionId")
 	parsedRevisionId, err := strconv.ParseInt(revisionId, 10, 64)
 	if err != nil || parsedRevisionId < 0 {
@@ -246,7 +246,7 @@ func (contHndl *ContractHandler) AcceptRevision(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := contHndl.contSrv.AcceptRevision(r.Context(), parsedRevisionId); err != nil {
+	if err := h.srv.AcceptRevision(r.Context(), parsedRevisionId); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -262,7 +262,7 @@ func (contHndl *ContractHandler) AcceptRevision(w http.ResponseWriter, r *http.R
 //   - If contract revision is successfully rejected, HTTP 200 is returned.
 //   - If revisionId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (contHndl *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.Request) {
 	revisionId := r.PathValue("revisionId")
 	parsedRevisionId, err := strconv.ParseInt(revisionId, 10, 64)
 	if err != nil || parsedRevisionId < 0 {
@@ -270,7 +270,7 @@ func (contHndl *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := contHndl.contSrv.RejectRevision(r.Context(), parsedRevisionId); err != nil {
+	if err := h.srv.RejectRevision(r.Context(), parsedRevisionId); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -296,7 +296,7 @@ func (contHndl *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.R
 //   - If contractId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (contHndl *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Request) {
 	contractId := r.PathValue("contractId")
 	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
 	if err != nil || parsedContractId < 0 {
@@ -334,7 +334,7 @@ func (contHndl *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Req
 		limit = parsedLimit
 	}
 
-	result, err := contHndl.contSrv.GetRevisions(r.Context(), parsedContractId, &dto.RevisionSearchQuery{
+	result, err := h.srv.GetRevisions(r.Context(), parsedContractId, &dto.RevisionSearchQuery{
 		Keyword: keyword,
 		Status:  status,
 		Page:    page,
@@ -368,7 +368,7 @@ func (contHndl *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Req
 //   - If contractId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (contHndl *ContractHandler) GetContractsByProject(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetContractsByProject(w http.ResponseWriter, r *http.Request) {
 	projectId := r.PathValue("projectId")
 	parsedProjectId, err := strconv.ParseInt(projectId, 10, 64)
 	if err != nil || parsedProjectId < 0 {
@@ -406,7 +406,7 @@ func (contHndl *ContractHandler) GetContractsByProject(w http.ResponseWriter, r 
 		limit = parsedLimit
 	}
 
-	result, err := contHndl.contSrv.GetContractsByProject(
+	result, err := h.srv.GetContractsByProject(
 		r.Context(),
 		parsedProjectId,
 		&dto.ContractSearchQuery{
@@ -426,7 +426,7 @@ func (contHndl *ContractHandler) GetContractsByProject(w http.ResponseWriter, r 
 
 }
 
-func (contHndl *ContractHandler) GetVersions(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetVersions(w http.ResponseWriter, r *http.Request) {
 	contractId := r.PathValue("contractId")
 	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
 	if err != nil || parsedContractId < 0 {
@@ -434,7 +434,7 @@ func (contHndl *ContractHandler) GetVersions(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	result, err := contHndl.contSrv.GetVersions(r.Context(), parsedContractId)
+	result, err := h.srv.GetVersions(r.Context(), parsedContractId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -444,7 +444,7 @@ func (contHndl *ContractHandler) GetVersions(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(result)
 }
 
-func (contHndl *ContractHandler) GetVersionSignatures(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetVersionSignatures(w http.ResponseWriter, r *http.Request) {
 	versionId := r.PathValue("versionId")
 	parsedVersionId, err := strconv.ParseInt(versionId, 10, 64)
 	if err != nil || parsedVersionId < 0 {
@@ -452,7 +452,7 @@ func (contHndl *ContractHandler) GetVersionSignatures(w http.ResponseWriter, r *
 		return
 	}
 
-	result, err := contHndl.contSrv.GetVersionSignatures(r.Context(), parsedVersionId)
+	result, err := h.srv.GetVersionSignatures(r.Context(), parsedVersionId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -462,7 +462,7 @@ func (contHndl *ContractHandler) GetVersionSignatures(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(result)
 }
 
-func (contHndl *ContractHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("q")
 	status := r.URL.Query().Get("status")
@@ -494,7 +494,7 @@ func (contHndl *ContractHandler) GetAll(w http.ResponseWriter, r *http.Request) 
 		limit = parsedLimit
 	}
 
-	result, err := contHndl.contSrv.GetByCurrentUser(r.Context(), &dto.ContractSearchQuery{
+	result, err := h.srv.GetByCurrentUser(r.Context(), &dto.ContractSearchQuery{
 		Keyword: keyword,
 		Status:  status,
 		Page:    page,
@@ -510,7 +510,7 @@ func (contHndl *ContractHandler) GetAll(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(result)
 }
 
-func (contHndl *ContractHandler) GetStatById(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetStatById(w http.ResponseWriter, r *http.Request) {
 	contractId := r.PathValue("contractId")
 	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
 	if err != nil || parsedContractId < 0 {
@@ -518,7 +518,7 @@ func (contHndl *ContractHandler) GetStatById(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	resp, err := contHndl.contSrv.GetStatById(r.Context(), parsedContractId)
+	resp, err := h.srv.GetStatById(r.Context(), parsedContractId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

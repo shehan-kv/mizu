@@ -36,7 +36,7 @@ func NewChangeRequestService(
 	}
 }
 
-func (chngReqSrv *ChangeRequestService) Create(
+func (s *ChangeRequestService) Create(
 	ctx context.Context,
 	projectId int64,
 	request *dto.ChangeReqCreateRequest) error {
@@ -44,7 +44,7 @@ func (chngReqSrv *ChangeRequestService) Create(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		chngReqSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -53,7 +53,7 @@ func (chngReqSrv *ChangeRequestService) Create(
 		return ErrInternalError
 	}
 
-	_, err = chngReqSrv.chngReqSt.CreateOne(ctx, actor.Id, &params.ChangeRequestCreate{
+	_, err = s.chngReqSt.CreateOne(ctx, actor.Id, &params.ChangeRequestCreate{
 		ProjectId: projectId,
 		Title:     request.Title,
 		Content:   request.Content,
@@ -74,7 +74,7 @@ func (chngReqSrv *ChangeRequestService) Create(
 	return nil
 }
 
-func (chngReqSrv *ChangeRequestService) CreateEntry(
+func (s *ChangeRequestService) CreateEntry(
 	ctx context.Context,
 	requestId int64,
 	request *dto.EntryCreateRequest) error {
@@ -82,7 +82,7 @@ func (chngReqSrv *ChangeRequestService) CreateEntry(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		chngReqSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "contract_service",
@@ -91,7 +91,7 @@ func (chngReqSrv *ChangeRequestService) CreateEntry(
 		return ErrInternalError
 	}
 
-	err = chngReqSrv.chngReqSt.CreateEntry(ctx, actor.Id, requestId, request.Content)
+	err = s.chngReqSt.CreateEntry(ctx, actor.Id, requestId, request.Content)
 
 	if err != nil {
 		if errors.Is(err, store.ErrForeignKeyViolation) {
@@ -112,7 +112,7 @@ func (chngReqSrv *ChangeRequestService) CreateEntry(
 	return nil
 }
 
-func (chngReqSrv *ChangeRequestService) GetAllByProject(
+func (s *ChangeRequestService) GetAllByProject(
 	ctx context.Context,
 	projectId int64,
 	query *dto.ChangeReqSearch) (*common.Page[[]dto.ChangeReqResponse], error) {
@@ -120,7 +120,7 @@ func (chngReqSrv *ChangeRequestService) GetAllByProject(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		chngReqSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "change_request_service",
@@ -129,7 +129,7 @@ func (chngReqSrv *ChangeRequestService) GetAllByProject(
 		return nil, ErrInternalError
 	}
 
-	result, err := chngReqSrv.chngReqSt.GetByProjectId(ctx, projectId, &params.ChangeRequestSearch{
+	result, err := s.chngReqSt.GetByProjectId(ctx, projectId, &params.ChangeRequestSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
@@ -168,11 +168,11 @@ func (chngReqSrv *ChangeRequestService) GetAllByProject(
 	return &reqResp, nil
 }
 
-func (chngReqSrv *ChangeRequestService) CloseById(ctx context.Context, requestId int64) error {
+func (s *ChangeRequestService) CloseById(ctx context.Context, requestId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		chngReqSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "change_request_service",
@@ -181,7 +181,7 @@ func (chngReqSrv *ChangeRequestService) CloseById(ctx context.Context, requestId
 		return ErrInternalError
 	}
 
-	err = chngReqSrv.chngReqSt.CloseById(ctx, requestId)
+	err = s.chngReqSt.CloseById(ctx, requestId)
 	if err != nil {
 		if errors.Is(err, store.ErrUnexpectedType) {
 			return ErrAlreadyExists
@@ -193,11 +193,11 @@ func (chngReqSrv *ChangeRequestService) CloseById(ctx context.Context, requestId
 	return nil
 }
 
-func (chngReqSrv *ChangeRequestService) GetById(ctx context.Context, requestId int64) (*dto.ChangeReqDetailsResponse, error) {
+func (s *ChangeRequestService) GetById(ctx context.Context, requestId int64) (*dto.ChangeReqDetailsResponse, error) {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		chngReqSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "change_request_service",
@@ -206,12 +206,12 @@ func (chngReqSrv *ChangeRequestService) GetById(ctx context.Context, requestId i
 		return nil, ErrInternalError
 	}
 
-	req, err := chngReqSrv.chngReqSt.GetById(ctx, requestId)
+	req, err := s.chngReqSt.GetById(ctx, requestId)
 	if err != nil {
 		return nil, ErrInternalError
 	}
 
-	entries, err := chngReqSrv.chngReqSt.GetEntriesByRequestId(ctx, requestId)
+	entries, err := s.chngReqSt.GetEntriesByRequestId(ctx, requestId)
 	if err != nil {
 		return nil, ErrInternalError
 	}
@@ -252,14 +252,14 @@ func (chngReqSrv *ChangeRequestService) GetById(ctx context.Context, requestId i
 	return &reqDetails, nil
 }
 
-func (chngReqSrv *ChangeRequestService) GetAllBySignedInUser(
+func (s *ChangeRequestService) GetAllBySignedInUser(
 	ctx context.Context,
 	query *dto.ChangeReqSearch) (*common.Page[[]dto.ChangeReqResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		chngReqSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "change_request_service",
@@ -275,12 +275,12 @@ func (chngReqSrv *ChangeRequestService) GetAllBySignedInUser(
 		Limit:   query.Limit,
 	}
 
-	reqests, err := chngReqSrv.chngReqSt.GetByUserId(ctx, actor.Id, &reqSearch)
+	reqests, err := s.chngReqSt.GetByUserId(ctx, actor.Id, &reqSearch)
 	if err != nil {
 		return nil, ErrInternalError
 	}
 
-	count, err := chngReqSrv.chngReqSt.CountByUserId(ctx, actor.Id, &reqSearch)
+	count, err := s.chngReqSt.CountByUserId(ctx, actor.Id, &reqSearch)
 	if err != nil {
 		return nil, ErrInternalError
 	}

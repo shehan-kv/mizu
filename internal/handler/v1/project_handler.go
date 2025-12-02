@@ -18,20 +18,18 @@ import (
 // Uses an ProjectService to perform
 // project operations
 type ProjectHandler struct {
-	prjSrv *service.ProjectService
+	srv *service.ProjectService
 }
 
 // Creates a new instance of ProjectHandler
 //
 // Parameters:
-//   - prjSrv: a pointer to a ProjectService
+//   - srv: a pointer to a ProjectService
 //
 // Returns:
 //   - a pointer to a new ProjectHandler
-func NewProjectHandler(prjSrv *service.ProjectService) *ProjectHandler {
-	return &ProjectHandler{
-		prjSrv: prjSrv,
-	}
+func NewProjectHandler(srv *service.ProjectService) *ProjectHandler {
+	return &ProjectHandler{srv: srv}
 }
 
 // Creates a ServeMux for the project routes and middleware.
@@ -45,7 +43,7 @@ func NewProjectHandler(prjSrv *service.ProjectService) *ProjectHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (prjHndl *ProjectHandler) GetMux(
+func (h *ProjectHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -57,20 +55,20 @@ func (prjHndl *ProjectHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /", mwChain.Handle(prjHndl.CreateProject))
-	mux.Handle("GET /", mwChain.Handle(prjHndl.GetProjects))
-	mux.Handle("GET /{projectId}", mwChain.Handle(prjHndl.GetOneById))
-	mux.Handle("GET /{projectId}/members", mwChain.Handle(prjHndl.GetMembers))
-	mux.Handle("PUT /{projectId}/members", mwChain.Handle(prjHndl.SetMembers))
-	mux.Handle("DELETE /{projectId}", mwChain.Handle(prjHndl.DeleteById))
-	mux.Handle("POST /{projectId}/task", mwChain.Handle(prjHndl.CreateTask))
-	mux.Handle("GET /{projectId}/task", mwChain.Handle(prjHndl.GetTasksByProject))
-	mux.Handle("GET /{projectId}/task/metrics/complete", mwChain.Handle(prjHndl.GetTaskCompleteCountByProject))
-	mux.Handle("POST /{projectId}/status/started", mwChain.Handle(prjHndl.SetStatusStarted))
-	mux.Handle("POST /{projectId}/status/paused", mwChain.Handle(prjHndl.SetStatusPaused))
-	mux.Handle("POST /{projectId}/status/cancelled", mwChain.Handle(prjHndl.SetStatusCancelled))
-	mux.Handle("POST /{projectId}/status/completed", mwChain.Handle(prjHndl.SetStatusCompleted))
-	mux.Handle("GET /metrics/create", mwChain.Handle(prjHndl.GetCreatedCount))
+	mux.Handle("POST /", mwChain.Handle(h.CreateProject))
+	mux.Handle("GET /", mwChain.Handle(h.GetProjects))
+	mux.Handle("GET /{projectId}", mwChain.Handle(h.GetOneById))
+	mux.Handle("GET /{projectId}/members", mwChain.Handle(h.GetMembers))
+	mux.Handle("PUT /{projectId}/members", mwChain.Handle(h.SetMembers))
+	mux.Handle("DELETE /{projectId}", mwChain.Handle(h.DeleteById))
+	mux.Handle("POST /{projectId}/task", mwChain.Handle(h.CreateTask))
+	mux.Handle("GET /{projectId}/task", mwChain.Handle(h.GetTasksByProject))
+	mux.Handle("GET /{projectId}/task/metrics/complete", mwChain.Handle(h.GetTaskCompleteCountByProject))
+	mux.Handle("POST /{projectId}/status/started", mwChain.Handle(h.SetStatusStarted))
+	mux.Handle("POST /{projectId}/status/paused", mwChain.Handle(h.SetStatusPaused))
+	mux.Handle("POST /{projectId}/status/cancelled", mwChain.Handle(h.SetStatusCancelled))
+	mux.Handle("POST /{projectId}/status/completed", mwChain.Handle(h.SetStatusCompleted))
+	mux.Handle("GET /metrics/create", mwChain.Handle(h.GetCreatedCount))
 
 	return mux
 }
@@ -86,7 +84,7 @@ func (prjHndl *ProjectHandler) GetMux(
 //   - 409 Conflict - Already exists
 //   - 500 InternalServerError - Server error
 //   - 201 OK - Created successfully
-func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	var createRequest dto.ProjectCreateRequest
 
@@ -100,7 +98,7 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := prjHndl.prjSrv.CreateProject(r.Context(), &createRequest); err != nil {
+	if err := h.srv.CreateProject(r.Context(), &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -124,7 +122,7 @@ func (prjHndl *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Requ
 //   - 409 Conflict - Already exists
 //   - 500 InternalServerError - Server error
 //   - 201 OK - Created successfully
-func (prjHndl *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedId, err := strconv.ParseInt(id, 10, 64)
@@ -145,7 +143,7 @@ func (prjHndl *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := prjHndl.prjSrv.CreateTask(r.Context(), parsedId, &createRequest); err != nil {
+	if err := h.srv.CreateTask(r.Context(), parsedId, &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -177,7 +175,7 @@ func (prjHndl *ProjectHandler) CreateTask(w http.ResponseWriter, r *http.Request
 //   - 400 BadRequest – Invalid query params
 //   - 500 InternalServerError - Server error
 //   - 200 OK - Request successful
-func (prjHndl *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 
 	keyword := r.URL.Query().Get("q")
 	status := r.URL.Query().Get("status")
@@ -209,7 +207,7 @@ func (prjHndl *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Reques
 		limit = parsedLimit
 	}
 
-	response, err := prjHndl.prjSrv.GetProjects(r.Context(), &dto.ProjectSearchQuery{
+	response, err := h.srv.GetProjects(r.Context(), &dto.ProjectSearchQuery{
 		Keyword: keyword,
 		Status:  status,
 		Page:    page,
@@ -225,7 +223,7 @@ func (prjHndl *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-func (prjHndl *ProjectHandler) GetTasksByProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetTasksByProject(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -265,7 +263,7 @@ func (prjHndl *ProjectHandler) GetTasksByProject(w http.ResponseWriter, r *http.
 		limit = parsedLimit
 	}
 
-	resp, err := prjHndl.prjSrv.GetTasksByProject(r.Context(), parsedPrjId, &dto.TaskSearchQuery{
+	resp, err := h.srv.GetTasksByProject(r.Context(), parsedPrjId, &dto.TaskSearchQuery{
 		Keyword:  keyword,
 		Status:   status,
 		Priority: priority,
@@ -282,7 +280,7 @@ func (prjHndl *ProjectHandler) GetTasksByProject(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (prjHndl *ProjectHandler) GetOneById(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetOneById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -291,7 +289,7 @@ func (prjHndl *ProjectHandler) GetOneById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := prjHndl.prjSrv.GetOneById(r.Context(), parsedPrjId)
+	resp, err := h.srv.GetOneById(r.Context(), parsedPrjId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -301,7 +299,7 @@ func (prjHndl *ProjectHandler) GetOneById(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (prjHndl *ProjectHandler) GetTaskCompleteCountByProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetTaskCompleteCountByProject(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -310,7 +308,7 @@ func (prjHndl *ProjectHandler) GetTaskCompleteCountByProject(w http.ResponseWrit
 		return
 	}
 
-	resp, err := prjHndl.prjSrv.GetTaskCompleteCountByProjectId(r.Context(), parsedPrjId)
+	resp, err := h.srv.GetTaskCompleteCountByProjectId(r.Context(), parsedPrjId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -320,9 +318,9 @@ func (prjHndl *ProjectHandler) GetTaskCompleteCountByProject(w http.ResponseWrit
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (prjHndl *ProjectHandler) GetCreatedCount(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetCreatedCount(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := prjHndl.prjSrv.GetCreatedCount(r.Context())
+	resp, err := h.srv.GetCreatedCount(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -332,7 +330,7 @@ func (prjHndl *ProjectHandler) GetCreatedCount(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (prjHndl *ProjectHandler) SetStatusStarted(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) SetStatusStarted(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -341,7 +339,7 @@ func (prjHndl *ProjectHandler) SetStatusStarted(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = prjHndl.prjSrv.SetStatusStarted(r.Context(), parsedPrjId)
+	err = h.srv.SetStatusStarted(r.Context(), parsedPrjId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -355,7 +353,7 @@ func (prjHndl *ProjectHandler) SetStatusStarted(w http.ResponseWriter, r *http.R
 	w.WriteHeader(http.StatusOK)
 }
 
-func (prjHndl *ProjectHandler) SetStatusPaused(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) SetStatusPaused(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -364,7 +362,7 @@ func (prjHndl *ProjectHandler) SetStatusPaused(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err = prjHndl.prjSrv.SetStatusPaused(r.Context(), parsedPrjId)
+	err = h.srv.SetStatusPaused(r.Context(), parsedPrjId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -378,7 +376,7 @@ func (prjHndl *ProjectHandler) SetStatusPaused(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusOK)
 }
 
-func (prjHndl *ProjectHandler) SetStatusCancelled(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) SetStatusCancelled(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -387,7 +385,7 @@ func (prjHndl *ProjectHandler) SetStatusCancelled(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = prjHndl.prjSrv.SetStatusCancelled(r.Context(), parsedPrjId)
+	err = h.srv.SetStatusCancelled(r.Context(), parsedPrjId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -401,7 +399,7 @@ func (prjHndl *ProjectHandler) SetStatusCancelled(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusOK)
 }
 
-func (prjHndl *ProjectHandler) SetStatusCompleted(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) SetStatusCompleted(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -410,7 +408,7 @@ func (prjHndl *ProjectHandler) SetStatusCompleted(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = prjHndl.prjSrv.SetStatusCompleted(r.Context(), parsedPrjId)
+	err = h.srv.SetStatusCompleted(r.Context(), parsedPrjId)
 	if err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -424,7 +422,7 @@ func (prjHndl *ProjectHandler) SetStatusCompleted(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusOK)
 }
 
-func (prjHndl *ProjectHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -433,7 +431,7 @@ func (prjHndl *ProjectHandler) DeleteById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = prjHndl.prjSrv.DeleteById(r.Context(), parsedPrjId)
+	err = h.srv.DeleteById(r.Context(), parsedPrjId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -442,7 +440,7 @@ func (prjHndl *ProjectHandler) DeleteById(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (prjHndl *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -451,7 +449,7 @@ func (prjHndl *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resp, err := prjHndl.prjSrv.GetMembers(r.Context(), parsedPrjId)
+	resp, err := h.srv.GetMembers(r.Context(), parsedPrjId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -461,7 +459,7 @@ func (prjHndl *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (prjHndl *ProjectHandler) SetMembers(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) SetMembers(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(id, 10, 64)
@@ -482,7 +480,7 @@ func (prjHndl *ProjectHandler) SetMembers(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = prjHndl.prjSrv.SetMembers(r.Context(), parsedPrjId, &setRequest)
+	err = h.srv.SetMembers(r.Context(), parsedPrjId, &setRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

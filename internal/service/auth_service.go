@@ -60,21 +60,21 @@ type SignInResult struct {
 //   - *SignInResult: a pointer to SignInResult
 //   - ErrUnauthorized: if authentication fails
 //   - ErrInternalError: if internal errors occur
-func (authserv *AuthService) SignIn(
+func (s *AuthService) SignIn(
 	ctx context.Context,
 	cookie *http.Cookie,
 	request *dto.SignInRequest) (*SignInResult, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
-	authserv.lg.Info("user sign in attempt",
+	s.lg.Info("user sign in attempt",
 		"event", event.EventSigninAttempt,
 		"correlation_id", correlationId,
 		"scope", "auth_service")
 
-	user, err := authserv.usrSt.GetByEmail(ctx, request.Email)
+	user, err := s.usrSt.GetByEmail(ctx, request.Email)
 	if err != nil {
-		authserv.lg.Warn("user not found",
+		s.lg.Warn("user not found",
 			"event", event.EventNotFound,
 			"correlation_id", correlationId,
 			"scope", "auth_service",
@@ -82,9 +82,9 @@ func (authserv *AuthService) SignIn(
 		return nil, ErrUnauthorized
 	}
 
-	role, err := authserv.usrSt.GetRoleById(ctx, user.Role)
+	role, err := s.usrSt.GetRoleById(ctx, user.Role)
 	if err != nil {
-		authserv.lg.Warn("role not found",
+		s.lg.Warn("role not found",
 			"event", event.EventNotFound,
 			"correlation_id", correlationId,
 			"scope", "auth_service",
@@ -93,7 +93,7 @@ func (authserv *AuthService) SignIn(
 	}
 
 	if !user.IsActive {
-		authserv.lg.Warn("account deactivated",
+		s.lg.Warn("account deactivated",
 			"event", event.EventAccountDisabled,
 			"user_id", user.Id,
 			"correlation_id", correlationId,
@@ -101,9 +101,9 @@ func (authserv *AuthService) SignIn(
 		return nil, ErrUnauthorized
 	}
 
-	hash, err := authserv.usrSt.GetPasswordById(ctx, user.Id)
+	hash, err := s.usrSt.GetPasswordById(ctx, user.Id)
 	if err != nil {
-		authserv.lg.Warn("password not found",
+		s.lg.Warn("password not found",
 			"event", event.EventNotFound,
 			"user_id", user.Id,
 			"correlation_id", correlationId,
@@ -115,7 +115,7 @@ func (authserv *AuthService) SignIn(
 	isPasswordCorrect := auth.CompareHashAndPassword(hash, request.Password)
 
 	if !isPasswordCorrect {
-		authserv.lg.Warn("invalid credentials",
+		s.lg.Warn("invalid credentials",
 			"event", event.EventInvalidCredentials,
 			"user_id", user.Id,
 			"correlation_id", correlationId,
@@ -125,7 +125,7 @@ func (authserv *AuthService) SignIn(
 
 	randomUuid, err := uuid.NewRandom()
 	if err != nil {
-		authserv.lg.Warn("could not create session id",
+		s.lg.Warn("could not create session id",
 			"event", event.EventCreateFailed,
 			"user_id", user.Id,
 			"correlation_id", correlationId,
@@ -139,9 +139,9 @@ func (authserv *AuthService) SignIn(
 	// If an existing auth cookie is found,
 	// revoke the old session id.
 	if cookie != nil {
-		err = authserv.sessSt.RevokeSession(cookie.Value)
+		err = s.sessSt.RevokeSession(cookie.Value)
 		if err != nil {
-			authserv.lg.Warn("could not revoke previous session",
+			s.lg.Warn("could not revoke previous session",
 				"event", event.EventInternalError,
 				"user_id", user.Id,
 				"correlation_id", correlationId,
@@ -151,9 +151,9 @@ func (authserv *AuthService) SignIn(
 		}
 	}
 
-	err = authserv.usrSt.UpdateLastLogin(ctx, user.Id)
+	err = s.usrSt.UpdateLastLogin(ctx, user.Id)
 	if err != nil {
-		authserv.lg.Warn("could not update last login",
+		s.lg.Warn("could not update last login",
 			"event", event.EventInternalError,
 			"user_id", user.Id,
 			"correlation_id", correlationId,
@@ -163,9 +163,9 @@ func (authserv *AuthService) SignIn(
 
 	// If there's no existing cookie,
 	// create a new session
-	err = authserv.sessSt.SetSession(sessionId, user.Id)
+	err = s.sessSt.SetSession(sessionId, user.Id)
 	if err != nil {
-		authserv.lg.Warn("could not set session",
+		s.lg.Warn("could not set session",
 			"event", event.EventInternalError,
 			"user_id", user.Id,
 			"correlation_id", correlationId,
@@ -174,7 +174,7 @@ func (authserv *AuthService) SignIn(
 		return nil, ErrInternalError
 	}
 
-	authserv.lg.Info("user authenticated",
+	s.lg.Info("user authenticated",
 		"event", event.EventUserAuthenticated,
 		"user_id", user.Id,
 		"correlation_id", correlationId,
@@ -193,16 +193,16 @@ func (authserv *AuthService) SignIn(
 //
 // Returns:
 //   - AuthInternalError: if internal errors occur
-func (authserv *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) error {
+func (s *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 
-	existingSession, err := authserv.sessSt.GetSession(cookie.Value)
+	existingSession, err := s.sessSt.GetSession(cookie.Value)
 	if err != nil {
 		// Consider a user is already logged out if session doesn't
 		// exist in session store
 		if errors.Is(err, session.ErrNotFound) {
-			authserv.lg.Warn("previous session doesn't exist",
+			s.lg.Warn("previous session doesn't exist",
 				"event", event.EventNotFound,
 				"correlation_id", correlationId,
 				"scope", "auth_service",
@@ -210,7 +210,7 @@ func (authserv *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) e
 			return nil
 		}
 
-		authserv.lg.Warn("could not get previous session",
+		s.lg.Warn("could not get previous session",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "auth_service",
@@ -218,9 +218,9 @@ func (authserv *AuthService) SignOut(ctx context.Context, cookie *http.Cookie) e
 		return ErrInternalError
 	}
 
-	err = authserv.sessSt.RevokeSession(cookie.Value)
+	err = s.sessSt.RevokeSession(cookie.Value)
 	if err != nil {
-		authserv.lg.Warn("could not revoke previous session",
+		s.lg.Warn("could not revoke previous session",
 			"event", event.EventInternalError,
 			"user_id", existingSession.UserId,
 			"correlation_id", correlationId,

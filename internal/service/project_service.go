@@ -60,13 +60,13 @@ func NewProjectService(
 // Returns:
 //   - ErrAlreadyExists: if project already exists in database.
 //   - ErrInternalError: if internal errors occur.
-func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.ProjectCreateRequest) error {
+func (s *ProjectService) CreateProject(ctx context.Context, request *dto.ProjectCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
 
 	signedInUser, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		prjSrv.lg.Warn("getting signed in user from context failed",
+		s.lg.Warn("getting signed in user from context failed",
 			"event", event.EventInternalError,
 			"correlation_id", cid,
 			"scope", "project_service",
@@ -74,14 +74,14 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 		return ErrInternalError
 	}
 
-	_, err = prjSrv.prjSt.CreateOne(ctx, &params.ProjectCreate{
+	_, err = s.prjSt.CreateOne(ctx, &params.ProjectCreate{
 		Name:    request.Name,
 		Status:  request.Status,
 		Members: append(request.Members, signedInUser.Id)})
 
 	if err != nil {
 		if errors.Is(err, store.ErrUniqueViolation) {
-			prjSrv.lg.Warn("project with the same name exists",
+			s.lg.Warn("project with the same name exists",
 				"event", event.EventAlreadyExists,
 				"correlation_id", cid,
 				"project_name", request.Name,
@@ -90,7 +90,7 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 			return ErrAlreadyExists
 		}
 
-		prjSrv.lg.Warn("failed to create project",
+		s.lg.Warn("failed to create project",
 			"event", event.EventCreateFailed,
 			"correlation_id", cid,
 			"project_name", request.Name,
@@ -99,7 +99,7 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 		return ErrInternalError
 	}
 
-	prjSrv.lg.Info("created project successfully",
+	s.lg.Info("created project successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", cid,
 		"project_name", request.Name,
@@ -118,11 +118,11 @@ func (prjSrv *ProjectService) CreateProject(ctx context.Context, request *dto.Pr
 //   - ErrAlreadyExists: if task already exists in database.
 //   - ErrBadRequest: if request parameter violates constraints (eg:- a task for a project that doesn't exist).
 //   - ErrInternalError: if internal errors occur.
-func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, request *dto.TaskCreateRequest) error {
+func (s *ProjectService) CreateTask(ctx context.Context, projectId int64, request *dto.TaskCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
 
-	_, err := prjSrv.prjSt.CreateTask(ctx, &params.TaskCreate{
+	_, err := s.prjSt.CreateTask(ctx, &params.TaskCreate{
 		ProjectId:            projectId,
 		Priority:             request.Priority,
 		Status:               request.Status,
@@ -133,7 +133,7 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 
 	if err != nil {
 		if errors.Is(err, store.ErrUniqueViolation) {
-			prjSrv.lg.Warn("task with the same name exists in the project",
+			s.lg.Warn("task with the same name exists in the project",
 				"event", event.EventAlreadyExists,
 				"correlation_id", cid,
 				"task_name", request.Name,
@@ -143,7 +143,7 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 		}
 
 		if errors.Is(err, store.ErrForeignKeyViolation) {
-			prjSrv.lg.Warn("task foreign key constraint violated",
+			s.lg.Warn("task foreign key constraint violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", cid,
 				"task_name", request.Name,
@@ -153,7 +153,7 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 		}
 
 		if errors.Is(err, store.ErrNotNullViolation) {
-			prjSrv.lg.Warn("task not-null constraint violated",
+			s.lg.Warn("task not-null constraint violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", cid,
 				"task_name", request.Name,
@@ -162,7 +162,7 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 			return ErrBadRequest
 		}
 
-		prjSrv.lg.Warn("failed to create project task",
+		s.lg.Warn("failed to create project task",
 			"event", event.EventCreateFailed,
 			"correlation_id", cid,
 			"task_name", request.Name,
@@ -171,7 +171,7 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 		return ErrInternalError
 	}
 
-	prjSrv.lg.Info("created task successfully",
+	s.lg.Info("created task successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", cid,
 		"task_name", request.Name,
@@ -189,14 +189,14 @@ func (prjSrv *ProjectService) CreateTask(ctx context.Context, projectId int64, r
 //
 // Returns:
 //   - ErrInternalError: if internal errors occur.
-func (prjSrv *ProjectService) GetProjects(ctx context.Context,
+func (s *ProjectService) GetProjects(ctx context.Context,
 	query *dto.ProjectSearchQuery) (*common.Page[[]dto.ProjectsStatsResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	user, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get user from context",
+		s.lg.Error("could not get user from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -206,7 +206,7 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 		return nil, ErrInternalError
 	}
 
-	projects, err := prjSrv.prjSt.GetWithStats(ctx, &params.ProjectsSearch{
+	projects, err := s.prjSt.GetWithStats(ctx, &params.ProjectsSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
@@ -215,7 +215,7 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 	})
 
 	if err != nil {
-		prjSrv.lg.Error("could not get projects list",
+		s.lg.Error("could not get projects list",
 			"event", event.EventGetFailed,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -253,7 +253,7 @@ func (prjSrv *ProjectService) GetProjects(ctx context.Context,
 	return response, nil
 }
 
-func (prjSrv *ProjectService) GetTasksByProject(
+func (s *ProjectService) GetTasksByProject(
 	ctx context.Context,
 	projectId int64,
 	query *dto.TaskSearchQuery) (*common.Page[[]dto.TaskResponse], error) {
@@ -262,7 +262,7 @@ func (prjSrv *ProjectService) GetTasksByProject(
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -280,9 +280,9 @@ func (prjSrv *ProjectService) GetTasksByProject(
 		Limit:    query.Limit,
 	}
 
-	tasks, err := prjSrv.prjSt.GetTasksByProjectId(ctx, projectId, &taskSearch)
+	tasks, err := s.prjSt.GetTasksByProjectId(ctx, projectId, &taskSearch)
 	if err != nil {
-		prjSrv.lg.Error("could not get tasks list",
+		s.lg.Error("could not get tasks list",
 			"event", event.EventGetFailed,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -334,9 +334,9 @@ func (prjSrv *ProjectService) GetTasksByProject(
 		}
 	}
 
-	count, err := prjSrv.prjSt.CountTasksByProjectId(ctx, projectId, &taskSearch)
+	count, err := s.prjSt.CountTasksByProjectId(ctx, projectId, &taskSearch)
 	if err != nil {
-		prjSrv.lg.Error("could not get tasks count",
+		s.lg.Error("could not get tasks count",
 			"event", event.EventGetFailed,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -361,7 +361,7 @@ func (prjSrv *ProjectService) GetTasksByProject(
 	return &resp, nil
 }
 
-func (prjSrv *ProjectService) GetOneById(
+func (s *ProjectService) GetOneById(
 	ctx context.Context,
 	projectId int64) (*dto.ProjectDetailsResponse, error) {
 
@@ -369,7 +369,7 @@ func (prjSrv *ProjectService) GetOneById(
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -377,9 +377,9 @@ func (prjSrv *ProjectService) GetOneById(
 		return nil, ErrInternalError
 	}
 
-	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	project, err := s.prjSt.GetById(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project by id",
+		s.lg.Error("could not get project by id",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -395,9 +395,9 @@ func (prjSrv *ProjectService) GetOneById(
 		Status:    project.Status,
 	}
 
-	taskCount, err := prjSrv.prjSt.CountTasksByProjectId(ctx, projectId, &params.TaskSearch{})
+	taskCount, err := s.prjSt.CountTasksByProjectId(ctx, projectId, &params.TaskSearch{})
 	if err != nil {
-		prjSrv.lg.Error("could not get project tasks count",
+		s.lg.Error("could not get project tasks count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -408,11 +408,11 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.TaskCount = taskCount
 
-	taskCompletedCount, err := prjSrv.prjSt.CountTasksByProjectId(ctx, projectId, &params.TaskSearch{
+	taskCompletedCount, err := s.prjSt.CountTasksByProjectId(ctx, projectId, &params.TaskSearch{
 		Status: "completed",
 	})
 	if err != nil {
-		prjSrv.lg.Error("could not get completed project tasks count",
+		s.lg.Error("could not get completed project tasks count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -423,11 +423,11 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.TaskCompletedCount = taskCompletedCount
 
-	invoiceCount, err := prjSrv.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
+	invoiceCount, err := s.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
 		Type: params.InvoiceTypeInvoice,
 	})
 	if err != nil {
-		prjSrv.lg.Error("could not get invoices count",
+		s.lg.Error("could not get invoices count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -438,12 +438,12 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.InvoiceCount = invoiceCount
 
-	invoicePaidCount, err := prjSrv.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
+	invoicePaidCount, err := s.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
 		Type:   params.InvoiceTypeInvoice,
 		Status: params.InvoiceStatusPaid,
 	})
 	if err != nil {
-		prjSrv.lg.Error("could not get paid invoices count",
+		s.lg.Error("could not get paid invoices count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -454,11 +454,11 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.InvoicePaidCount = invoicePaidCount
 
-	quoteCount, err := prjSrv.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
+	quoteCount, err := s.invSt.CountSummaryByProjectId(ctx, projectId, &params.InvoiceSearch{
 		Type: params.InvoiceTypeQuote,
 	})
 	if err != nil {
-		prjSrv.lg.Error("could not get invoices count",
+		s.lg.Error("could not get invoices count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -469,9 +469,9 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.QuoteCount = quoteCount
 
-	contractCount, err := prjSrv.contSt.CountByProjectId(ctx, projectId, &params.ContractSearch{})
+	contractCount, err := s.contSt.CountByProjectId(ctx, projectId, &params.ContractSearch{})
 	if err != nil {
-		prjSrv.lg.Error("could not get contract count",
+		s.lg.Error("could not get contract count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -482,11 +482,11 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.ContractCount = contractCount
 
-	contractSignedCount, err := prjSrv.contSt.CountByProjectId(ctx, projectId, &params.ContractSearch{
+	contractSignedCount, err := s.contSt.CountByProjectId(ctx, projectId, &params.ContractSearch{
 		Status: params.ContractStatusSigned,
 	})
 	if err != nil {
-		prjSrv.lg.Error("could not get contract count",
+		s.lg.Error("could not get contract count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -497,9 +497,9 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.ContractSignedCount = contractSignedCount
 
-	chReqCount, err := prjSrv.chReqSt.CountByProjectId(ctx, projectId, &params.ChangeRequestSearch{})
+	chReqCount, err := s.chReqSt.CountByProjectId(ctx, projectId, &params.ChangeRequestSearch{})
 	if err != nil {
-		prjSrv.lg.Error("could not get change request count",
+		s.lg.Error("could not get change request count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -510,11 +510,11 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.ChangeReqCount = chReqCount
 
-	chReqClosedCount, err := prjSrv.chReqSt.CountByProjectId(ctx, projectId, &params.ChangeRequestSearch{
+	chReqClosedCount, err := s.chReqSt.CountByProjectId(ctx, projectId, &params.ChangeRequestSearch{
 		Status: params.ChangeRequestClosed,
 	})
 	if err != nil {
-		prjSrv.lg.Error("could not get change request closed count",
+		s.lg.Error("could not get change request closed count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -525,9 +525,9 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.ChangeReqClosedCount = chReqClosedCount
 
-	fileCount, err := prjSrv.fileSt.CountByProjectId(ctx, projectId, &params.FileSearch{})
+	fileCount, err := s.fileSt.CountByProjectId(ctx, projectId, &params.FileSearch{})
 	if err != nil {
-		prjSrv.lg.Error("could not get file count",
+		s.lg.Error("could not get file count",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -538,9 +538,9 @@ func (prjSrv *ProjectService) GetOneById(
 
 	resp.FileCount = fileCount
 
-	members, err := prjSrv.prjSt.GetMembersByProjectId(ctx, projectId)
+	members, err := s.prjSt.GetMembersByProjectId(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project members",
+		s.lg.Error("could not get project members",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -565,7 +565,7 @@ func (prjSrv *ProjectService) GetOneById(
 	return &resp, nil
 }
 
-func (prjSrv *ProjectService) GetTaskCompleteCountByProjectId(
+func (s *ProjectService) GetTaskCompleteCountByProjectId(
 	ctx context.Context,
 	projectId int64) ([]dto.TaskMetricResponse, error) {
 
@@ -573,7 +573,7 @@ func (prjSrv *ProjectService) GetTaskCompleteCountByProjectId(
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -582,13 +582,13 @@ func (prjSrv *ProjectService) GetTaskCompleteCountByProjectId(
 		return nil, ErrInternalError
 	}
 
-	metrics, err := prjSrv.prjSt.GetTaskMetricsByProjectId(
+	metrics, err := s.prjSt.GetTaskMetricsByProjectId(
 		ctx,
 		projectId,
 		params.TaskStatusCompleted)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get completed task metrics",
+		s.lg.Error("could not get completed task metrics",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -607,13 +607,13 @@ func (prjSrv *ProjectService) GetTaskCompleteCountByProjectId(
 	return resp, nil
 }
 
-func (prjSrv *ProjectService) GetCreatedCount(ctx context.Context) ([]dto.ProjectMetricResponse, error) {
+func (s *ProjectService) GetCreatedCount(ctx context.Context) ([]dto.ProjectMetricResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -621,9 +621,9 @@ func (prjSrv *ProjectService) GetCreatedCount(ctx context.Context) ([]dto.Projec
 		return nil, ErrInternalError
 	}
 
-	metrics, err := prjSrv.prjSt.GetCreatedMetricsByUserId(ctx, actor.Id)
+	metrics, err := s.prjSt.GetCreatedMetricsByUserId(ctx, actor.Id)
 	if err != nil {
-		prjSrv.lg.Error("could not get project created metrics",
+		s.lg.Error("could not get project created metrics",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -641,12 +641,12 @@ func (prjSrv *ProjectService) GetCreatedCount(ctx context.Context) ([]dto.Projec
 	return resp, nil
 }
 
-func (prjSrv *ProjectService) SetStatusStarted(ctx context.Context, projectId int64) error {
+func (s *ProjectService) SetStatusStarted(ctx context.Context, projectId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -654,9 +654,9 @@ func (prjSrv *ProjectService) SetStatusStarted(ctx context.Context, projectId in
 		return ErrInternalError
 	}
 
-	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	project, err := s.prjSt.GetById(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project by id ",
+		s.lg.Error("could not get project by id ",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -670,9 +670,9 @@ func (prjSrv *ProjectService) SetStatusStarted(ctx context.Context, projectId in
 		return ErrAlreadyExists
 	}
 
-	err = prjSrv.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusStarted)
+	err = s.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusStarted)
 	if err != nil {
-		prjSrv.lg.Error("could not set project as started",
+		s.lg.Error("could not set project as started",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -685,12 +685,12 @@ func (prjSrv *ProjectService) SetStatusStarted(ctx context.Context, projectId in
 	return nil
 }
 
-func (prjSrv *ProjectService) SetStatusPaused(ctx context.Context, projectId int64) error {
+func (s *ProjectService) SetStatusPaused(ctx context.Context, projectId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -698,9 +698,9 @@ func (prjSrv *ProjectService) SetStatusPaused(ctx context.Context, projectId int
 		return ErrInternalError
 	}
 
-	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	project, err := s.prjSt.GetById(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project by id ",
+		s.lg.Error("could not get project by id ",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -714,9 +714,9 @@ func (prjSrv *ProjectService) SetStatusPaused(ctx context.Context, projectId int
 		return ErrAlreadyExists
 	}
 
-	err = prjSrv.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusPaused)
+	err = s.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusPaused)
 	if err != nil {
-		prjSrv.lg.Error("could not set project as paused",
+		s.lg.Error("could not set project as paused",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -729,12 +729,12 @@ func (prjSrv *ProjectService) SetStatusPaused(ctx context.Context, projectId int
 	return nil
 }
 
-func (prjSrv *ProjectService) SetStatusCancelled(ctx context.Context, projectId int64) error {
+func (s *ProjectService) SetStatusCancelled(ctx context.Context, projectId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -742,9 +742,9 @@ func (prjSrv *ProjectService) SetStatusCancelled(ctx context.Context, projectId 
 		return ErrInternalError
 	}
 
-	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	project, err := s.prjSt.GetById(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project by id ",
+		s.lg.Error("could not get project by id ",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -758,9 +758,9 @@ func (prjSrv *ProjectService) SetStatusCancelled(ctx context.Context, projectId 
 		return ErrAlreadyExists
 	}
 
-	err = prjSrv.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusCancelled)
+	err = s.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusCancelled)
 	if err != nil {
-		prjSrv.lg.Error("could not set project as cancelled",
+		s.lg.Error("could not set project as cancelled",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -773,12 +773,12 @@ func (prjSrv *ProjectService) SetStatusCancelled(ctx context.Context, projectId 
 	return nil
 }
 
-func (prjSrv *ProjectService) SetStatusCompleted(ctx context.Context, projectId int64) error {
+func (s *ProjectService) SetStatusCompleted(ctx context.Context, projectId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -786,9 +786,9 @@ func (prjSrv *ProjectService) SetStatusCompleted(ctx context.Context, projectId 
 		return ErrInternalError
 	}
 
-	project, err := prjSrv.prjSt.GetById(ctx, projectId)
+	project, err := s.prjSt.GetById(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project by id ",
+		s.lg.Error("could not get project by id ",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -802,9 +802,9 @@ func (prjSrv *ProjectService) SetStatusCompleted(ctx context.Context, projectId 
 		return ErrAlreadyExists
 	}
 
-	err = prjSrv.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusCompleted)
+	err = s.prjSt.SetStatusById(ctx, projectId, params.ProjectStatusCompleted)
 	if err != nil {
-		prjSrv.lg.Error("could not set project as completed",
+		s.lg.Error("could not set project as completed",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -817,12 +817,12 @@ func (prjSrv *ProjectService) SetStatusCompleted(ctx context.Context, projectId 
 	return nil
 }
 
-func (prjSrv *ProjectService) DeleteById(ctx context.Context, projectId int64) error {
+func (s *ProjectService) DeleteById(ctx context.Context, projectId int64) error {
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -830,9 +830,9 @@ func (prjSrv *ProjectService) DeleteById(ctx context.Context, projectId int64) e
 		return ErrInternalError
 	}
 
-	err = prjSrv.prjSt.DeleteById(ctx, projectId)
+	err = s.prjSt.DeleteById(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not set project as completed",
+		s.lg.Error("could not set project as completed",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -845,7 +845,7 @@ func (prjSrv *ProjectService) DeleteById(ctx context.Context, projectId int64) e
 	return nil
 }
 
-func (prjSrv *ProjectService) GetMembers(
+func (s *ProjectService) GetMembers(
 	ctx context.Context,
 	projectId int64) ([]dto.ProjectMemberResponse, error) {
 
@@ -853,7 +853,7 @@ func (prjSrv *ProjectService) GetMembers(
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -861,9 +861,9 @@ func (prjSrv *ProjectService) GetMembers(
 		return nil, ErrInternalError
 	}
 
-	members, err := prjSrv.prjSt.GetMembersByProjectId(ctx, projectId)
+	members, err := s.prjSt.GetMembersByProjectId(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get project members",
+		s.lg.Error("could not get project members",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -889,7 +889,7 @@ func (prjSrv *ProjectService) GetMembers(
 	return resp, nil
 }
 
-func (prjSrv *ProjectService) SetMembers(
+func (s *ProjectService) SetMembers(
 	ctx context.Context,
 	projectId int64,
 	request *dto.MemberSetRequest) error {
@@ -898,7 +898,7 @@ func (prjSrv *ProjectService) SetMembers(
 	actor, err := middleware.GetUserFromContext(ctx)
 
 	if err != nil {
-		prjSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -906,9 +906,9 @@ func (prjSrv *ProjectService) SetMembers(
 		return ErrInternalError
 	}
 
-	err = prjSrv.prjSt.DeleteMembersByProjectId(ctx, projectId)
+	err = s.prjSt.DeleteMembersByProjectId(ctx, projectId)
 	if err != nil {
-		prjSrv.lg.Error("could not get delete members by project id",
+		s.lg.Error("could not get delete members by project id",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,
@@ -918,9 +918,9 @@ func (prjSrv *ProjectService) SetMembers(
 		return ErrInternalError
 	}
 
-	err = prjSrv.prjSt.AddMembers(ctx, projectId, request.Members)
+	err = s.prjSt.AddMembers(ctx, projectId, request.Members)
 	if err != nil {
-		prjSrv.lg.Error("could not add members by project id",
+		s.lg.Error("could not add members by project id",
 			"event", event.EventInternalError,
 			"scope", "project_service",
 			"correlation_id", correlationId,

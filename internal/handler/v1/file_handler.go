@@ -18,12 +18,12 @@ import (
 // FileHandler provides HTTP handlers
 // for file related endpoints.
 type FileHandler struct {
-	fileSrv   *service.FileService
+	srv       *service.FileService
 	maxMemory int64
 }
 
 // NewFileHandler constructs a new FileHandler.
-func NewFileHandler(fileSrv *service.FileService) *FileHandler {
+func NewFileHandler(srv *service.FileService) *FileHandler {
 	var maxMemory int64
 	strMaxMemory := strings.TrimSpace(os.Getenv("FILE_MAX_MEMORY"))
 	parsedMemory, err := strconv.Atoi(strMaxMemory)
@@ -35,7 +35,7 @@ func NewFileHandler(fileSrv *service.FileService) *FileHandler {
 	}
 
 	return &FileHandler{
-		fileSrv:   fileSrv,
+		srv:       srv,
 		maxMemory: maxMemory,
 	}
 }
@@ -51,7 +51,7 @@ func NewFileHandler(fileSrv *service.FileService) *FileHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (fileHndl *FileHandler) GetMux(
+func (h *FileHandler) GetMux(
 	lg logger.Logger,
 	seSt session.SessionStore,
 	usrSt store.UserStore) *http.ServeMux {
@@ -63,9 +63,9 @@ func (fileHndl *FileHandler) GetMux(
 
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /", mwChain.Handle(fileHndl.StoreFile))
-	mux.Handle("GET /{channelId}", mwChain.Handle(fileHndl.GetByChannel))
-	mux.Handle("GET /project/{projectId}", mwChain.Handle(fileHndl.GetByProject))
+	mux.Handle("POST /", mwChain.Handle(h.StoreFile))
+	mux.Handle("GET /{channelId}", mwChain.Handle(h.GetByChannel))
+	mux.Handle("GET /project/{projectId}", mwChain.Handle(h.GetByProject))
 
 	return mux
 }
@@ -97,7 +97,7 @@ func (fileHndl *FileHandler) StoreFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = fileHndl.fileSrv.StoreFile(r.Context(), parsedChId, file, header)
+	err = fileHndl.srv.StoreFile(r.Context(), parsedChId, file, header)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -106,7 +106,7 @@ func (fileHndl *FileHandler) StoreFile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (fileHndl *FileHandler) GetByChannel(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) GetByChannel(w http.ResponseWriter, r *http.Request) {
 
 	channelId := r.PathValue("channelId")
 	parsedChId, err := strconv.ParseInt(channelId, 10, 64)
@@ -144,7 +144,7 @@ func (fileHndl *FileHandler) GetByChannel(w http.ResponseWriter, r *http.Request
 		limit = parsedLimit
 	}
 
-	result, err := fileHndl.fileSrv.GetByChannelId(r.Context(), parsedChId, &file.FileSearch{
+	result, err := h.srv.GetByChannelId(r.Context(), parsedChId, &file.FileSearch{
 		Keyword: keyword,
 		Page:    page,
 		Limit:   limit,
@@ -158,7 +158,7 @@ func (fileHndl *FileHandler) GetByChannel(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(result)
 }
 
-func (fileHndl *FileHandler) GetByProject(w http.ResponseWriter, r *http.Request) {
+func (h *FileHandler) GetByProject(w http.ResponseWriter, r *http.Request) {
 
 	prjId := r.PathValue("projectId")
 	parsedPrjId, err := strconv.ParseInt(prjId, 10, 64)
@@ -196,7 +196,7 @@ func (fileHndl *FileHandler) GetByProject(w http.ResponseWriter, r *http.Request
 		limit = parsedLimit
 	}
 
-	result, err := fileHndl.fileSrv.GetByProjectId(r.Context(), parsedPrjId, &file.FileSearch{
+	result, err := h.srv.GetByProjectId(r.Context(), parsedPrjId, &file.FileSearch{
 		Keyword: keyword,
 		Page:    page,
 		Limit:   limit,

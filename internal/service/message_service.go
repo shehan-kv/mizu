@@ -47,7 +47,7 @@ func NewMessageService(lg logger.Logger, evtSndr *event.EventSender, msgSt store
 // If a required field is missing, it returns service.ErrBadRequest.
 // if a foreign key violation occurs, it returns service.ErrBadRequest.
 // If any internal errors occur, it returns service.ErrInternalError.
-func (msgSrv *MessageService) CreateMessage(
+func (s *MessageService) CreateMessage(
 	ctx context.Context,
 	channelId int64,
 	request *dto.MessageCreateRequest) (*dto.MessageResponse, error) {
@@ -55,7 +55,7 @@ func (msgSrv *MessageService) CreateMessage(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		msgSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -64,9 +64,9 @@ func (msgSrv *MessageService) CreateMessage(
 		return nil, ErrInternalError
 	}
 
-	channels, err := msgSrv.msgSt.GetChannelIdsByUserId(ctx, actor.Id)
+	channels, err := s.msgSt.GetChannelIdsByUserId(ctx, actor.Id)
 	if err != nil {
-		msgSrv.lg.Error("could not get channels",
+		s.lg.Error("could not get channels",
 			"event", event.EventGetFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -76,9 +76,9 @@ func (msgSrv *MessageService) CreateMessage(
 		return nil, ErrInternalError
 	}
 
-	users, err := msgSrv.msgSt.GetUserIdsByChannelId(ctx, channelId)
+	users, err := s.msgSt.GetUserIdsByChannelId(ctx, channelId)
 	if err != nil {
-		msgSrv.lg.Error("could not get users by channel",
+		s.lg.Error("could not get users by channel",
 			"event", event.EventGetFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -105,7 +105,7 @@ func (msgSrv *MessageService) CreateMessage(
 	}
 
 	if !isChannelValid {
-		msgSrv.lg.Error("actor does not have access to channel",
+		s.lg.Error("actor does not have access to channel",
 			"event", event.EventUserUnauthorized,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -115,7 +115,7 @@ func (msgSrv *MessageService) CreateMessage(
 		return nil, ErrUnauthorized
 	}
 
-	message, err := msgSrv.msgSt.CreateOne(ctx, &params.MessageCreate{
+	message, err := s.msgSt.CreateOne(ctx, &params.MessageCreate{
 		ChannelId: channelId,
 		UserId:    actor.Id,
 		Type:      params.MessageTypeUser,
@@ -123,7 +123,7 @@ func (msgSrv *MessageService) CreateMessage(
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrForeignKeyViolation) {
-			msgSrv.lg.Error("message foreign key constraint violated",
+			s.lg.Error("message foreign key constraint violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -134,7 +134,7 @@ func (msgSrv *MessageService) CreateMessage(
 		}
 
 		if errors.Is(err, store.ErrNotNullViolation) {
-			msgSrv.lg.Error("message required field missing",
+			s.lg.Error("message required field missing",
 				"event", event.EventCreateFailed,
 				"correlation_id", correlationId,
 				"scope", "user_service",
@@ -144,7 +144,7 @@ func (msgSrv *MessageService) CreateMessage(
 			return nil, ErrBadRequest
 		}
 
-		msgSrv.lg.Error("could not create message",
+		s.lg.Error("could not create message",
 			"event", event.EventCreateFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -156,7 +156,7 @@ func (msgSrv *MessageService) CreateMessage(
 
 	msgBytes, err := json.Marshal(message)
 	if err != nil {
-		msgSrv.lg.Error("could not marshal message into json",
+		s.lg.Error("could not marshal message into json",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -165,7 +165,7 @@ func (msgSrv *MessageService) CreateMessage(
 			"err", err)
 	}
 
-	msgSrv.evtSndr.SendTo(string(event.EventMessage), msgBytes, users)
+	s.evtSndr.SendTo(string(event.EventMessage), msgBytes, users)
 
 	resp := dto.MessageResponse{
 		UserId:    message.UserId,
@@ -187,7 +187,7 @@ func (msgSrv *MessageService) CreateMessage(
 //
 // If the requesting user doesn't have access to the channel, it returns service.ErrUnauthorized.
 // If any internal errors occur, it returns service.ErrInternalError.
-func (msgSrv *MessageService) GetMessages(
+func (s *MessageService) GetMessages(
 	ctx context.Context,
 	channelId int64,
 	query *dto.MessageSearchQuery) (*common.Page[[]dto.MessageResponse], error) {
@@ -195,7 +195,7 @@ func (msgSrv *MessageService) GetMessages(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		msgSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "message_service",
@@ -206,9 +206,9 @@ func (msgSrv *MessageService) GetMessages(
 		return nil, ErrInternalError
 	}
 
-	channels, err := msgSrv.msgSt.GetChannelIdsByUserId(ctx, actor.Id)
+	channels, err := s.msgSt.GetChannelIdsByUserId(ctx, actor.Id)
 	if err != nil {
-		msgSrv.lg.Error("could not get channels",
+		s.lg.Error("could not get channels",
 			"event", event.EventGetFailed,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -228,7 +228,7 @@ func (msgSrv *MessageService) GetMessages(
 	}
 
 	if !isChannelValid {
-		msgSrv.lg.Error("actor does not have access to channel",
+		s.lg.Error("actor does not have access to channel",
 			"event", event.EventUserUnauthorized,
 			"correlation_id", correlationId,
 			"scope", "user_service",
@@ -240,12 +240,12 @@ func (msgSrv *MessageService) GetMessages(
 		return nil, ErrUnauthorized
 	}
 
-	msgList, err := msgSrv.msgSt.GetByChannelId(ctx, channelId, &params.MessageSearch{
+	msgList, err := s.msgSt.GetByChannelId(ctx, channelId, &params.MessageSearch{
 		Offset: (query.Page - 1) * query.Limit,
 		Limit:  query.Limit,
 	})
 	if err != nil {
-		msgSrv.lg.Error("could not get messages",
+		s.lg.Error("could not get messages",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "message_service",
@@ -257,9 +257,9 @@ func (msgSrv *MessageService) GetMessages(
 		return nil, ErrInternalError
 	}
 
-	count, err := msgSrv.msgSt.CountByChannelId(ctx, channelId)
+	count, err := s.msgSt.CountByChannelId(ctx, channelId)
 	if err != nil {
-		msgSrv.lg.Error("could not get messages count",
+		s.lg.Error("could not get messages count",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "message_service",
@@ -298,12 +298,12 @@ func (msgSrv *MessageService) GetMessages(
 	return &resp, nil
 }
 
-func (msgSrv *MessageService) GetChannels(ctx context.Context) ([]dto.ChannelResponse, error) {
+func (s *MessageService) GetChannels(ctx context.Context) ([]dto.ChannelResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		msgSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "message_service",
@@ -311,7 +311,7 @@ func (msgSrv *MessageService) GetChannels(ctx context.Context) ([]dto.ChannelRes
 		return nil, ErrInternalError
 	}
 
-	channels, err := msgSrv.msgSt.GetChannelsByUserId(ctx, actor.Id)
+	channels, err := s.msgSt.GetChannelsByUserId(ctx, actor.Id)
 	if err != nil {
 		return nil, ErrInternalError
 	}
@@ -330,14 +330,14 @@ func (msgSrv *MessageService) GetChannels(ctx context.Context) ([]dto.ChannelRes
 	return resp, nil
 }
 
-func (msgSrv *MessageService) GetMembersByChannel(
+func (s *MessageService) GetMembersByChannel(
 	ctx context.Context,
 	channelId int64) ([]dto.MemberResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		msgSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "message_service",
@@ -346,9 +346,9 @@ func (msgSrv *MessageService) GetMembersByChannel(
 		return nil, ErrInternalError
 	}
 
-	members, err := msgSrv.msgSt.GetUsersByChannelId(ctx, channelId)
+	members, err := s.msgSt.GetUsersByChannelId(ctx, channelId)
 	if err != nil {
-		msgSrv.lg.Error("could not get members by channel",
+		s.lg.Error("could not get members by channel",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "message_service",

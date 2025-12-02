@@ -43,7 +43,7 @@ func NewFileService(
 	}
 }
 
-func (fileSrv *FileService) StoreFile(
+func (s *FileService) StoreFile(
 	ctx context.Context,
 	channelId int64,
 	mFile multipart.File,
@@ -52,7 +52,7 @@ func (fileSrv *FileService) StoreFile(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		fileSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "file_service",
@@ -69,14 +69,14 @@ func (fileSrv *FileService) StoreFile(
 
 	fileName := randomName.String() + filepath.Ext(header.Filename)
 
-	fileUrl, err := fileSrv.fileStrg.Store(file.TypeFile, mFile, fileName)
+	fileUrl, err := s.fileStrg.Store(file.TypeFile, mFile, fileName)
 	if err != nil {
 		return ErrInternalError
 	}
 
 	// Ignored variable is the newly created file record's ID
 	// Use it to broadcast messages to all connected SSE clients
-	_, err = fileSrv.fileSt.CreateOne(ctx, params.FileCreate{
+	_, err = s.fileSt.CreateOne(ctx, params.FileCreate{
 		ChannelId:    channelId,
 		UserId:       actor.Id,
 		OriginalName: header.Filename,
@@ -87,13 +87,13 @@ func (fileSrv *FileService) StoreFile(
 
 	// TODO: log this error and the resulting error from the file removal
 	if err != nil {
-		_ = fileSrv.fileStrg.Remove(fileUrl)
+		_ = s.fileStrg.Remove(fileUrl)
 	}
 
 	return nil
 }
 
-func (fileSrv *FileService) GetByChannelId(
+func (s *FileService) GetByChannelId(
 	ctx context.Context,
 	channelId int64,
 	query *dto.FileSearch) (*common.Page[[]dto.FileResponse], error) {
@@ -101,7 +101,7 @@ func (fileSrv *FileService) GetByChannelId(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		fileSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "file_service",
@@ -110,14 +110,14 @@ func (fileSrv *FileService) GetByChannelId(
 		return nil, ErrInternalError
 	}
 
-	result, err := fileSrv.fileSt.GetByChannelId(ctx, channelId, &params.FileSearch{
+	result, err := s.fileSt.GetByChannelId(ctx, channelId, &params.FileSearch{
 		Keyword: query.Keyword,
 		Offset:  (query.Page - 1) * query.Limit,
 		Limit:   query.Limit,
 	})
 
 	if err != nil {
-		fileSrv.lg.Error("could not retrieve files for channel",
+		s.lg.Error("could not retrieve files for channel",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "file_service",
@@ -154,7 +154,7 @@ func (fileSrv *FileService) GetByChannelId(
 	return &resp, nil
 }
 
-func (fileSrv *FileService) GetByProjectId(
+func (s *FileService) GetByProjectId(
 	ctx context.Context,
 	projectId int64,
 	query *dto.FileSearch) (*common.Page[[]dto.FileResponse], error) {
@@ -162,7 +162,7 @@ func (fileSrv *FileService) GetByProjectId(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		fileSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "file_service",
@@ -177,10 +177,10 @@ func (fileSrv *FileService) GetByProjectId(
 		Limit:   query.Limit,
 	}
 
-	files, err := fileSrv.fileSt.GetByProjectId(ctx, projectId, &search)
+	files, err := s.fileSt.GetByProjectId(ctx, projectId, &search)
 
 	if err != nil {
-		fileSrv.lg.Error("could not retrieve files for project",
+		s.lg.Error("could not retrieve files for project",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "file_service",
@@ -190,9 +190,9 @@ func (fileSrv *FileService) GetByProjectId(
 		return nil, ErrInternalError
 	}
 
-	count, err := fileSrv.fileSt.CountByProjectId(ctx, projectId, &search)
+	count, err := s.fileSt.CountByProjectId(ctx, projectId, &search)
 	if err != nil {
-		fileSrv.lg.Error("could not retrieve file count for project",
+		s.lg.Error("could not retrieve file count for project",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "file_service",

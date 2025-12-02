@@ -16,19 +16,19 @@ import (
 // Uses an AuthService to perform
 // authentication operations
 type AuthHandler struct {
-	authSrv *service.AuthService
+	srv *service.AuthService
 }
 
 // Creates a new instance of AuthHandler
 //
 // Parameters:
-//   - authSrv: a pointer to a AuthService
+//   - srv: a pointer to a AuthService
 //
 // Returns:
 //   - a pointer to a new AuthHandler
-func NewAuthHandler(authSrv *service.AuthService) *AuthHandler {
+func NewAuthHandler(srv *service.AuthService) *AuthHandler {
 	return &AuthHandler{
-		authSrv: authSrv,
+		srv: srv,
 	}
 }
 
@@ -41,15 +41,15 @@ func NewAuthHandler(authSrv *service.AuthService) *AuthHandler {
 //
 // Returns:
 //   - a *http.ServeMux
-func (athHndl *AuthHandler) GetMux(lg logger.Logger) *http.ServeMux {
+func (h *AuthHandler) GetMux(lg logger.Logger) *http.ServeMux {
 
 	mwChain := middleware.NewChain()
 	mwChain.Add(middleware.CorrelationId(lg))
 
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /sign-in", mwChain.Handle(athHndl.SignIn))
-	mux.Handle("POST /sign-out", mwChain.Handle(athHndl.SignOut))
+	mux.Handle("POST /sign-in", mwChain.Handle(h.SignIn))
+	mux.Handle("POST /sign-out", mwChain.Handle(h.SignOut))
 
 	return mux
 }
@@ -68,7 +68,7 @@ func (athHndl *AuthHandler) GetMux(lg logger.Logger) *http.ServeMux {
 //   - 401 StatusUnauthorized - If user isn't permitted to sign-in
 //   - 500 InternalServerError - Server error
 //   - 200 OK - Signed-in successfully
-func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	var signinRequest dto.SignInRequest
 
@@ -83,7 +83,7 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie, _ := r.Cookie(auth.AuthCookieName)
-	result, err := athHndl.authSrv.SignIn(r.Context(), cookie, &signinRequest)
+	result, err := h.srv.SignIn(r.Context(), cookie, &signinRequest)
 
 	if err != nil {
 		if errors.Is(err, service.ErrUnauthorized) {
@@ -110,7 +110,7 @@ func (athHndl *AuthHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 // Possible Response Codes:
 //   - 500 InternalServerError - Server error
 //   - 200 OK - Signed-out successfully
-func (athHndl *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie(auth.AuthCookieName)
 	if err != nil {
@@ -123,7 +123,7 @@ func (athHndl *AuthHandler) SignOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = athHndl.authSrv.SignOut(r.Context(), cookie); err != nil {
+	if err = h.srv.SignOut(r.Context(), cookie); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

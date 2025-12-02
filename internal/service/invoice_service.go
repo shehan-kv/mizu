@@ -45,12 +45,12 @@ func NewInvoiceService(lg logger.Logger, invSt store.InvoiceStore) *InvoiceServi
 // Returns:
 //   - ErrBadRequest: if database constraint violations occur.
 //   - ErrInternalError: if internal errors occur.
-func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64, request *dto.InvoiceCreateRequest) error {
+func (s *InvoiceService) CreateInvoice(ctx context.Context, projectId int64, request *dto.InvoiceCreateRequest) error {
 
 	cid := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", cid,
 			"scope", "invoice_service",
@@ -74,7 +74,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 			discountRate := apd.New(0, 0)
 			if _, err := apdCtx.Quo(discountRate, &item.Discount, apd.New(100, 0)); err != nil {
 
-				invSrv.lg.Warn("could not calculate discount rate from percentage",
+				s.lg.Warn("could not calculate discount rate from percentage",
 					"event", event.EventInternalError,
 					"correlation_id", cid,
 					"project_id", projectId,
@@ -86,7 +86,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 
 			if _, err := apdCtx.Mul(itemDiscount, &item.UnitPrice, discountRate); err != nil {
 
-				invSrv.lg.Warn("could not calculate discount for item",
+				s.lg.Warn("could not calculate discount for item",
 					"event", event.EventInternalError,
 					"correlation_id", cid,
 					"project_id", projectId,
@@ -102,7 +102,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		discountedPrice := apd.New(0, 0)
 		if _, err := apdCtx.Sub(discountedPrice, &item.UnitPrice, itemDiscount); err != nil {
 
-			invSrv.lg.Warn("could not calculate price after discount",
+			s.lg.Warn("could not calculate price after discount",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -117,7 +117,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 			taxRate := apd.New(0, 0)
 			if _, err := apdCtx.Quo(taxRate, &item.Tax, apd.New(100, 0)); err != nil {
 
-				invSrv.lg.Warn("could not calculate tax rate from percentage",
+				s.lg.Warn("could not calculate tax rate from percentage",
 					"event", event.EventInternalError,
 					"correlation_id", cid,
 					"project_id", projectId,
@@ -128,7 +128,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 			}
 			if _, err := apdCtx.Mul(itemTax, discountedPrice, taxRate); err != nil {
 
-				invSrv.lg.Warn("could not calculate tax for item",
+				s.lg.Warn("could not calculate tax for item",
 					"event", event.EventInternalError,
 					"correlation_id", cid,
 					"project_id", projectId,
@@ -144,7 +144,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		priceAfterTax := apd.New(0, 0)
 		if _, err := apdCtx.Add(priceAfterTax, discountedPrice, itemTax); err != nil {
 
-			invSrv.lg.Warn("could not calculate price after tax",
+			s.lg.Warn("could not calculate price after tax",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -167,7 +167,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		invoiceItem.Total = apd.New(0, 0)
 
 		if _, err := apdCtx.Mul(invoiceItem.Total, priceAfterTax, &item.Qty); err != nil {
-			invSrv.lg.Warn("could not calculate price after tax for all qty",
+			s.lg.Warn("could not calculate price after tax for all qty",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -178,7 +178,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if _, err := apdCtx.Mul(invoiceItem.Tax, itemTax, &item.Qty); err != nil {
-			invSrv.lg.Warn("could not calculate for all qty",
+			s.lg.Warn("could not calculate for all qty",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -189,7 +189,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if _, err := apdCtx.Mul(invoiceItem.Discount, itemDiscount, &item.Qty); err != nil {
-			invSrv.lg.Warn("could not calculate discount for all qty",
+			s.lg.Warn("could not calculate discount for all qty",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -200,7 +200,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if _, err := apdCtx.Add(sumOfTax, sumOfTax, invoiceItem.Tax); err != nil {
-			invSrv.lg.Warn("could not add tax for all qty to invoice sum of tax",
+			s.lg.Warn("could not add tax for all qty to invoice sum of tax",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -211,7 +211,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if _, err := apdCtx.Add(sumOfDiscount, sumOfDiscount, invoiceItem.Discount); err != nil {
-			invSrv.lg.Warn("could not add discount for all qty to invoice sum of discount",
+			s.lg.Warn("could not add discount for all qty to invoice sum of discount",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -222,7 +222,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if _, err := apdCtx.Add(subTotal, subTotal, invoiceItem.Total); err != nil {
-			invSrv.lg.Warn("could not add sub-total for all qty to invoice sub-total",
+			s.lg.Warn("could not add sub-total for all qty to invoice sub-total",
 				"event", event.EventInternalError,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -247,10 +247,10 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		Items:        invoiceItems,
 	}
 
-	invoiceId, err := invSrv.invSt.CreateOne(ctx, actor.Id, &invoice)
+	invoiceId, err := s.invSt.CreateOne(ctx, actor.Id, &invoice)
 	if err != nil {
 		if errors.Is(err, store.ErrNotNullViolation) {
-			invSrv.lg.Warn("required field is null",
+			s.lg.Warn("required field is null",
 				"event", event.EventCreateFailed,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -260,7 +260,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if errors.Is(err, store.ErrForeignKeyViolation) {
-			invSrv.lg.Warn("invoice foreign key constraint violated",
+			s.lg.Warn("invoice foreign key constraint violated",
 				"event", event.EventCreateFailed,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -270,7 +270,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		}
 
 		if errors.Is(err, store.ErrCheckViolation) {
-			invSrv.lg.Warn("check constraint violation",
+			s.lg.Warn("check constraint violation",
 				"event", event.EventCreateFailed,
 				"correlation_id", cid,
 				"project_id", projectId,
@@ -279,7 +279,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 			return ErrBadRequest
 		}
 
-		invSrv.lg.Warn("could not create invoice",
+		s.lg.Warn("could not create invoice",
 			"event", event.EventCreateFailed,
 			"correlation_id", cid,
 			"project_id", projectId,
@@ -288,7 +288,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 		return ErrInternalError
 	}
 
-	invSrv.lg.Info("invoice created successfully",
+	s.lg.Info("invoice created successfully",
 		"event", event.EventCreateSuccess,
 		"correlation_id", cid,
 		"project_id", projectId,
@@ -305,7 +305,7 @@ func (invSrv *InvoiceService) CreateInvoice(ctx context.Context, projectId int64
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) GetInvoicesByProject(
+func (s *InvoiceService) GetInvoicesByProject(
 	ctx context.Context,
 	projectId int64,
 	query *dto.InvoiceSearch) (*common.Page[[]dto.InvoiceSummaryResponse], error) {
@@ -313,7 +313,7 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -330,9 +330,9 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 		Limit:   query.Limit,
 	}
 
-	invoices, err := invSrv.invSt.GetSummaryByProjectId(ctx, projectId, &invoiceSearch)
+	invoices, err := s.invSt.GetSummaryByProjectId(ctx, projectId, &invoiceSearch)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice list",
+		s.lg.Error("could not get invoice list",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -344,9 +344,9 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 		return nil, ErrInternalError
 	}
 
-	count, err := invSrv.invSt.CountSummaryByProjectId(ctx, projectId, &invoiceSearch)
+	count, err := s.invSt.CountSummaryByProjectId(ctx, projectId, &invoiceSearch)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice count",
+		s.lg.Error("could not get invoice count",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -396,14 +396,14 @@ func (invSrv *InvoiceService) GetInvoicesByProject(
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) GetAllByUser(
+func (s *InvoiceService) GetAllByUser(
 	ctx context.Context,
 	query *dto.InvoiceSearch) (*common.Page[[]dto.InvoiceSummaryResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -419,9 +419,9 @@ func (invSrv *InvoiceService) GetAllByUser(
 		Limit:   query.Limit,
 	}
 
-	invoices, err := invSrv.invSt.GetSummaryByUserId(ctx, actor.Id, &invoiceSearch)
+	invoices, err := s.invSt.GetSummaryByUserId(ctx, actor.Id, &invoiceSearch)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice list",
+		s.lg.Error("could not get invoice list",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -433,9 +433,9 @@ func (invSrv *InvoiceService) GetAllByUser(
 		return nil, ErrInternalError
 	}
 
-	count, err := invSrv.invSt.CountSummaryByUserId(ctx, actor.Id, &invoiceSearch)
+	count, err := s.invSt.CountSummaryByUserId(ctx, actor.Id, &invoiceSearch)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice count",
+		s.lg.Error("could not get invoice count",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -482,14 +482,14 @@ func (invSrv *InvoiceService) GetAllByUser(
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) GetOneById(
+func (s *InvoiceService) GetOneById(
 	ctx context.Context,
 	invoiceId int64) (*dto.InvoiceDetailsResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -497,9 +497,9 @@ func (invSrv *InvoiceService) GetOneById(
 		return nil, ErrInternalError
 	}
 
-	summary, err := invSrv.invSt.GetSummaryById(ctx, invoiceId)
+	summary, err := s.invSt.GetSummaryById(ctx, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice summary",
+		s.lg.Error("could not get invoice summary",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -509,9 +509,9 @@ func (invSrv *InvoiceService) GetOneById(
 		return nil, ErrInternalError
 	}
 
-	items, err := invSrv.invSt.GetItemsByInvoiceId(ctx, invoiceId)
+	items, err := s.invSt.GetItemsByInvoiceId(ctx, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice items",
+		s.lg.Error("could not get invoice items",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -521,9 +521,9 @@ func (invSrv *InvoiceService) GetOneById(
 		return nil, ErrInternalError
 	}
 
-	history, err := invSrv.invSt.GetHistoryByInvoiceId(ctx, invoiceId)
+	history, err := s.invSt.GetHistoryByInvoiceId(ctx, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not get invoice history",
+		s.lg.Error("could not get invoice history",
 			"event", event.EventGetFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -596,12 +596,12 @@ func (invSrv *InvoiceService) GetOneById(
 //
 //   - If the invoice is already accepted, it returns service.ErrAlreadyExists
 //   - If any other error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) AcceptById(ctx context.Context, invoiceId int64) error {
+func (s *InvoiceService) AcceptById(ctx context.Context, invoiceId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -609,9 +609,9 @@ func (invSrv *InvoiceService) AcceptById(ctx context.Context, invoiceId int64) e
 		return ErrInternalError
 	}
 
-	alreadyAccepted, err := invSrv.invSt.AcceptById(ctx, actor.Id, invoiceId)
+	alreadyAccepted, err := s.invSt.AcceptById(ctx, actor.Id, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not accept invoice/quote",
+		s.lg.Error("could not accept invoice/quote",
 			"event", event.EventCreateFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -636,12 +636,12 @@ func (invSrv *InvoiceService) AcceptById(ctx context.Context, invoiceId int64) e
 //
 //   - If the invoice is already rejected, it returns service.ErrAlreadyExists
 //   - If any other error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) RejectById(ctx context.Context, invoiceId int64) error {
+func (s *InvoiceService) RejectById(ctx context.Context, invoiceId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -649,9 +649,9 @@ func (invSrv *InvoiceService) RejectById(ctx context.Context, invoiceId int64) e
 		return ErrInternalError
 	}
 
-	alreadyAccepted, err := invSrv.invSt.RejectById(ctx, actor.Id, invoiceId)
+	alreadyAccepted, err := s.invSt.RejectById(ctx, actor.Id, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not reject invoice/quote",
+		s.lg.Error("could not reject invoice/quote",
 			"event", event.EventCreateFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -676,12 +676,12 @@ func (invSrv *InvoiceService) RejectById(ctx context.Context, invoiceId int64) e
 //
 //   - If the invoice is already rejected, it returns service.ErrAlreadyExists
 //   - If any other error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) CancelById(ctx context.Context, invoiceId int64) error {
+func (s *InvoiceService) CancelById(ctx context.Context, invoiceId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -689,9 +689,9 @@ func (invSrv *InvoiceService) CancelById(ctx context.Context, invoiceId int64) e
 		return ErrInternalError
 	}
 
-	alreadyAccepted, err := invSrv.invSt.CancelById(ctx, actor.Id, invoiceId)
+	alreadyAccepted, err := s.invSt.CancelById(ctx, actor.Id, invoiceId)
 	if err != nil {
-		invSrv.lg.Error("could not cancel invoice/quote",
+		s.lg.Error("could not cancel invoice/quote",
 			"event", event.EventCreateFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -717,12 +717,12 @@ func (invSrv *InvoiceService) CancelById(ctx context.Context, invoiceId int64) e
 //   - If the invoice is already rejected, it returns service.ErrAlreadyExists
 //   - If the invoice ID points to a quote, it returns service.ErrBadRequest
 //   - If any other error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) error {
+func (s *InvoiceService) PayById(ctx context.Context, invoiceId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -730,11 +730,11 @@ func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) erro
 		return ErrInternalError
 	}
 
-	alreadyPaid, err := invSrv.invSt.PayById(ctx, actor.Id, invoiceId)
+	alreadyPaid, err := s.invSt.PayById(ctx, actor.Id, invoiceId)
 	if err != nil {
 
 		if errors.Is(err, store.ErrUnexpectedType) {
-			invSrv.lg.Error("cannot pay a quote, must be an invoice",
+			s.lg.Error("cannot pay a quote, must be an invoice",
 				"event", event.EventCreateFailed,
 				"scope", "invoice_service",
 				"correlation_id", correlationId,
@@ -744,7 +744,7 @@ func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) erro
 			return ErrBadRequest
 		}
 
-		invSrv.lg.Error("could not pay invoice/quote",
+		s.lg.Error("could not pay invoice/quote",
 			"event", event.EventCreateFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -770,12 +770,12 @@ func (invSrv *InvoiceService) PayById(ctx context.Context, invoiceId int64) erro
 //   - If the quote is already converted, it returns service.ErrAlreadyExists
 //   - If the quote is in an invalid state, it returns service.ErrBadRequest
 //   - If any other error occurs, it returns service.ErrInternalError
-func (invSrv *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64) error {
+func (s *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64) error {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -783,11 +783,11 @@ func (invSrv *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64)
 		return ErrInternalError
 	}
 
-	alreadyConverted, err := invSrv.invSt.QuoteToInvoice(ctx, actor.Id, quoteId)
+	alreadyConverted, err := s.invSt.QuoteToInvoice(ctx, actor.Id, quoteId)
 
 	if err != nil {
 		if errors.Is(err, store.ErrUnexpectedType) {
-			invSrv.lg.Error("quote is in an invalid state to convert",
+			s.lg.Error("quote is in an invalid state to convert",
 				"event", event.EventCreateFailed,
 				"scope", "invoice_service",
 				"correlation_id", correlationId,
@@ -797,7 +797,7 @@ func (invSrv *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64)
 			return ErrBadRequest
 		}
 
-		invSrv.lg.Error("could not convert quote to invoice",
+		s.lg.Error("could not convert quote to invoice",
 			"event", event.EventCreateFailed,
 			"scope", "invoice_service",
 			"correlation_id", correlationId,
@@ -814,14 +814,14 @@ func (invSrv *InvoiceService) QuoteToInvoice(ctx context.Context, quoteId int64)
 	return nil
 }
 
-func (invSrv *InvoiceService) GetPaidCountByProjectId(
+func (s *InvoiceService) GetPaidCountByProjectId(
 	ctx context.Context,
 	projectId int64) ([]dto.InvoiceMetricResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -829,9 +829,9 @@ func (invSrv *InvoiceService) GetPaidCountByProjectId(
 		return nil, ErrInternalError
 	}
 
-	metrics, err := invSrv.invSt.GetMetricsByProjectId(ctx, projectId, params.InvoiceHistoryEventPaid)
+	metrics, err := s.invSt.GetMetricsByProjectId(ctx, projectId, params.InvoiceHistoryEventPaid)
 	if err != nil {
-		invSrv.lg.Error("could not get paid invoice metrics",
+		s.lg.Error("could not get paid invoice metrics",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -850,13 +850,13 @@ func (invSrv *InvoiceService) GetPaidCountByProjectId(
 	return resp, nil
 }
 
-func (invSrv *InvoiceService) GetPaidMetricsByCurrentUser(
+func (s *InvoiceService) GetPaidMetricsByCurrentUser(
 	ctx context.Context) ([]dto.InvoiceMetricResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -864,9 +864,9 @@ func (invSrv *InvoiceService) GetPaidMetricsByCurrentUser(
 		return nil, ErrInternalError
 	}
 
-	metrics, err := invSrv.invSt.GetMetricsByUserId(ctx, actor.Id, params.InvoiceHistoryEventPaid)
+	metrics, err := s.invSt.GetMetricsByUserId(ctx, actor.Id, params.InvoiceHistoryEventPaid)
 	if err != nil {
-		invSrv.lg.Error("could not get paid invoice metrics",
+		s.lg.Error("could not get paid invoice metrics",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -884,13 +884,13 @@ func (invSrv *InvoiceService) GetPaidMetricsByCurrentUser(
 	return resp, nil
 }
 
-func (invSrv *InvoiceService) GetOverview(
+func (s *InvoiceService) GetOverview(
 	ctx context.Context) (*dto.InvoiceOverviewResponse, error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
 	if err != nil {
-		invSrv.lg.Error("could not get actor from context",
+		s.lg.Error("could not get actor from context",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
@@ -900,7 +900,7 @@ func (invSrv *InvoiceService) GetOverview(
 
 	resp := dto.InvoiceOverviewResponse{}
 
-	paid, err := invSrv.getSumForUser(
+	paid, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusPaid,
 	)
 	if err != nil {
@@ -908,7 +908,7 @@ func (invSrv *InvoiceService) GetOverview(
 	}
 	resp.Paid = paid
 
-	pending, err := invSrv.getSumForUser(
+	pending, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusPending,
 	)
 	if err != nil {
@@ -916,7 +916,7 @@ func (invSrv *InvoiceService) GetOverview(
 	}
 	resp.Pending = pending
 
-	accepted, err := invSrv.getSumForUser(
+	accepted, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusAccepted,
 	)
 	if err != nil {
@@ -924,7 +924,7 @@ func (invSrv *InvoiceService) GetOverview(
 	}
 	resp.Accepted = accepted
 
-	rejected, err := invSrv.getSumForUser(
+	rejected, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusRejected,
 	)
 	if err != nil {
@@ -932,7 +932,7 @@ func (invSrv *InvoiceService) GetOverview(
 	}
 	resp.Rejected = rejected
 
-	cancelled, err := invSrv.getSumForUser(
+	cancelled, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, true, params.InvoiceStatusCancelled,
 	)
 	if err != nil {
@@ -940,7 +940,7 @@ func (invSrv *InvoiceService) GetOverview(
 	}
 	resp.Cancelled = cancelled
 
-	quoteRejected, err := invSrv.getSumForUser(
+	quoteRejected, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, false, params.InvoiceStatusRejected,
 	)
 	if err != nil {
@@ -948,7 +948,7 @@ func (invSrv *InvoiceService) GetOverview(
 	}
 	resp.QuotesRejected = quoteRejected
 
-	quotePending, err := invSrv.getSumForUser(
+	quotePending, err := s.getSumForUser(
 		ctx, correlationId, actor.Id, actor.Id, false, params.InvoiceStatusPending,
 	)
 	if err != nil {
@@ -959,7 +959,7 @@ func (invSrv *InvoiceService) GetOverview(
 	return &resp, nil
 }
 
-func (invSrv *InvoiceService) getSumForUser(
+func (s *InvoiceService) getSumForUser(
 	ctx context.Context,
 	correlationId string,
 	actorId int64,
@@ -967,9 +967,9 @@ func (invSrv *InvoiceService) getSumForUser(
 	isInvoice bool,
 	status params.InvoiceStatus) ([]dto.OverviewMetric, error) {
 
-	result, err := invSrv.invSt.GetAmountSumByUserId(ctx, userId, isInvoice, status)
+	result, err := s.invSt.GetAmountSumByUserId(ctx, userId, isInvoice, status)
 	if err != nil {
-		invSrv.lg.Error("could not get sum",
+		s.lg.Error("could not get sum",
 			"event", event.EventInternalError,
 			"correlation_id", correlationId,
 			"scope", "invoice_service",
