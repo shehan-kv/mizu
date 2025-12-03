@@ -59,10 +59,10 @@ func (h *InvoiceHandler) GetMux(
 
 	mux.Handle("GET /", mwChain.Handle(h.GetAllByUser))
 	mux.Handle("GET /{invoiceId}", mwChain.Handle(h.GetOneById))
-	mux.Handle("POST /accept/{invoiceId}", mwChain.Handle(h.AcceptById))
-	mux.Handle("POST /reject/{invoiceId}", mwChain.Handle(h.RejectById))
-	mux.Handle("POST /cancel/{invoiceId}", mwChain.Handle(h.CancelById))
-	mux.Handle("POST /pay/{invoiceId}", mwChain.Handle(h.PayById))
+	mux.Handle("PUT /{invoiceId}/status/accepted", mwChain.Handle(h.AcceptById))
+	mux.Handle("PUT /{invoiceId}/status/rejected", mwChain.Handle(h.RejectById))
+	mux.Handle("PUT /{invoiceId}/status/cancelled", mwChain.Handle(h.CancelById))
+	mux.Handle("PUT /{invoiceId}/status/paid", mwChain.Handle(h.PayById))
 	mux.Handle("POST /quote-to-invoice/{quoteId}", mwChain.Handle(h.QuoteToInvoice))
 
 	// eg, /invoices/project/{projectId}
