@@ -8,13 +8,15 @@ import {
 	NetworkError
 } from './errors';
 
+export type UserRole = 'admin' | 'staff' | 'client';
+
 export interface User {
 	id: number;
 	firstName: string;
 	lastName: string;
 	title?: string;
 	email: string;
-	role: string;
+	role: UserRole;
 	image?: string;
 	createdAt: Date;
 	lastLogin?: Date;

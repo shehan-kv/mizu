@@ -25,7 +25,6 @@
 	} from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
-	import UserCard from '$lib/components/UserCard.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { onMount } from 'svelte';
@@ -38,6 +37,7 @@
 	import { curveLinear } from 'd3-shape';
 	import { scalePoint } from 'd3-scale';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
+	import InvoiceListCard from '$lib/components/InvoiceListCard.svelte';
 
 	let id = Number(page.params.id);
 
@@ -51,17 +51,6 @@
 		projectAbort = new AbortController();
 
 		projectPromise = getProjectDetails(id, projectAbort.signal);
-	}
-
-	let invoicesPromise: Promise<PaginatedResponse<InvoiceWithStatus>> | null = $state(null);
-	let invoicesAbort: AbortController | null = null;
-	function loadInvoices() {
-		if (invoicesAbort) {
-			invoicesAbort.abort();
-		}
-		invoicesAbort = new AbortController();
-
-		invoicesPromise = getInvoicesByProjectId(id, { page: 1, limit: 20 }, invoicesAbort.signal);
 	}
 
 	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
@@ -135,7 +124,6 @@
 		loadPaidInvoiceMetrics();
 		loadTaskCompleteMetrics();
 		loadFiles();
-		loadInvoices();
 		loadContracts();
 		loadChReqs();
 	});
@@ -434,75 +422,7 @@
 		</div>
 	</div>
 
-	<div
-		class="min-h-50 max-h-100 col-span-4 grid grid-rows-[min-content_1fr]
-		overflow-hidden rounded border"
-	>
-		<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-			<p class="text-sm">Invoices / Quotes</p>
-			<a href={`/projects/${id}/invoices`} class="flex items-center gap-1 text-sm">
-				<span>View All</span>
-				<ArrowRight />
-			</a>
-		</div>
-		<div class="overflow-scroll px-6 py-2">
-			{#await invoicesPromise}
-				<Spinner />
-			{:then res}
-				{#if res && res.data.length > 0}
-					<Table.Root>
-						<Table.Body>
-							{#each res.data as invoice}
-								<Table.Row
-									class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
-								dark:text-neutral-400 dark:hover:text-neutral-50"
-								>
-									<Table.Cell class="pl-0">
-										{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}
-									</Table.Cell>
-									<Table.Cell class="flex items-center gap-1">
-										{toTitleCase(invoice.status)}
-										{#if invoice.status == 'accepted'}
-											<Checks size={18} class="text-emerald-500" />
-										{/if}
-									</Table.Cell>
-									<Table.Cell>
-										{currencyFormatter(invoice.currencyCode, invoice.total)} Total
-									</Table.Cell>
-									<Table.Cell>
-										Issued On {formatDate(invoice.issuedAt)}
-									</Table.Cell>
-									<Table.Cell class="pr-0" align="right">
-										<a href={`/invoices-and-quotes/${invoice.id}`} title="View">
-											<ArrowRight size={18} />
-										</a>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				{:else}
-					<ErrorMessage variant="warn" text="Invoices / Quotes Not Found" />
-				{/if}
-			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadProject} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Invoices/Quotes"
-						retry={loadProject}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadProject} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProject} />
-				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProject} />
-				{/if}
-			{/await}
-		</div>
-	</div>
+	<InvoiceListCard projectId={id} role="client" />
 
 	<div
 		class="min-h-50 max-h-100 col-span-4 grid grid-rows-[min-content_1fr]

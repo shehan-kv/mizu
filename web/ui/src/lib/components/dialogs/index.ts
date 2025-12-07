@@ -7,6 +7,7 @@ import ChannelChangeRequests from './ChannelChangeRequests.svelte';
 import NewChangeRequest from './NewChangeRequest.svelte';
 import NewProject from './NewProject.svelte';
 import ProjectStatusConfirm from './ProjectStatusConfirm.svelte';
+import InvoiceStatusConfirm from './InvoiceStatusConfirm.svelte';
 import ProjectDeleteDialog from './ProjectDeleteDialog.svelte';
 import ManageMembers from './ManageMembers.svelte';
 import NewInvoice from './NewInvoice.svelte';
@@ -23,6 +24,7 @@ export {
 	ChannelKanban,
 	NewProject,
 	ProjectStatusConfirm,
+	InvoiceStatusConfirm,
 	ProjectDeleteDialog,
 	ManageMembers,
 	NewInvoice,

@@ -9,6 +9,8 @@ import {
 	NetworkError
 } from './errors';
 
+export type InvoiceStatus = 'pending' | 'paid' | 'accepted' | 'rejected' | 'cancelled';
+
 export interface InvoiceSummary {
 	id: number;
 	projectId: number;
@@ -20,12 +22,12 @@ export interface InvoiceSummary {
 	discount: Intl.StringNumericLiteral;
 	tax: Intl.StringNumericLiteral;
 	currencyCode: string;
-	status: string;
+	status: InvoiceStatus;
 }
 
 export interface InvoiceQuery {
 	q?: string;
-	status?: string;
+	status?: InvoiceStatus;
 	type?: string;
 	page: number;
 	limit: number;
@@ -84,7 +86,7 @@ export interface InvoiceWithStatus {
 	dueAt?: Date;
 	total: Intl.StringNumericLiteral;
 	currencyCode: string;
-	status: string;
+	status: InvoiceStatus;
 }
 
 export async function getInvoicesByProjectId(
@@ -175,7 +177,7 @@ export interface InvoiceDetails {
 	projectId: number;
 	projectName: string;
 	isInvoice: boolean;
-	status: string;
+	status: InvoiceStatus;
 	issuedAt: Date;
 	dueAt: Date;
 	total: Intl.StringNumericLiteral;
@@ -440,6 +442,129 @@ export async function createInvoice(
 				throw new APIForbiddenError('Forbidden');
 			case 404:
 				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markInvoicePaid(invoiceId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/invoices/${invoiceId}/status/paid`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change invoice status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already paid`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markInvoiceCancelled(invoiceId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/invoices/${invoiceId}/status/cancelled`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change invoice status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already cancelled`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markInvoiceAccepted(invoiceId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/invoices/${invoiceId}/status/accepted`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change invoice status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already accepted`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+export async function markInvoiceRejected(invoiceId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/invoices/${invoiceId}/status/rejected`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to change invoice status: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already rejected`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
