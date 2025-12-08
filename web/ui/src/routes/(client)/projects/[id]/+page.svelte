@@ -12,12 +12,6 @@
 	} from '$lib/api/errors';
 	import { getFilesByProject, type File } from '$lib/api/files';
 	import {
-		getInvoicesByProjectId,
-		getPaidInvoiceCountByProject,
-		type InvoiceMetric,
-		type InvoiceWithStatus
-	} from '$lib/api/invoices';
-	import {
 		getProjectDetails,
 		getTaskCompletedMetricsByProject,
 		type ProjectDetails,
@@ -28,16 +22,14 @@
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { onMount } from 'svelte';
-	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import KanbanTaskList from '$lib/components/KanbanTaskList.svelte';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
-	import { BarChart, LineChart } from 'layerchart';
-	import { curveLinear } from 'd3-shape';
-	import { scalePoint } from 'd3-scale';
+	import { BarChart } from 'layerchart';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
 	import InvoiceListCard from '$lib/components/InvoiceListCard.svelte';
+	import ProjectInvoicePaidChart from '$lib/components/ProjectInvoicePaidChart.svelte';
 
 	let id = Number(page.params.id);
 
@@ -86,17 +78,6 @@
 		filesPromise = getFilesByProject(id, '', 1, 20, filesAbort.signal);
 	}
 
-	let InvoicePaidCountPromise: Promise<InvoiceMetric[]> | null = $state(null);
-	let InvoicePaidCountAbort: AbortController | null = null;
-	function loadPaidInvoiceMetrics() {
-		if (InvoicePaidCountAbort) {
-			InvoicePaidCountAbort.abort();
-		}
-		InvoicePaidCountAbort = new AbortController();
-
-		InvoicePaidCountPromise = getPaidInvoiceCountByProject(id, InvoicePaidCountAbort.signal);
-	}
-
 	let taskCompleteMetricsPromise: Promise<TaskMetric[]> | null = $state(null);
 	let taskCompleteMetricsAbort: AbortController | null = null;
 	function loadTaskCompleteMetrics() {
@@ -111,17 +92,12 @@
 		);
 	}
 
-	const invChartConfig = {
-		paid: { label: 'Paid', color: 'var(--color-blue-400)' }
-	} satisfies Chart.ChartConfig;
-
 	const taskChartConfig = {
 		completed: { label: 'Completed', color: 'var(--color-blue-400)' }
 	} satisfies Chart.ChartConfig;
 
 	onMount(() => {
 		loadProject();
-		loadPaidInvoiceMetrics();
 		loadTaskCompleteMetrics();
 		loadFiles();
 		loadContracts();
@@ -227,71 +203,8 @@
 		<ProjectMembersCard projectId={id} />
 	</div>
 
-	<div
-		class="col-span-2 grid min-h-80 grid-rows-[min-content_1fr]
-		overflow-hidden rounded border"
-	>
-		<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-			<p class="text-sm">Invoices Paid</p>
-		</div>
-		<div class="h-70 relative px-6 py-2">
-			{#await InvoicePaidCountPromise}
-				<Spinner />
-			{:then res}
-				{#if res}
-					<div class="absolute inset-x-6 inset-y-2">
-						<Chart.Container config={invChartConfig} class="h-full w-full">
-							<LineChart
-								data={res}
-								x="key"
-								xScale={scalePoint()}
-								yDomain={[0, Math.max(1, ...res.map((d) => d.value))]}
-								axis="x"
-								series={[
-									{
-										key: 'value',
-										label: invChartConfig.paid.label,
-										color: invChartConfig.paid.color
-									}
-								]}
-								props={{
-									spline: { curve: curveLinear, motion: 'none', strokeWidth: 2 },
-									xAxis: {
-										format: (v: string) =>
-											new Date(v + '-01').toLocaleString(undefined, {
-												month: 'short'
-											})
-									},
-									highlight: { points: { r: 4 } }
-								}}
-							>
-								{#snippet tooltip()}
-									<Chart.Tooltip hideLabel />
-								{/snippet}
-							</LineChart>
-						</Chart.Container>
-					</div>
-				{:else}
-					<ErrorMessage variant="warn" text="Metrics Not Found" />
-				{/if}
-			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadProject} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Metrics"
-						retry={loadProject}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadProject} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProject} />
-				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProject} />
-				{/if}
-			{/await}
-		</div>
+	<div class="col-span-2 min-h-80">
+		<ProjectInvoicePaidChart projectId={id} />
 	</div>
 
 	<div class="h-84 col-span-4 grid grid-cols-4 gap-2 overflow-hidden">
