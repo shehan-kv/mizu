@@ -771,6 +771,7 @@ func (q *ContractStorePostgres) GetRevisions(
 func (q *ContractStorePostgres) GetContractStatsByProject(
 	ctx context.Context,
 	projectId int64,
+	userId int64,
 	arg *params.ContractSearch) (*agg.WithCount[agg.ContractWithStats], error) {
 
 	var query strings.Builder
@@ -801,6 +802,7 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
 	),
 	latest_version AS (
     	SELECT
+			cv.id,
         	cv.contract_id,
         	cv.version,
         	cv.created_at,
@@ -816,14 +818,17 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
   		COALESCE(v.versions,  0) AS versions,
   		COALESCE(r.revisions, 0) AS revisions,
   		COALESCE(ar.accepted, 0) AS accepted_revisions,
-		lv.version AS latest_version
+		lv.version AS latest_version,
+		COALESCE(css.name, NULL) AS user_signature
 	FROM contracts c
 	JOIN contract_statuses cs ON cs.id = c.status
 	LEFT JOIN version_counts v ON v.contract_id = c.id
 	LEFT JOIN revision_counts r ON r.contract_id = c.id
 	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id,
 	LEFT JOIN latest_version lv ON lv.contract_id = c.id AND lv.rn = 1
-	WHERE c.project_id = $2
+	LEFT JOIN contract_signatures csig ON csig.version_id = lv.id AND csig.user_id = $2
+	LEFT JOIN contract_signature_statuses css ON css.id = csig.status
+	WHERE c.project_id = $3
 	`)
 
 	countQuery.WriteString(`
@@ -832,10 +837,10 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
 	WHERE c.project_id = $1
 	`)
 
-	queryArgs := []any{params.ContractRevisionAccepted, projectId}
+	queryArgs := []any{params.ContractRevisionAccepted, userId, projectId}
 	countQueryArgs := []any{projectId}
 
-	paramCount := 2
+	paramCount := 3
 
 	if len(arg.Keyword) > 0 {
 		paramCount++
@@ -902,6 +907,7 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
 			&row.Revisions,
 			&row.AcceptedRevisions,
 			&row.LatestVersion,
+			&row.UserSignature,
 		); err != nil {
 			return nil, store.ErrQueryFailed
 		}

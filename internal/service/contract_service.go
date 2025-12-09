@@ -558,7 +558,7 @@ func (s *ContractService) GetContractsByProject(
 		return nil, ErrInternalError
 	}
 
-	contracts, err := s.contSt.GetContractStatsByProject(ctx, projectId, &params.ContractSearch{
+	contracts, err := s.contSt.GetContractStatsByProject(ctx, projectId, actor.Id, &params.ContractSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
@@ -591,6 +591,7 @@ func (s *ContractService) GetContractsByProject(
 			Revisions:         contract.Revisions,
 			AcceptedRevisions: contract.AcceptedRevisions,
 			LatestVersion:     contract.LatestVersion,
+			UserSignature:     contract.UserSignature,
 		}
 	}
 

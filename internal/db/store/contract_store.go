@@ -92,6 +92,7 @@ type ContractStore interface {
 	GetContractStatsByProject(
 		ctx context.Context,
 		projectId int64,
+		userId int64,
 		arg *params.ContractSearch) (*agg.WithCount[agg.ContractWithStats], error)
 
 	GetVersionsByContractId(ctx context.Context, contractId int64) ([]agg.ContractVersion, error)
