@@ -11,4 +11,5 @@ type ContractStatsResponse struct {
 	Versions          int64     `json:"versions"`
 	Revisions         int64     `json:"numOfRevisions"`
 	AcceptedRevisions int64     `json:"acceptedRevisions"`
+	LatestVersion     string    `json:"latestVersion"`
 }

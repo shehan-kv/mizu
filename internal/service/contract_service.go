@@ -590,6 +590,7 @@ func (s *ContractService) GetContractsByProject(
 			Versions:          contract.Versions,
 			Revisions:         contract.Revisions,
 			AcceptedRevisions: contract.AcceptedRevisions,
+			LatestVersion:     contract.LatestVersion,
 		}
 	}
 

@@ -798,6 +798,14 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
 		JOIN contract_revision_statuses crs ON crs.id = cr.status
 		WHERE crs.name = $1
 		GROUP BY cr.contract_id
+	),
+	latest_version AS (
+    	SELECT
+        	cv.contract_id,
+        	cv.version,
+        	cv.created_at,
+        	ROW_NUMBER() OVER (PARTITION BY cv.contract_id ORDER BY cv.created_at DESC) AS rn
+    	FROM contract_versions cv
 	)
 
 	SELECT
@@ -807,12 +815,14 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
   		c.created_at,
   		COALESCE(v.versions,  0) AS versions,
   		COALESCE(r.revisions, 0) AS revisions,
-  		COALESCE(ar.accepted, 0) AS accepted_revisions
+  		COALESCE(ar.accepted, 0) AS accepted_revisions,
+		lv.version AS latest_version
 	FROM contracts c
 	JOIN contract_statuses cs ON cs.id = c.status
 	LEFT JOIN version_counts v ON v.contract_id = c.id
 	LEFT JOIN revision_counts r ON r.contract_id = c.id
-	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id
+	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id,
+	LEFT JOIN latest_version lv ON lv.contract_id = c.id AND lv.rn = 1
 	WHERE c.project_id = $2
 	`)
 
@@ -891,6 +901,7 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
 			&row.Versions,
 			&row.Revisions,
 			&row.AcceptedRevisions,
+			&row.LatestVersion,
 		); err != nil {
 			return nil, store.ErrQueryFailed
 		}

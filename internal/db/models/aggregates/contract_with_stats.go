@@ -11,4 +11,5 @@ type ContractWithStats struct {
 	Versions          int64
 	Revisions         int64
 	AcceptedRevisions int64
+	LatestVersion     string
 }
