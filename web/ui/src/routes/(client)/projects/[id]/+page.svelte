@@ -11,12 +11,7 @@
 		APIServerError
 	} from '$lib/api/errors';
 	import { getFilesByProject, type File } from '$lib/api/files';
-	import {
-		getProjectDetails,
-		getTaskCompletedMetricsByProject,
-		type ProjectDetails,
-		type TaskMetric
-	} from '$lib/api/projects';
+	import { getProjectDetails, type ProjectDetails } from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
@@ -30,6 +25,7 @@
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
 	import InvoiceListCard from '$lib/components/InvoiceListCard.svelte';
 	import ProjectInvoicePaidChart from '$lib/components/ProjectInvoicePaidChart.svelte';
+	import ProjectTasksCompletedChart from '$lib/components/ProjectTasksCompletedChart.svelte';
 
 	let id = Number(page.params.id);
 
@@ -78,27 +74,12 @@
 		filesPromise = getFilesByProject(id, '', 1, 20, filesAbort.signal);
 	}
 
-	let taskCompleteMetricsPromise: Promise<TaskMetric[]> | null = $state(null);
-	let taskCompleteMetricsAbort: AbortController | null = null;
-	function loadTaskCompleteMetrics() {
-		if (taskCompleteMetricsAbort) {
-			taskCompleteMetricsAbort.abort();
-		}
-		taskCompleteMetricsAbort = new AbortController();
-
-		taskCompleteMetricsPromise = getTaskCompletedMetricsByProject(
-			id,
-			taskCompleteMetricsAbort.signal
-		);
-	}
-
 	const taskChartConfig = {
 		completed: { label: 'Completed', color: 'var(--color-blue-400)' }
 	} satisfies Chart.ChartConfig;
 
 	onMount(() => {
 		loadProject();
-		loadTaskCompleteMetrics();
 		loadFiles();
 		loadContracts();
 		loadChReqs();
@@ -208,68 +189,8 @@
 	</div>
 
 	<div class="h-84 col-span-4 grid grid-cols-4 gap-2 overflow-hidden">
-		<div class="col-span-2 rounded border">
-			<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-				<p class="text-sm">Tasks Completed</p>
-			</div>
-			<div class="px-6 py-2">
-				{#await taskCompleteMetricsPromise}
-					<Spinner />
-				{:then res}
-					{#if res && res.length > 0}
-						<Chart.Container config={taskChartConfig} class="h-70 w-full">
-							<BarChart
-								data={res}
-								x="key"
-								axis="x"
-								yDomain={[0, Math.max(1, ...res.map((d) => d.value))]}
-								seriesLayout="group"
-								series={[
-									{
-										key: 'value',
-										label: taskChartConfig.completed.label,
-										color: taskChartConfig.completed.color
-									}
-								]}
-								props={{
-									xAxis: {
-										format: (v: string) =>
-											new Date(v).toLocaleString(undefined, {
-												month: 'short',
-												day: '2-digit'
-											})
-									},
-									bars: {
-										stroke: 'transparent'
-									}
-								}}
-							>
-								{#snippet tooltip()}
-									<Chart.Tooltip />
-								{/snippet}
-							</BarChart>
-						</Chart.Container>
-					{:else}
-						<ErrorMessage variant="warn" text="Metrics Not Found" />
-					{/if}
-				{:catch err}
-					{#if err instanceof APIBadRequestError}
-						<ErrorMessage variant="warn" text="Invalid Request" retry={loadProject} />
-					{:else if err instanceof APIForbiddenError}
-						<ErrorMessage
-							variant="warn"
-							text="You Don't Have Permission To View Metrics"
-							retry={loadProject}
-						/>
-					{:else if err instanceof APINotFoundError}
-						<ErrorMessage variant="info" text="Not Found" retry={loadProject} />
-					{:else if err instanceof APIServerError}
-						<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProject} />
-					{:else}
-						<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProject} />
-					{/if}
-				{/await}
-			</div>
+		<div class="col-span-2">
+			<ProjectTasksCompletedChart projectId={id} />
 		</div>
 
 		<div
