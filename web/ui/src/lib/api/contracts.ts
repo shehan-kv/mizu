@@ -9,6 +9,10 @@ import {
 	NetworkError
 } from './errors';
 
+export interface LatestVersion {
+	id: number;
+	version: string;
+}
 export interface Contract {
 	id: number;
 	name: string;
@@ -18,6 +22,8 @@ export interface Contract {
 	versions: number;
 	numOfRevisions: number;
 	acceptedRevisions: number;
+	latestVersion: LatestVersion;
+	userSignature?: 'signed' | 'rejected';
 }
 
 export async function getContracts(

@@ -16,10 +16,10 @@
 
 	interface Props {
 		open: boolean;
-		version: ContractVersion;
-		onSuccess: () => any;
+		versionId: number;
+		onSuccess?: () => any;
 	}
-	let { open = $bindable(), version, onSuccess }: Props = $props();
+	let { open = $bindable(), versionId, onSuccess }: Props = $props();
 
 	let abortController: AbortController | null = null;
 
@@ -30,7 +30,7 @@
 
 		abortController = new AbortController();
 		try {
-			rejectVersion(version.id, abortController.signal);
+			rejectVersion(versionId, abortController.signal);
 			toast.success('Successfully Rejected');
 			onSuccess && onSuccess();
 			open = false;

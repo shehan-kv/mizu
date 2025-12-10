@@ -1,16 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import * as Table from '$lib/components/ui/table';
-	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { getChangeRequestsByProject, type ChangeRequest } from '$lib/api/changeRequest';
-	import { getContractsByProject, type Contract } from '$lib/api/contracts';
 	import {
 		APIBadRequestError,
 		APIForbiddenError,
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
-	import { getFilesByProject, type File } from '$lib/api/files';
 	import { getProjectDetails, type ProjectDetails } from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
@@ -25,6 +22,7 @@
 	import ProjectInvoicePaidChart from '$lib/components/ProjectInvoicePaidChart.svelte';
 	import ProjectTasksCompletedChart from '$lib/components/ProjectTasksCompletedChart.svelte';
 	import ProjectFilesList from '$lib/components/ProjectFilesList.svelte';
+	import ProjectContractsList from '$lib/components/ProjectContractsList.svelte';
 
 	let id = Number(page.params.id);
 
@@ -40,17 +38,6 @@
 		projectPromise = getProjectDetails(id, projectAbort.signal);
 	}
 
-	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
-	let contractsAbort: AbortController | null = null;
-	function loadContracts() {
-		if (contractsAbort) {
-			contractsAbort.abort();
-		}
-		contractsAbort = new AbortController();
-
-		contractsPromise = getContractsByProject(id, '', '', 1, 20, contractsAbort.signal);
-	}
-
 	let chReqPromise: Promise<PaginatedResponse<ChangeRequest>> | null = $state(null);
 	let chReqAbort: AbortController | null = null;
 	function loadChReqs() {
@@ -62,25 +49,8 @@
 		chReqPromise = getChangeRequestsByProject(id, { page: 1, limit: 20 }, chReqAbort.signal);
 	}
 
-	let filesPromise: Promise<PaginatedResponse<File>> | null = $state(null);
-	let filesAbort: AbortController | null = null;
-	function loadFiles() {
-		if (filesAbort) {
-			filesAbort.abort();
-		}
-		filesAbort = new AbortController();
-
-		filesPromise = getFilesByProject(id, '', 1, 20, filesAbort.signal);
-	}
-
-	const taskChartConfig = {
-		completed: { label: 'Completed', color: 'var(--color-blue-400)' }
-	} satisfies Chart.ChartConfig;
-
 	onMount(() => {
 		loadProject();
-		loadFiles();
-		loadContracts();
 		loadChReqs();
 	});
 </script>
@@ -199,76 +169,8 @@
 
 	<InvoiceListCard projectId={id} role="client" />
 
-	<div
-		class="min-h-50 max-h-100 col-span-4 grid grid-rows-[min-content_1fr]
-		overflow-hidden rounded border"
-	>
-		<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-			<p class="text-sm">Contracts</p>
-			<a href={`/projects/${id}/contracts`} class="flex items-center gap-1 text-sm">
-				<span>View All</span>
-				<ArrowRight />
-			</a>
-		</div>
-
-		<div class="overflow-scroll px-6 py-2">
-			{#await contractsPromise}
-				<Spinner />
-			{:then res}
-				{#if res && res.data.length > 0}
-					<Table.Root>
-						<Table.Body>
-							{#each res.data as contract}
-								<Table.Row
-									class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
-								dark:text-neutral-400 dark:hover:text-neutral-50"
-								>
-									<Table.Cell class="pl-0">
-										{contract.name}
-									</Table.Cell>
-									<Table.Cell class="flex items-center gap-1">
-										{toTitleCase(contract.status)}
-										{#if contract.status == 'signed'}
-											<Checks size={18} class="text-emerald-500" />
-										{/if}
-									</Table.Cell>
-									<Table.Cell>
-										Created On {formatDate(contract.createdAt)}
-									</Table.Cell>
-									<Table.Cell>
-										{contract.versions}
-										{contract.versions == 1 ? 'Version' : 'Versions'}
-									</Table.Cell>
-									<Table.Cell class="pr-0" align="right">
-										<a href={`/contracts/${contract.id}`} title="View">
-											<ArrowRight size={18} />
-										</a>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				{:else}
-					<ErrorMessage variant="warn" text="Contracts Not Found" />
-				{/if}
-			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadProject} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Contracts"
-						retry={loadProject}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadProject} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProject} />
-				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProject} />
-				{/if}
-			{/await}
-		</div>
+	<div class="min-h-50 max-h-100 col-span-4">
+		<ProjectContractsList projectId={id} role="client" />
 	</div>
 
 	<div

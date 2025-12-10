@@ -13,6 +13,9 @@ import ManageMembers from './ManageMembers.svelte';
 import NewInvoice from './NewInvoice.svelte';
 import NewTask from './NewTask.svelte';
 import NewContract from './NewContract.svelte';
+import RequestRevision from './RequestRevision.svelte';
+import ConfirmSignContract from './ConfirmSignContract.svelte';
+import ConfirmRejectContract from './ConfirmRejectContract.svelte';
 
 export {
 	NewChangeRequest,
@@ -29,5 +32,8 @@ export {
 	ManageMembers,
 	NewInvoice,
 	NewTask,
-	NewContract
+	NewContract,
+	RequestRevision,
+	ConfirmSignContract,
+	ConfirmRejectContract
 };

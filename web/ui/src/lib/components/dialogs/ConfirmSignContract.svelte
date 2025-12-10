@@ -2,7 +2,7 @@
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import X from 'phosphor-svelte/lib/X';
 	import { Dialog } from 'bits-ui';
-	import { signVersion, type ContractVersion } from '$lib/api/contracts';
+	import { signVersion } from '$lib/api/contracts';
 	import { toast } from 'svelte-sonner';
 	import {
 		APIBadRequestError,
@@ -16,10 +16,10 @@
 
 	interface Props {
 		open: boolean;
-		version: ContractVersion;
-		onSuccess: () => any;
+		versionId: number;
+		onSuccess?: () => any;
 	}
-	let { open = $bindable(), version, onSuccess }: Props = $props();
+	let { open = $bindable(), versionId, onSuccess }: Props = $props();
 
 	let abortController: AbortController | null = null;
 
@@ -30,7 +30,7 @@
 
 		abortController = new AbortController();
 		try {
-			signVersion(version.id, abortController.signal);
+			signVersion(versionId, abortController.signal);
 			toast.success('Successfully Signed');
 			onSuccess && onSuccess();
 			open = false;
