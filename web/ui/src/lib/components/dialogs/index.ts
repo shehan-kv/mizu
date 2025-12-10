@@ -16,6 +16,7 @@ import NewContract from './NewContract.svelte';
 import RequestRevision from './RequestRevision.svelte';
 import ConfirmSignContract from './ConfirmSignContract.svelte';
 import ConfirmRejectContract from './ConfirmRejectContract.svelte';
+import ChangeReqStatusConfirm from './ChangeReqStatusConfirm.svelte';
 
 export {
 	NewChangeRequest,
@@ -35,5 +36,6 @@ export {
 	NewContract,
 	RequestRevision,
 	ConfirmSignContract,
-	ConfirmRejectContract
+	ConfirmRejectContract,
+	ChangeReqStatusConfirm
 };

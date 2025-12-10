@@ -1,27 +1,31 @@
 import { goto } from '$app/navigation';
 import {
 	APIBadRequestError,
+	APIConflictError,
 	APIError,
 	APIForbiddenError,
 	APINotFoundError,
 	APIServerError,
 	NetworkError
 } from './errors';
+import type { UserRole } from './users';
 
 export interface ChangeRequestUser {
 	id: string;
 	firstName: string;
 	lastName: string;
 	title?: string;
-	role?: string;
+	role?: UserRole;
 	image?: string;
 }
+
+export type ChangeRequestStatus = 'in-progress' | 'waiting' | 'closed';
 
 export interface ChangeRequest {
 	id: number;
 	title: string;
 	createdAt: Date;
-	status: string;
+	status: ChangeRequestStatus;
 	requestedBy: ChangeRequestUser;
 	project: {
 		id: number;
@@ -245,6 +249,37 @@ export async function createChangeRequestEntry(
 				throw new APIForbiddenError('Forbidden');
 			case 404:
 				throw new APINotFoundError(`Change request entries not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function markAsClosed(requestId: number, signal: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/change-requests/close/${requestId}`, {
+			method: 'POST',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to mark as closed: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Change request entries not found`);
+			case 409:
+				throw new APIConflictError(`Invalid operation`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
