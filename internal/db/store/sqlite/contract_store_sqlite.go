@@ -795,6 +795,7 @@ func (q *ContractStoreSqlite) GetContractStatsByProject(
   		COALESCE(v.versions,  0) AS versions,
   		COALESCE(r.revisions, 0) AS revisions,
   		COALESCE(ar.accepted, 0) AS accepted_revisions,
+		lv.id AS latest_version_id,
 		lv.version AS latest_version,
   		COALESCE(css.name, NULL) AS user_signature
 	FROM contracts c
@@ -865,6 +866,7 @@ func (q *ContractStoreSqlite) GetContractStatsByProject(
 			&row.Versions,
 			&row.Revisions,
 			&row.AcceptedRevisions,
+			&row.LatestVersionId,
 			&row.LatestVersion,
 			&row.UserSignature,
 		); err != nil {

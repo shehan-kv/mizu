@@ -590,8 +590,11 @@ func (s *ContractService) GetContractsByProject(
 			Versions:          contract.Versions,
 			Revisions:         contract.Revisions,
 			AcceptedRevisions: contract.AcceptedRevisions,
-			LatestVersion:     contract.LatestVersion,
-			UserSignature:     contract.UserSignature,
+			LatestVersion: dto.LatestVersion{
+				Id:      contract.LatestVersionId,
+				Version: contract.LatestVersion,
+			},
+			UserSignature: contract.UserSignature,
 		}
 	}
 
