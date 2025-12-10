@@ -85,7 +85,7 @@
 			{#if res && res.data.length > 0}
 				<Table.Root>
 					<Table.Body>
-						{#each res.data as contract}
+						{#each res.data as contract (contract)}
 							<Table.Row
 								class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 								dark:text-neutral-400 dark:hover:text-neutral-50"
@@ -93,11 +93,13 @@
 								<Table.Cell class="pl-0">
 									{contract.name}
 								</Table.Cell>
-								<Table.Cell class="flex items-center gap-1">
-									{toTitleCase(contract.status)}
-									{#if contract.status == 'signed'}
-										<Checks size={18} class="text-emerald-500" />
-									{/if}
+								<Table.Cell>
+									<div class="flex items-center gap-1">
+										{toTitleCase(contract.status)}
+										{#if contract.status == 'signed'}
+											<Checks size={18} class="text-emerald-500" />
+										{/if}
+									</div>
 								</Table.Cell>
 								<Table.Cell>
 									Created On {formatDate(contract.createdAt)}
