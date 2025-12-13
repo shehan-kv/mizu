@@ -106,7 +106,7 @@
 
 			<div class="px-6 pb-6">
 				<p class="inline-flex items-center gap-1 font-bold">
-					<WarningCircle size={18} class="text-rose-500" />
+					<WarningCircle weight="fill" size={18} class="text-red-400 dark:text-red-500" />
 					Mark As {toTitleCase(status)}
 				</p>
 				<p class="mt-2 text-sm">
