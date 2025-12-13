@@ -6,7 +6,7 @@
 	import ViewContract from '../ViewContract.svelte';
 
 	interface Props {
-		open: Boolean;
+		open: boolean;
 		contract: Contract;
 	}
 	let { open = $bindable(), contract }: Props = $props();

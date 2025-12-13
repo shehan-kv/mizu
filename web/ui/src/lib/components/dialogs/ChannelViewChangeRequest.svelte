@@ -3,7 +3,7 @@
 	import FullScreenDialog from './FullScreenDialog.svelte';
 
 	interface Props {
-		open: Boolean;
+		open: boolean;
 		requestId: number;
 		requestTitle: string;
 	}
