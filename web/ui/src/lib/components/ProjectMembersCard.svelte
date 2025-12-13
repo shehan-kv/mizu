@@ -47,7 +47,7 @@
 			<Spinner />
 		{:then res}
 			{#if res && res.length > 0}
-				{#each res as member}
+				{#each res as member (member)}
 					<UserCard
 						image={member.image}
 						role={member.role}

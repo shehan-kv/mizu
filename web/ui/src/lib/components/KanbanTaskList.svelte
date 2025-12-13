@@ -96,7 +96,7 @@
 
 	{#if !loadError}
 		{#if tasks.length > 0}
-			{#each tasks as task}
+			{#each tasks as task (task)}
 				<div class="rounded bg-neutral-50 p-6 dark:bg-neutral-900">
 					<div class="flex items-start justify-between text-xs">
 						<div class="space-x-2">

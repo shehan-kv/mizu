@@ -87,7 +87,7 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as file}
+								{#each res.data as file (file)}
 									<Table.Row>
 										<Table.Cell>{file.originalName}</Table.Cell>
 										<Table.Cell>{formatBytes(file.size)}</Table.Cell>

@@ -151,7 +151,7 @@
 						{/if}
 
 						{#if res.entries.length > 0}
-							{#each res.entries as entry}
+							{#each res.entries as entry (entry)}
 								<div class="bg-white p-4 dark:bg-neutral-950">
 									<div class="space-y-2">
 										<Message.Member

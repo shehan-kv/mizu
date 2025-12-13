@@ -184,7 +184,7 @@
 							class="text-sm text-neutral-700 *:block *:cursor-pointer *:border-l *:px-2 *:py-0.5 *:transition
 							*:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
 						>
-							{#each channels as channel}
+							{#each channels as channel (channel)}
 								<button
 									class:border-sky-500={selectedChannel?.id == channel.id}
 									onclick={() => switchChannel(channel)}>#{channel.name}</button

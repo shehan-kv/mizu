@@ -133,7 +133,7 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as project}
+								{#each res.data as project (project)}
 									<Table.Row>
 										<Table.Cell>{project.name}</Table.Cell>
 										<Table.Cell class="flex items-center gap-1.5">

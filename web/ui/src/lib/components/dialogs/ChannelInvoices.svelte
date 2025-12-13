@@ -98,7 +98,7 @@
 									</Table.Row>
 								</Table.Header>
 								<Table.Body>
-									{#each res.data as invoice}
+									{#each res.data as invoice (invoice)}
 										<Table.Row>
 											<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
 											<Table.Cell>#{invoice.id}</Table.Cell>

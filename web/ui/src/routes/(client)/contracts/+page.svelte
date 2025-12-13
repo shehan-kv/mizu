@@ -136,7 +136,7 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as contract}
+								{#each res.data as contract (contract)}
 									<Table.Row>
 										<Table.Cell>{contract.name}</Table.Cell>
 										<Table.Cell>{contract.projectName}</Table.Cell>

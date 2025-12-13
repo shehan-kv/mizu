@@ -68,7 +68,7 @@
 		{:then res}
 			{#if res && res.data.length > 0}
 				<div>
-					{#each res.data as member}
+					{#each res.data as member (member)}
 						<div
 							class="cursor-pointer rounded p-2 hover:bg-neutral-950"
 							onmousedown={() => {

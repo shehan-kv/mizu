@@ -136,7 +136,7 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each invoice.items as item}
+					{#each invoice.items as item (item)}
 						<Table.Row>
 							<Table.Cell>{item.description}</Table.Cell>
 							<Table.Cell>{item.qty}</Table.Cell>
@@ -205,7 +205,7 @@
 								before:z-auto before:min-h-full before:w-1 before:border-l-[1px]
 								before:border-dashed before:border-neutral-600"
 			>
-				{#each invoice.history as entry}
+				{#each invoice.history as entry (entry)}
 					<div class="flex items-start gap-3">
 						<div
 							class="z-1 mt-1.5 size-3 shrink-0 rounded-full border border-2

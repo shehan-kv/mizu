@@ -172,7 +172,7 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as req}
+								{#each res.data as req (req)}
 									<Table.Row>
 										<Table.Cell>{req.title}</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">

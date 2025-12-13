@@ -145,7 +145,7 @@
 								<Spinner />
 							{:then signatures}
 								{#if signatures && signatures.length > 0}
-									{#each signatures as signature}
+									{#each signatures as signature (signature)}
 										<div class="flex gap-1.5">
 											<div class="size-10 rounded-full bg-neutral-200/80 dark:bg-neutral-800">
 												{#if signature.image}
@@ -253,7 +253,7 @@
 							class="text-sm text-neutral-700 *:block *:w-full *:cursor-pointer *:py-0.5
 								*:text-left *:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
 						>
-							{#each versions as version}
+							{#each versions as version (version)}
 								<button onclick={() => openContractVersion(version)}>
 									{version.version}
 								</button>
@@ -298,13 +298,13 @@
 {#if selectedVersion}
 	<ConfirmSignContract
 		bind:open={confirmSignDialog.isOpen}
-		version={selectedVersion}
+		versionId={selectedVersion.id}
 		onSuccess={loadVersions}
 	/>
 
 	<ConfirmRejectContract
 		bind:open={confirmRejectDialog.isOpen}
-		version={selectedVersion}
+		versionId={selectedVersion.id}
 		onSuccess={loadVersions}
 	/>
 {/if}

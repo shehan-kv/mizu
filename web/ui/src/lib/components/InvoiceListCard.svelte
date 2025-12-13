@@ -82,7 +82,7 @@
 			{#if res && res.data.length > 0}
 				<Table.Root>
 					<Table.Body>
-						{#each res.data as invoice}
+						{#each res.data as invoice (invoice)}
 							<Table.Row
 								class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 								dark:text-neutral-400 dark:hover:text-neutral-50"
