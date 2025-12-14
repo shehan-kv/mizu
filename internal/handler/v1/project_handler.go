@@ -69,6 +69,7 @@ func (h *ProjectHandler) GetMux(
 	mux.Handle("POST /{projectId}/status/cancelled", mwChain.Handle(h.SetStatusCancelled))
 	mux.Handle("POST /{projectId}/status/completed", mwChain.Handle(h.SetStatusCompleted))
 	mux.Handle("GET /metrics/create", mwChain.Handle(h.GetCreatedCount))
+	mux.Handle("GET /tasks/{taskId}/assignees", mwChain.Handle(h.GetTaskAssignees))
 
 	return mux
 }
@@ -487,4 +488,23 @@ func (h *ProjectHandler) SetMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ProjectHandler) GetTaskAssignees(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("taskId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.srv.GetTaskAssignees(r.Context(), parsedId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }

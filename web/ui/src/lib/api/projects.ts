@@ -31,7 +31,7 @@ export async function getProjects(
 	q: string,
 	page: number,
 	limit: number,
-	status: string,
+	status?: ProjectStatus,
 	signal?: AbortSignal
 ) {
 	const url = new URLSearchParams();
@@ -76,28 +76,34 @@ export async function getProjects(
 	return payload;
 }
 
+export type ProjectTaskStatus = 'backlog' | 'in-progress' | 'completed';
+export type ProjectTaskPriority = 'high' | 'medium' | 'low';
+
+export interface ProjectMember {
+	id: number;
+	firstName: string;
+	lastName: string;
+	title?: string;
+	image?: string;
+	role: string;
+}
+
 export interface ProjectTask {
 	id: number;
 	projectId: number;
 	name: string;
-	status: ProjectStatus;
-	priority: string;
+	status: ProjectTaskStatus;
+	priority: ProjectTaskPriority;
 	description: string;
 	createdAt: Date;
 	estTimeMinutes: number;
-	assignees: {
-		id: number;
-		firstName: string;
-		lastName: string;
-		title?: string;
-		image?: string;
-	}[];
+	assignees: ProjectMember[];
 }
 
 export interface TaskQuery {
 	q?: string;
-	status?: string;
-	priority?: string;
+	status?: ProjectTaskStatus;
+	priority?: ProjectTaskPriority;
 	page: number;
 	limit: number;
 }
@@ -145,15 +151,6 @@ export async function getProjectTasks(projectId: number, query: TaskQuery, signa
 
 	const payload = (await res.json()) as PaginatedResponse<ProjectTask>;
 	return payload;
-}
-
-export interface ProjectMember {
-	id: number;
-	firstName: string;
-	lastName: string;
-	title?: string;
-	image?: string;
-	role: string;
 }
 
 export interface ProjectDetails {
@@ -546,8 +543,8 @@ export async function setProjectMembers(
 }
 
 export interface CreateTaskParams {
-	priority: 'high' | 'medium' | 'low';
-	status: 'backlog' | 'in-progress' | 'completed';
+	priority: ProjectTaskPriority;
+	status: ProjectTaskStatus;
 	name: string;
 	description: string;
 	estimatedTimeMinutes: number;
@@ -583,4 +580,36 @@ export async function createTask(projectId: number, req: CreateTaskParams, signa
 				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
 		}
 	}
+}
+
+export async function getProjectTaskAssignees(taskId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${taskId}/task/assignees`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to create task: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as ProjectMember[];
+	return payload;
 }

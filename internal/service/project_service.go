@@ -932,3 +932,47 @@ func (s *ProjectService) SetMembers(
 
 	return nil
 }
+
+func (s *ProjectService) GetTaskAssignees(
+	ctx context.Context,
+	taskId int64) ([]dto.ProjectMemberResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		s.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	members, err := s.prjSt.GetMembersByProjectId(ctx, taskId)
+	if err != nil {
+		s.lg.Error("could not get task assignees",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"task_id", taskId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := make([]dto.ProjectMemberResponse, len(members))
+
+	for i, v := range members {
+		resp[i] = dto.ProjectMemberResponse{
+			Id:        v.Id,
+			FirstName: v.FirstName,
+			LastName:  v.LastName,
+			Title:     v.Title,
+			Image:     v.Image,
+			Role:      v.Role,
+		}
+	}
+
+	return resp, nil
+}

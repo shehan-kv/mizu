@@ -633,3 +633,47 @@ func (q *ProjectStoreSqlite) AddMembers(ctx context.Context, projectId int64, me
 
 	return nil
 }
+
+func (q *ProjectStoreSqlite) GetTaskAssigneesByTaskId(
+	ctx context.Context,
+	taskId int64) ([]agg.ProjectUser, error) {
+
+	query := `
+	SELECT
+		u.id,
+		u.first_name,
+		u.last_name,
+		u.title,
+		u.image,
+		u.role,
+	FROM task_assignees ta
+	JOIN users u ON u.id = ta.user_id
+	WHERE ta.task_id = ?
+	`
+
+	rows, err := q.db.QueryContext(ctx, query, taskId)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.ProjectUser, 0)
+
+	for rows.Next() {
+		var row agg.ProjectUser
+		err := rows.Scan(
+			row.Id,
+			row.FirstName,
+			row.LastName,
+			row.Title,
+			row.Image,
+			row.Role,
+		)
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+	}
+
+	return result, nil
+}
