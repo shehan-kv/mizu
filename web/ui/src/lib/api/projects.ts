@@ -521,7 +521,7 @@ export async function setProjectMembers(
 			signal
 		});
 	} catch (err) {
-		throw new NetworkError(`Failed to delete project: ${err}`);
+		throw new NetworkError(`Failed to set members: ${err}`);
 	}
 
 	if (!res.ok) {
@@ -612,4 +612,42 @@ export async function getProjectTaskAssignees(taskId: number, signal?: AbortSign
 
 	const payload = (await res.json()) as ProjectMember[];
 	return payload;
+}
+
+export interface ProjectTaskAssigneesSetParams {
+	assignees: number[];
+}
+export async function setProjectTaskAssignees(
+	taskId: number,
+	req: ProjectTaskAssigneesSetParams,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/projects/${taskId}/task/assignees`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to set project task assignees: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
 }

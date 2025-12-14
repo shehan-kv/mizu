@@ -976,3 +976,47 @@ func (s *ProjectService) GetTaskAssignees(
 
 	return resp, nil
 }
+
+func (s *ProjectService) SetTaskAssignees(
+	ctx context.Context,
+	taskId int64,
+	request *dto.TaskAssigneeSetRequest) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		s.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = s.prjSt.DeleteTaskAssigneesByTaskId(ctx, taskId)
+	if err != nil {
+		s.lg.Error("could not get delete task assignees",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"task_id", taskId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	err = s.prjSt.AddTaskAssignees(ctx, taskId, request.Assignees)
+	if err != nil {
+		s.lg.Error("could not add task assignees",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"task_id", taskId,
+			"err", err)
+		return ErrInternalError
+	}
+
+	return nil
+}

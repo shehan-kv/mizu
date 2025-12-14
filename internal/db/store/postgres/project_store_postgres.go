@@ -697,3 +697,55 @@ func (q *ProjectStorePostgres) GetTaskAssigneesByTaskId(
 
 	return result, nil
 }
+
+func (q *ProjectStorePostgres) DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error {
+
+	query := `
+	DELETE FROM task_assignees
+	WHERE task_id = $1
+	`
+
+	_, err := q.db.ExecContext(ctx, query, taskId)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}
+
+func (q *ProjectStorePostgres) AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	INSERT INTO task_assignees(task_id, user_id)
+	VALUES
+	`)
+
+	queryArgs := []any{}
+	paramCount := 0
+
+	for i, v := range assignees {
+		if i > 0 {
+			query.WriteString(",")
+		}
+
+		paramCount++
+		query.WriteString(" ($")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		paramCount++
+		query.WriteString(",$")
+		query.WriteString(strconv.Itoa(paramCount))
+		query.WriteString(")")
+
+		queryArgs = append(queryArgs, taskId, v)
+	}
+
+	_, err := q.db.ExecContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}

@@ -75,4 +75,8 @@ type ProjectStore interface {
 	AddMembers(ctx context.Context, projectId int64, members []int64) error
 
 	GetTaskAssigneesByTaskId(ctx context.Context, taskId int64) ([]agg.ProjectUser, error)
+
+	DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error
+
+	AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error
 }

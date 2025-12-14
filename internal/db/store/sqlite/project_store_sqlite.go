@@ -677,3 +677,46 @@ func (q *ProjectStoreSqlite) GetTaskAssigneesByTaskId(
 
 	return result, nil
 }
+
+func (q *ProjectStoreSqlite) DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error {
+
+	query := `
+	DELETE FROM task_assignees
+	WHERE task_id = ?
+	`
+
+	_, err := q.db.ExecContext(ctx, query, taskId)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}
+
+func (q *ProjectStoreSqlite) AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	INSERT INTO task_assignees(task_id, user_id)
+	VALUES
+	`)
+
+	queryArgs := []any{}
+
+	for i, v := range assignees {
+		if i > 0 {
+			query.WriteString(",")
+		}
+
+		query.WriteString(" (?,?)")
+		queryArgs = append(queryArgs, taskId, v)
+	}
+
+	_, err := q.db.ExecContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}

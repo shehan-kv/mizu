@@ -70,6 +70,7 @@ func (h *ProjectHandler) GetMux(
 	mux.Handle("POST /{projectId}/status/completed", mwChain.Handle(h.SetStatusCompleted))
 	mux.Handle("GET /metrics/create", mwChain.Handle(h.GetCreatedCount))
 	mux.Handle("GET /tasks/{taskId}/assignees", mwChain.Handle(h.GetTaskAssignees))
+	mux.Handle("PUT /tasks/{taskId}/assignees", mwChain.Handle(h.SetTaskAssignees))
 
 	return mux
 }
@@ -507,4 +508,34 @@ func (h *ProjectHandler) GetTaskAssignees(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *ProjectHandler) SetTaskAssignees(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("taskId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var setRequest dto.TaskAssigneeSetRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&setRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if ok := setRequest.Validate(); !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = h.srv.SetTaskAssignees(r.Context(), parsedId, &setRequest)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
