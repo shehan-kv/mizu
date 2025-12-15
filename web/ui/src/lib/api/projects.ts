@@ -124,7 +124,7 @@ export async function getProjectTasks(projectId: number, query: TaskQuery, signa
 
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/projects/${projectId}/task?${url.toString()}`, {
+		res = await fetch(`/api/v1/projects/${projectId}/tasks?${url.toString()}`, {
 			method: 'GET',
 			signal
 		});
@@ -248,7 +248,7 @@ export async function getTaskCompletedMetricsByProject(projectId: number, signal
 	let res: Response;
 
 	try {
-		res = await fetch(`/api/v1/projects/${projectId}/task/metrics/complete`, {
+		res = await fetch(`/api/v1/projects/${projectId}/tasks/metrics/complete`, {
 			method: 'GET',
 			signal
 		});
@@ -554,7 +554,7 @@ export interface CreateTaskParams {
 export async function createTask(projectId: number, req: CreateTaskParams, signal?: AbortSignal) {
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/projects/${projectId}/task`, {
+		res = await fetch(`/api/v1/projects/${projectId}/tasks`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(req),
@@ -582,10 +582,14 @@ export async function createTask(projectId: number, req: CreateTaskParams, signa
 	}
 }
 
-export async function getProjectTaskAssignees(taskId: number, signal?: AbortSignal) {
+export async function getProjectTaskAssignees(
+	projectId: number,
+	taskId: number,
+	signal?: AbortSignal
+) {
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/projects/${taskId}/task/assignees`, {
+		res = await fetch(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`, {
 			method: 'GET',
 			signal
 		});
@@ -618,13 +622,14 @@ export interface ProjectTaskAssigneesSetParams {
 	assignees: number[];
 }
 export async function setProjectTaskAssignees(
+	projectId: number,
 	taskId: number,
 	req: ProjectTaskAssigneesSetParams,
 	signal?: AbortSignal
 ) {
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/projects/${taskId}/task/assignees`, {
+		res = await fetch(`/api/v1/projects/${projectId}/tasks/${taskId}/assignees`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(req),

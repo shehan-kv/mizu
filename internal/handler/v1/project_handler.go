@@ -61,16 +61,16 @@ func (h *ProjectHandler) GetMux(
 	mux.Handle("GET /{projectId}/members", mwChain.Handle(h.GetMembers))
 	mux.Handle("PUT /{projectId}/members", mwChain.Handle(h.SetMembers))
 	mux.Handle("DELETE /{projectId}", mwChain.Handle(h.DeleteById))
-	mux.Handle("POST /{projectId}/task", mwChain.Handle(h.CreateTask))
-	mux.Handle("GET /{projectId}/task", mwChain.Handle(h.GetTasksByProject))
-	mux.Handle("GET /{projectId}/task/metrics/complete", mwChain.Handle(h.GetTaskCompleteCountByProject))
+	mux.Handle("POST /{projectId}/tasks", mwChain.Handle(h.CreateTask))
+	mux.Handle("GET /{projectId}/tasks", mwChain.Handle(h.GetTasksByProject))
+	mux.Handle("GET /{projectId}/tasks/metrics/complete", mwChain.Handle(h.GetTaskCompleteCountByProject))
+	mux.Handle("GET /{projectId}/tasks/{taskId}/assignees", mwChain.Handle(h.GetTaskAssignees))
+	mux.Handle("PUT /{projectId}/tasks/{taskId}/assignees", mwChain.Handle(h.SetTaskAssignees))
 	mux.Handle("POST /{projectId}/status/started", mwChain.Handle(h.SetStatusStarted))
 	mux.Handle("POST /{projectId}/status/paused", mwChain.Handle(h.SetStatusPaused))
 	mux.Handle("POST /{projectId}/status/cancelled", mwChain.Handle(h.SetStatusCancelled))
 	mux.Handle("POST /{projectId}/status/completed", mwChain.Handle(h.SetStatusCompleted))
 	mux.Handle("GET /metrics/create", mwChain.Handle(h.GetCreatedCount))
-	mux.Handle("GET /tasks/{taskId}/assignees", mwChain.Handle(h.GetTaskAssignees))
-	mux.Handle("PUT /tasks/{taskId}/assignees", mwChain.Handle(h.SetTaskAssignees))
 
 	return mux
 }
