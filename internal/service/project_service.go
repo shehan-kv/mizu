@@ -949,7 +949,7 @@ func (s *ProjectService) GetTaskAssignees(
 		return nil, ErrInternalError
 	}
 
-	members, err := s.prjSt.GetMembersByProjectId(ctx, taskId)
+	members, err := s.prjSt.GetTaskAssigneesByTaskId(ctx, taskId)
 	if err != nil {
 		s.lg.Error("could not get task assignees",
 			"event", event.EventInternalError,

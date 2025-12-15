@@ -665,9 +665,10 @@ func (q *ProjectStorePostgres) GetTaskAssigneesByTaskId(
 		u.last_name,
 		u.title,
 		u.image,
-		u.role,
+		r.name AS role
 	FROM task_assignees ta
 	JOIN users u ON u.id = ta.user_id
+	JOIN roles r ON r.id = u.role
 	WHERE ta.task_id = $1
 	`
 
@@ -683,12 +684,12 @@ func (q *ProjectStorePostgres) GetTaskAssigneesByTaskId(
 	for rows.Next() {
 		var row agg.ProjectUser
 		err := rows.Scan(
-			row.Id,
-			row.FirstName,
-			row.LastName,
-			row.Title,
-			row.Image,
-			row.Role,
+			&row.Id,
+			&row.FirstName,
+			&row.LastName,
+			&row.Title,
+			&row.Image,
+			&row.Role,
 		)
 		if err != nil {
 			return nil, store.ErrQueryFailed
