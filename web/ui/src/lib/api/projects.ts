@@ -172,8 +172,6 @@ export interface ProjectDetails {
 }
 
 export async function getProjectDetails(projectId: number, signal?: AbortSignal) {
-	const url = new URLSearchParams();
-
 	let res: Response;
 	try {
 		res = await fetch(`/api/v1/projects/${projectId}`, {
@@ -205,12 +203,31 @@ export async function getProjectDetails(projectId: number, signal?: AbortSignal)
 	return payload;
 }
 
-export async function getProjectMembers(projectId: number, signal?: AbortSignal) {
+export interface ProjectMemberQuery {
+	q?: string;
+	role?: string;
+	page: number;
+	limit: number;
+}
+export async function getProjectMembers(
+	projectId: number,
+	query: ProjectMemberQuery,
+	signal?: AbortSignal
+) {
 	const url = new URLSearchParams();
+
+	// set "q" param if q is truthy
+	if (query.q) url.set('q', query.q);
+
+	// set "role" param if status is truthy
+	if (query.role) url.set('role', query.role);
+
+	url.set('page', query.page.toString());
+	url.set('limit', query.limit.toString());
 
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/projects/${projectId}/members`, {
+		res = await fetch(`/api/v1/projects/${projectId}/members?${url.toString()}`, {
 			method: 'GET',
 			signal
 		});
@@ -235,7 +252,7 @@ export async function getProjectMembers(projectId: number, signal?: AbortSignal)
 		}
 	}
 
-	const payload = (await res.json()) as ProjectMember[];
+	const payload = (await res.json()) as PaginatedResponse<ProjectMember>;
 	return payload;
 }
 

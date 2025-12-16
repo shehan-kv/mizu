@@ -17,7 +17,7 @@
 
 	let { projectId }: Props = $props();
 
-	let members: Promise<ProjectMember[]> | null = $state(null);
+	let members: Promise<PaginatedResponse<ProjectMember>> | null = $state(null);
 	let membersAbort: AbortController | null = null;
 	function loadMembers() {
 		if (membersAbort) {
@@ -25,7 +25,7 @@
 		}
 		membersAbort = new AbortController();
 
-		members = getProjectMembers(projectId, membersAbort.signal);
+		members = getProjectMembers(projectId, { page: 1, limit: 50 }, membersAbort.signal);
 	}
 
 	export function refresh() {
@@ -46,8 +46,8 @@
 		{#await members}
 			<Spinner />
 		{:then res}
-			{#if res && res.length > 0}
-				{#each res as member (member)}
+			{#if res?.data && res.data.length > 0}
+				{#each res.data as member (member)}
 					<UserCard
 						image={member.image}
 						role={member.role}

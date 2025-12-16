@@ -57,7 +57,9 @@ type ProjectStore interface {
 
 	CountTasksByProjectId(ctx context.Context, projectId int64, arg *params.TaskSearch) (int64, error)
 
-	GetMembersByProjectId(ctx context.Context, projectId int64) ([]agg.ProjectUser, error)
+	GetMembersByProjectId(ctx context.Context, projectId int64, arg *params.MemberSearch) ([]agg.ProjectUser, error)
+
+	CountMembersByProjectId(ctx context.Context, projectId int64, arg *params.MemberSearch) (int64, error)
 
 	GetTaskMetricsByProjectId(
 		ctx context.Context,

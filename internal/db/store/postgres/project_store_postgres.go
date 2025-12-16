@@ -433,9 +433,12 @@ func (q *ProjectStorePostgres) GetById(ctx context.Context, projectId int64) (*a
 
 func (q *ProjectStorePostgres) GetMembersByProjectId(
 	ctx context.Context,
-	projectId int64) ([]agg.ProjectUser, error) {
+	projectId int64,
+	arg *params.MemberSearch) ([]agg.ProjectUser, error) {
 
-	query := `
+	var query strings.Builder
+
+	query.WriteString(`
 	SELECT 
 		u.id,
 		u.first_name,
@@ -447,9 +450,46 @@ func (q *ProjectStorePostgres) GetMembersByProjectId(
 	JOIN users u ON u.id = pu.user_id
 	JOIN roles r ON r.id = u.role
 	WHERE pu.project_id = $1
-	`
+	`)
 
-	rows, err := q.db.QueryContext(ctx, query, projectId)
+	queryArgs := []any{projectId}
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramCount++
+		query.WriteString(" AND (u.first_name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		query.WriteString(strconv.Itoa(paramCount))
+
+		paramCount++
+		query.WriteString(" OR u.last_name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		query.WriteString(")")
+
+		likePattern := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, likePattern, likePattern)
+	}
+
+	if len(arg.Role) != 0 {
+		paramCount++
+		query.WriteString(" AND r.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		queryArgs = append(queryArgs, arg.Role)
+	}
+
+	paramCount++
+	query.WriteString(" LIMIT $")
+	query.WriteString(strconv.Itoa(paramCount))
+
+	paramCount++
+	query.WriteString(" OFFSET $")
+	query.WriteString(strconv.Itoa(paramCount))
+
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
 	if err != nil {
 		return nil, store.ErrQueryFailed
 	}
@@ -477,6 +517,58 @@ func (q *ProjectStorePostgres) GetMembersByProjectId(
 	}
 
 	return resp, nil
+}
+
+func (q *ProjectStorePostgres) CountMembersByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.MemberSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT 
+		COUNT(u.id)
+	FROM project_users pu
+	JOIN users u ON u.id = pu.user_id
+	JOIN roles r ON r.id = u.role
+	WHERE pu.project_id = $1
+	`)
+
+	queryArgs := []any{projectId}
+	paramCount := 1
+
+	if len(arg.Keyword) != 0 {
+		paramCount++
+		query.WriteString(" AND (u.first_name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+		query.WriteString(strconv.Itoa(paramCount))
+
+		paramCount++
+		query.WriteString(" OR u.last_name LIKE $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		query.WriteString(")")
+
+		likePattern := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, likePattern, likePattern)
+	}
+
+	if len(arg.Role) != 0 {
+		paramCount++
+		query.WriteString(" AND r.name = $")
+		query.WriteString(strconv.Itoa(paramCount))
+
+		queryArgs = append(queryArgs, arg.Role)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
 }
 
 func (q *ProjectStorePostgres) GetTaskMetricsByProjectId(

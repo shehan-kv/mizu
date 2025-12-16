@@ -424,9 +424,12 @@ func (q *ProjectStoreSqlite) GetById(ctx context.Context, projectId int64) (*agg
 
 func (q *ProjectStoreSqlite) GetMembersByProjectId(
 	ctx context.Context,
-	projectId int64) ([]agg.ProjectUser, error) {
+	projectId int64,
+	arg *params.MemberSearch) ([]agg.ProjectUser, error) {
 
-	query := `
+	var query strings.Builder
+
+	query.WriteString(`
 	SELECT 
 		u.id,
 		u.first_name,
@@ -438,9 +441,25 @@ func (q *ProjectStoreSqlite) GetMembersByProjectId(
 	JOIN users u ON u.id = pu.user_id
 	JOIN roles r ON r.id = u.role
 	WHERE pu.project_id = ?
-	`
+	`)
 
-	rows, err := q.db.QueryContext(ctx, query, projectId)
+	queryArgs := []any{projectId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND (u.first_name LIKE ? OR u.last_name LIKE ?)")
+		likePattern := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, likePattern, likePattern)
+	}
+
+	if len(arg.Role) != 0 {
+		query.WriteString(" AND r.name = ?")
+		queryArgs = append(queryArgs, arg.Role)
+	}
+
+	query.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
 	if err != nil {
 		return nil, store.ErrQueryFailed
 	}
@@ -468,6 +487,44 @@ func (q *ProjectStoreSqlite) GetMembersByProjectId(
 	}
 
 	return resp, nil
+}
+
+func (q *ProjectStoreSqlite) CountMembersByProjectId(
+	ctx context.Context,
+	projectId int64,
+	arg *params.MemberSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+	SELECT 
+		COUNT(u.id)
+	FROM project_users pu
+	JOIN users u ON u.id = pu.user_id
+	JOIN roles r ON r.id = u.role
+	WHERE pu.project_id = ?
+	`)
+
+	queryArgs := []any{projectId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND (u.first_name LIKE ? OR u.last_name LIKE ?)")
+		likePattern := "%" + arg.Keyword + "%"
+		queryArgs = append(queryArgs, likePattern, likePattern)
+	}
+
+	if len(arg.Role) != 0 {
+		query.WriteString(" AND r.name = ?")
+		queryArgs = append(queryArgs, arg.Role)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
 }
 
 func (q *ProjectStoreSqlite) GetTaskMetricsByProjectId(

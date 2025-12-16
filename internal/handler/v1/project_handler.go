@@ -451,7 +451,42 @@ func (h *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.srv.GetMembers(r.Context(), parsedPrjId)
+	keyword := r.URL.Query().Get("q")
+	role := r.URL.Query().Get("role")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	resp, err := h.srv.GetMembers(r.Context(), parsedPrjId, &dto.MemberSearchQuery{
+		Keyword: keyword,
+		Role:    role,
+		Page:    page,
+		Limit:   limit,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

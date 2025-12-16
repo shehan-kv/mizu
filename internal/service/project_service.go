@@ -538,7 +538,7 @@ func (s *ProjectService) GetOneById(
 
 	resp.FileCount = fileCount
 
-	members, err := s.prjSt.GetMembersByProjectId(ctx, projectId)
+	members, err := s.prjSt.GetMembersByProjectId(ctx, projectId, &params.MemberSearch{})
 	if err != nil {
 		s.lg.Error("could not get project members",
 			"event", event.EventInternalError,
@@ -847,7 +847,8 @@ func (s *ProjectService) DeleteById(ctx context.Context, projectId int64) error 
 
 func (s *ProjectService) GetMembers(
 	ctx context.Context,
-	projectId int64) ([]dto.ProjectMemberResponse, error) {
+	projectId int64,
+	query *dto.MemberSearchQuery) (*common.Page[[]dto.ProjectMemberResponse], error) {
 
 	correlationId := middleware.GetCorrelationID(ctx)
 	actor, err := middleware.GetUserFromContext(ctx)
@@ -861,7 +862,14 @@ func (s *ProjectService) GetMembers(
 		return nil, ErrInternalError
 	}
 
-	members, err := s.prjSt.GetMembersByProjectId(ctx, projectId)
+	searchParams := params.MemberSearch{
+		Keyword: query.Keyword,
+		Role:    query.Role,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	}
+
+	members, err := s.prjSt.GetMembersByProjectId(ctx, projectId, &searchParams)
 	if err != nil {
 		s.lg.Error("could not get project members",
 			"event", event.EventInternalError,
@@ -873,10 +881,27 @@ func (s *ProjectService) GetMembers(
 		return nil, ErrInternalError
 	}
 
-	resp := make([]dto.ProjectMemberResponse, len(members))
+	count, err := s.prjSt.CountMembersByProjectId(ctx, projectId, &searchParams)
+	if err != nil {
+		s.lg.Error("could not get project members count",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"project_id", projectId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := common.Page[[]dto.ProjectMemberResponse]{
+		Count: count,
+		Page:  query.Page,
+		Limit: query.Limit,
+		Data:  make([]dto.ProjectMemberResponse, len(members)),
+	}
 
 	for i, v := range members {
-		resp[i] = dto.ProjectMemberResponse{
+		resp.Data[i] = dto.ProjectMemberResponse{
 			Id:        v.Id,
 			FirstName: v.FirstName,
 			LastName:  v.LastName,
@@ -886,7 +911,7 @@ func (s *ProjectService) GetMembers(
 		}
 	}
 
-	return resp, nil
+	return &resp, nil
 }
 
 func (s *ProjectService) SetMembers(
