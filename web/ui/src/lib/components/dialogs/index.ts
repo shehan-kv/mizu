@@ -17,6 +17,8 @@ import RequestRevision from './RequestRevision.svelte';
 import ConfirmSignContract from './ConfirmSignContract.svelte';
 import ConfirmRejectContract from './ConfirmRejectContract.svelte';
 import ChangeReqStatusConfirm from './ChangeReqStatusConfirm.svelte';
+import TaskStatusConfirm from './TaskStatusConfirm.svelte';
+import ManageTaskAssignees from './ManageTaskAssignees.svelte';
 
 export {
 	NewChangeRequest,
@@ -37,5 +39,7 @@ export {
 	RequestRevision,
 	ConfirmSignContract,
 	ConfirmRejectContract,
-	ChangeReqStatusConfirm
+	ChangeReqStatusConfirm,
+	TaskStatusConfirm,
+	ManageTaskAssignees
 };
