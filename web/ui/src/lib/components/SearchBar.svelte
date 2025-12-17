@@ -23,14 +23,14 @@
 	}
 </script>
 
-<div class="relative border-b border-neutral-200 dark:border-neutral-800">
+<div class="relative rounded bg-neutral-100 dark:bg-neutral-900">
 	<input
 		type="search"
 		name="search"
 		id="search"
 		bind:value={inputValue}
 		oninput={onInput}
-		class="w-full py-1.5 pl-1 pr-10 text-sm outline-none"
+		class="w-full py-1.5 pl-2 pr-10 text-sm outline-none"
 	/>
 	<MagnifyingGlass
 		class="absolute right-1 top-1/2 mr-2 -translate-y-1/2 self-center text-neutral-700 dark:text-neutral-400"
