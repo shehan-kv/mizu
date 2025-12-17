@@ -12,11 +12,13 @@
 		APINotFoundError,
 		APIServerError
 	} from '$lib/api/errors';
+	import type { UserRole } from '$lib/api/users';
 
 	interface Props {
 		projectId: number;
+		role?: UserRole;
 	}
-	let { projectId }: Props = $props();
+	let { projectId, role = 'client' }: Props = $props();
 
 	let filesPromise: Promise<PaginatedResponse<File>> | null = $state(null);
 	let abort: AbortController | null = null;
@@ -32,6 +34,11 @@
 	onMount(() => {
 		loadFiles();
 	});
+
+	// svelte-ignore non_reactive_update
+	let linksPrefix = '';
+	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div
@@ -40,7 +47,7 @@
 >
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Files</p>
-		<a href={`/projects/${projectId}/files`} class="flex items-center gap-1 text-sm">
+		<a href={`${linksPrefix}/projects/${projectId}/files`} class="flex items-center gap-1 text-sm">
 			<span>View All</span>
 			<ArrowRight />
 		</a>

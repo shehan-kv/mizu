@@ -67,12 +67,20 @@
 		selectedContract = contract;
 		revisionDialog.open();
 	}
+
+	// svelte-ignore non_reactive_update
+	let linksPrefix = '';
+	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden rounded border">
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Contracts</p>
-		<a href={`/projects/${projectId}/contracts`} class="flex items-center gap-1 text-sm">
+		<a
+			href={`${linksPrefix}/projects/${projectId}/contracts`}
+			class="flex items-center gap-1 text-sm"
+		>
 			<span>View All</span>
 			<ArrowRight />
 		</a>

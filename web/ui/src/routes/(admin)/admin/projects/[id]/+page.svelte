@@ -14,8 +14,6 @@
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { onMount } from 'svelte';
-	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
-	import KanbanTaskList from '$lib/components/KanbanTaskList.svelte';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
@@ -27,6 +25,7 @@
 	import ProjectFilesList from '$lib/components/ProjectFilesList.svelte';
 	import ProjectContractsList from '$lib/components/ProjectContractsList.svelte';
 	import ProjectChangeRequestList from '$lib/components/ProjectChangeRequestList.svelte';
+	import ProjectKanbanCard from '$lib/components/ProjectKanbanCard.svelte';
 
 	let id = Number(page.params.id);
 
@@ -257,7 +256,7 @@
 		</div>
 
 		<div class="col-span-2">
-			<ProjectFilesList projectId={id} />
+			<ProjectFilesList projectId={id} role="admin" />
 		</div>
 	</div>
 
@@ -271,34 +270,8 @@
 		<ProjectChangeRequestList bind:this={chReqList} projectId={id} role="admin" />
 	</div>
 
-	<div class="max-h-100 col-span-4 grid grid-rows-[min-content_1fr] overflow-hidden rounded border">
-		<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-			<p class="text-sm">Kanban Board</p>
-			<a href={`/projects/${id}/kanban`} class="flex items-center gap-1 text-sm">
-				<span>View</span>
-				<ArrowRight />
-			</a>
-		</div>
-		<div class="grid grid-cols-3 gap-2 overflow-scroll px-6 py-2">
-			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
-				<p class="py-3 text-center text-sm">Backlog</p>
-				<div class="overflow-scroll">
-					<KanbanTaskList projectId={id} status="backlog" role="admin" />
-				</div>
-			</div>
-			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
-				<p class="py-3 text-center text-sm">In-Progress</p>
-				<div class="overflow-scroll">
-					<KanbanTaskList projectId={id} status="in-progress" role="admin" />
-				</div>
-			</div>
-			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
-				<p class="py-3 text-center text-sm">Completed</p>
-				<div class="overflow-scroll">
-					<KanbanTaskList projectId={id} status="completed" role="admin" />
-				</div>
-			</div>
-		</div>
+	<div class="max-h-100 col-span-4">
+		<ProjectKanbanCard projectId={id} role="admin" />
 	</div>
 </div>
 
