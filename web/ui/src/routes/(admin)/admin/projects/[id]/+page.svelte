@@ -19,12 +19,12 @@
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import { goto } from '$app/navigation';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
-	import InvoiceListCard from '$lib/components/InvoiceListCard.svelte';
-	import ProjectInvoicePaidChart from '$lib/components/ProjectInvoicePaidChart.svelte';
-	import ProjectTasksCompletedChart from '$lib/components/ProjectTasksCompletedChart.svelte';
-	import ProjectFilesList from '$lib/components/ProjectFilesList.svelte';
-	import ProjectContractsList from '$lib/components/ProjectContractsList.svelte';
-	import ProjectChangeRequestList from '$lib/components/ProjectChangeRequestList.svelte';
+	import ProjectInvoiceListCard from '$lib/components/ProjectInvoiceListCard.svelte';
+	import ProjectInvoicePaidChartCard from '$lib/components/ProjectInvoicePaidChartCard.svelte';
+	import ProjectTasksCompletedChartCard from '$lib/components/ProjectTasksCompletedChartCard.svelte';
+	import ProjectFilesListCard from '$lib/components/ProjectFilesListCard.svelte';
+	import ProjectContractsList from '$lib/components/ProjectContractsListCard.svelte';
+	import ProjectChangeRequestListCard from '$lib/components/ProjectChangeRequestListCard.svelte';
 	import ProjectKanbanCard from '$lib/components/ProjectKanbanCard.svelte';
 
 	let id = Number(page.params.id);
@@ -66,16 +66,16 @@
 	}
 
 	// svelte-ignore non_reactive_update
-	let invList: InvoiceListCard;
+	let invList: ProjectInvoiceListCard;
 
 	// svelte-ignore non_reactive_update
-	let completedTasks: ProjectTasksCompletedChart;
+	let completedTasks: ProjectTasksCompletedChartCard;
 
 	// svelte-ignore non_reactive_update
 	let cntrList: ProjectContractsList;
 
 	// svelte-ignore non_reactive_update
-	let chReqList: ProjectChangeRequestList;
+	let chReqList: ProjectChangeRequestListCard;
 </script>
 
 <svelte:head>
@@ -247,27 +247,27 @@
 	</div>
 
 	<div class="col-span-2 min-h-80">
-		<ProjectInvoicePaidChart projectId={id} />
+		<ProjectInvoicePaidChartCard projectId={id} />
 	</div>
 
 	<div class="h-84 col-span-4 grid grid-cols-4 gap-2 overflow-hidden">
 		<div class="col-span-2">
-			<ProjectTasksCompletedChart bind:this={completedTasks} projectId={id} />
+			<ProjectTasksCompletedChartCard bind:this={completedTasks} projectId={id} />
 		</div>
 
 		<div class="col-span-2">
-			<ProjectFilesList projectId={id} role="admin" />
+			<ProjectFilesListCard projectId={id} role="admin" />
 		</div>
 	</div>
 
-	<InvoiceListCard bind:this={invList} projectId={id} role="admin" />
+	<ProjectInvoiceListCard bind:this={invList} projectId={id} role="admin" />
 
 	<div class="min-h-50 max-h-100 col-span-4">
 		<ProjectContractsList bind:this={cntrList} projectId={id} role="admin" />
 	</div>
 
 	<div class="min-h-50 max-h-100 col-span-4">
-		<ProjectChangeRequestList bind:this={chReqList} projectId={id} role="admin" />
+		<ProjectChangeRequestListCard bind:this={chReqList} projectId={id} role="admin" />
 	</div>
 
 	<div class="max-h-100 col-span-4">

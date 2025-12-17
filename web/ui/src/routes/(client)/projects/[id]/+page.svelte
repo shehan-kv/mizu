@@ -16,12 +16,13 @@
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import KanbanTaskList from '$lib/components/KanbanTaskList.svelte';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
-	import InvoiceListCard from '$lib/components/InvoiceListCard.svelte';
-	import ProjectInvoicePaidChart from '$lib/components/ProjectInvoicePaidChart.svelte';
-	import ProjectTasksCompletedChart from '$lib/components/ProjectTasksCompletedChart.svelte';
-	import ProjectFilesList from '$lib/components/ProjectFilesList.svelte';
-	import ProjectContractsList from '$lib/components/ProjectContractsList.svelte';
-	import ProjectChangeRequestList from '$lib/components/ProjectChangeRequestList.svelte';
+	import InvoiceListCard from '$lib/components/ProjectInvoiceListCard.svelte';
+	import ProjectInvoicePaidChartCard from '$lib/components/ProjectInvoicePaidChartCard.svelte';
+	import ProjectTasksCompletedChartCard from '$lib/components/ProjectTasksCompletedChartCard.svelte';
+	import ProjectFilesListCard from '$lib/components/ProjectFilesListCard.svelte';
+	import ProjectContractsListCard from '$lib/components/ProjectContractsListCard.svelte';
+	import ProjectChangeRequestListCard from '$lib/components/ProjectChangeRequestListCard.svelte';
+	import ProjectKanbanCard from '$lib/components/ProjectKanbanCard.svelte';
 
 	let id = Number(page.params.id);
 
@@ -153,56 +154,30 @@
 	</div>
 
 	<div class="col-span-2 min-h-80">
-		<ProjectInvoicePaidChart projectId={id} />
+		<ProjectInvoicePaidChartCard projectId={id} />
 	</div>
 
 	<div class="h-84 col-span-4 grid grid-cols-4 gap-2 overflow-hidden">
 		<div class="col-span-2">
-			<ProjectTasksCompletedChart projectId={id} />
+			<ProjectTasksCompletedChartCard projectId={id} />
 		</div>
 
 		<div class="col-span-2">
-			<ProjectFilesList projectId={id} />
+			<ProjectFilesListCard projectId={id} />
 		</div>
 	</div>
 
 	<InvoiceListCard projectId={id} role="client" />
 
 	<div class="min-h-50 max-h-100 col-span-4">
-		<ProjectContractsList projectId={id} role="client" />
+		<ProjectContractsListCard projectId={id} role="client" />
 	</div>
 
 	<div class="min-h-50 max-h-100 col-span-4">
-		<ProjectChangeRequestList projectId={id} role="client" />
+		<ProjectChangeRequestListCard projectId={id} role="client" />
 	</div>
 
-	<div class="max-h-100 col-span-4 grid grid-rows-[min-content_1fr] overflow-hidden rounded border">
-		<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-			<p class="text-sm">Kanban Board</p>
-			<a href={`/projects/${id}/kanban`} class="flex items-center gap-1 text-sm">
-				<span>View</span>
-				<ArrowRight />
-			</a>
-		</div>
-		<div class="grid grid-cols-3 gap-2 overflow-scroll px-6 py-2">
-			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
-				<p class="py-3 text-center text-sm">Backlog</p>
-				<div class="overflow-scroll">
-					<KanbanTaskList projectId={id} status="backlog" />
-				</div>
-			</div>
-			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
-				<p class="py-3 text-center text-sm">In-Progress</p>
-				<div class="overflow-scroll">
-					<KanbanTaskList projectId={id} status="in-progress" />
-				</div>
-			</div>
-			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
-				<p class="py-3 text-center text-sm">Completed</p>
-				<div class="overflow-scroll">
-					<KanbanTaskList projectId={id} status="completed" />
-				</div>
-			</div>
-		</div>
+	<div class="max-h-100 col-span-4">
+		<ProjectKanbanCard projectId={id} role="client" />
 	</div>
 </div>
