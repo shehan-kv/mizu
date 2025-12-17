@@ -199,8 +199,6 @@
 	</div>
 </div>
 
-<!-- Return latest contract version in the api to open a confirm/reject dialog -->
-
 {#if selectedContract}
 	<Dialog.ConfirmSignContract
 		bind:open={signDialog.isOpen}
