@@ -756,6 +756,11 @@ func (s *ContractService) GetByCurrentUser(
 			Versions:          v.Versions,
 			Revisions:         v.Revisions,
 			AcceptedRevisions: v.AcceptedRevisions,
+			LatestVersion: dto.LatestVersion{
+				Id:      v.LatestVersionId,
+				Version: v.LatestVersion,
+			},
+			UserSignature: v.UserSignature,
 		}
 	}
 

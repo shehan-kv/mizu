@@ -1036,16 +1036,29 @@ func (q *ContractStorePostgres) GetByUserId(
 		JOIN contract_revision_statuses crs ON crs.id = cr.status
 		WHERE crs.name = $1
 		GROUP BY cr.contract_id
+	),
+	latest_version AS (
+    	SELECT
+			cv.id,
+        	cv.contract_id,
+        	cv.version,
+        	cv.created_at,
+        	ROW_NUMBER() OVER (PARTITION BY cv.contract_id ORDER BY cv.created_at DESC) AS rn
+    	FROM contract_versions cv
 	)
+
 	SELECT
 		c.id,
   		c.name,
-		p.name AS project_name,
   		cs.name AS status,
+		p.name AS project_id,
   		c.created_at,
   		COALESCE(v.versions,  0) AS versions,
   		COALESCE(r.revisions, 0) AS revisions,
-  		COALESCE(ar.accepted, 0) AS accepted_revisions
+  		COALESCE(ar.accepted, 0) AS accepted_revisions,
+		lv.id AS latest_version_id,
+		lv.version AS latest_version,
+  		COALESCE(css.name, NULL) AS user_signature
 	FROM project_users pu
 	JOIN projects p ON p.id = pu.project_id
 	JOIN contracts c ON c.project_id = pu.project_id
@@ -1053,6 +1066,9 @@ func (q *ContractStorePostgres) GetByUserId(
 	LEFT JOIN version_counts v ON v.contract_id = c.id
 	LEFT JOIN revision_counts r ON r.contract_id = c.id
 	LEFT JOIN accepted_revisions ar ON ar.contract_id = c.id
+	LEFT JOIN latest_version lv ON lv.contract_id = c.id AND lv.rn = 1
+	LEFT JOIN contract_signatures csig ON csig.version_id = lv.id AND csig.user_id = $2
+	LEFT JOIN contract_signature_statuses css ON css.id = csig.status
 	WHERE pu.user_id = $2
 	`)
 
@@ -1097,12 +1113,15 @@ func (q *ContractStorePostgres) GetByUserId(
 		err := rows.Scan(
 			&row.Id,
 			&row.Name,
-			&row.ProjectName,
 			&row.Status,
+			&row.ProjectName,
 			&row.CreatedAt,
 			&row.Versions,
 			&row.Revisions,
 			&row.AcceptedRevisions,
+			&row.LatestVersionId,
+			&row.LatestVersion,
+			&row.UserSignature,
 		)
 
 		if err != nil {
