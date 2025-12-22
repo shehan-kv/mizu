@@ -456,8 +456,11 @@ func (q *ProjectStoreSqlite) GetMembersByProjectId(
 		queryArgs = append(queryArgs, arg.Role)
 	}
 
-	query.WriteString(" LIMIT ? OFFSET ?")
-	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+	// The caller expects all members if limit isn't set.
+	if arg.Limit != 0 {
+		query.WriteString(" LIMIT ? OFFSET ?")
+		queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+	}
 
 	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
 	if err != nil {

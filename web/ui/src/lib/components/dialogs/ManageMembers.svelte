@@ -36,7 +36,9 @@
 
 		try {
 			memberLoading = true;
-			confirmMembers = await getProjectMembers(projectId, membersAbort.signal);
+			confirmMembers = await getProjectMembers(projectId, undefined, membersAbort.signal).then(
+				(res) => res.data
+			);
 		} catch (error) {
 			memberError = error as APIError;
 			confirmMembers = [];

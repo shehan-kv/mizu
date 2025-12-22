@@ -470,11 +470,16 @@ func (h *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
 		page = parsedPage
 	}
 
+	// The query parameters are optional for this endpoint.
+	// If the limit is not set, the endpoint should
+	// return all available members for the project.
+	// The Limit is set to 0 if it isn't set
+	// to detect this state.
 	if strLimit == "" {
-		limit = 15
+		limit = 0
 	} else {
 		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
-		if err != nil || parsedLimit <= 0 {
+		if err != nil || parsedLimit < 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

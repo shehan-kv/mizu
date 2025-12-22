@@ -479,15 +479,17 @@ func (q *ProjectStorePostgres) GetMembersByProjectId(
 		queryArgs = append(queryArgs, arg.Role)
 	}
 
-	paramCount++
-	query.WriteString(" LIMIT $")
-	query.WriteString(strconv.Itoa(paramCount))
+	// The caller expects all members if limit isn't set.
+	if arg.Limit != 0 {
+		paramCount++
+		query.WriteString(" LIMIT $")
+		query.WriteString(strconv.Itoa(paramCount))
 
-	paramCount++
-	query.WriteString(" OFFSET $")
-	query.WriteString(strconv.Itoa(paramCount))
-
-	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+		paramCount++
+		query.WriteString(" OFFSET $")
+		query.WriteString(strconv.Itoa(paramCount))
+		queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+	}
 
 	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
 	if err != nil {

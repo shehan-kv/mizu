@@ -203,6 +203,9 @@ export async function getProjectDetails(projectId: number, signal?: AbortSignal)
 	return payload;
 }
 
+// Make this whole interface optional
+// because the API has to return all the members
+// when required
 export interface ProjectMemberQuery {
 	q?: string;
 	role?: string;
@@ -211,19 +214,19 @@ export interface ProjectMemberQuery {
 }
 export async function getProjectMembers(
 	projectId: number,
-	query: ProjectMemberQuery,
+	query?: ProjectMemberQuery,
 	signal?: AbortSignal
 ) {
 	const url = new URLSearchParams();
 
 	// set "q" param if q is truthy
-	if (query.q) url.set('q', query.q);
+	if (query?.q) url.set('q', query.q);
 
 	// set "role" param if status is truthy
-	if (query.role) url.set('role', query.role);
+	if (query?.role) url.set('role', query.role);
 
-	url.set('page', query.page.toString());
-	url.set('limit', query.limit.toString());
+	if (query) url.set('page', query.page.toString());
+	if (query) url.set('limit', query.limit.toString());
 
 	let res: Response;
 	try {
