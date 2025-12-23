@@ -646,11 +646,12 @@ func (q *ContractStore) GetRevisionsByContractId(
 	revisionQuery.WriteString(`
 	SELECT 
 		cr.id, 
-		cr.contract_id, 
-		cr.created_at,
-		cr.updated_at, 
+		c.id AS contract_id, 
+		c.name AS contract_name, 
 		cr.title, 
 		cr.description,
+		cr.created_at,
+		cr.updated_at, 
 		crs.name,
 		req_u.first_name AS req_first_name,
 		req_u.last_name AS req_last_name,
@@ -658,6 +659,7 @@ func (q *ContractStore) GetRevisionsByContractId(
 		res_u.last_name AS res_last_name
 	FROM contract_revisions cr
 	JOIN contract_revision_statuses crs ON crs.id = cr.status
+	JOIN contracts c ON c.id = cr.contract_id
 	LEFT JOIN users req_u ON req_u.id = cr.req_user_id
 	LEFT JOIN users res_u ON res_u.id = cr.res_user_id 
 	WHERE cr.contract_id = ?
@@ -717,10 +719,11 @@ func (q *ContractStore) GetRevisionsByContractId(
 		err := rows.Scan(
 			&row.Id,
 			&row.ContractId,
-			&row.CreatedAt,
-			&row.UpdatedAt,
+			&row.ContractName,
 			&row.Title,
 			&row.Description,
+			&row.CreatedAt,
+			&row.UpdatedAt,
 			&row.Status,
 			&row.ReqUserFirstName,
 			&row.ReqUserLastName,

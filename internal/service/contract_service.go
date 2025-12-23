@@ -511,13 +511,14 @@ func (s *ContractService) GetRevisions(
 
 	for i, revision := range revisions {
 		revResp[i] = dto.RevisionResponse{
-			Id:          revision.Id,
-			ContractId:  revision.ContractId,
-			Title:       revision.Title,
-			Description: revision.Description,
-			CreatedAt:   revision.CreatedAt,
-			UpdatedAt:   revision.UpdatedAt,
-			Status:      revision.Status,
+			Id:           revision.Id,
+			ContractId:   revision.ContractId,
+			ContractName: revision.ContractName,
+			Title:        revision.Title,
+			Description:  revision.Description,
+			CreatedAt:    revision.CreatedAt,
+			UpdatedAt:    revision.UpdatedAt,
+			Status:       revision.Status,
 			ReqUser: dto.RevisionUser{
 				FirstName: revision.ReqUserFirstName,
 				LastName:  revision.ReqUserLastName,
@@ -593,13 +594,14 @@ func (s *ContractService) GetRevisionsByContract(
 
 	for i, revision := range revisions.Items {
 		revResp[i] = dto.RevisionResponse{
-			Id:          revision.Id,
-			ContractId:  revision.ContractId,
-			Title:       revision.Title,
-			Description: revision.Description,
-			CreatedAt:   revision.CreatedAt,
-			UpdatedAt:   revision.UpdatedAt,
-			Status:      revision.Status,
+			Id:           revision.Id,
+			ContractId:   revision.ContractId,
+			ContractName: revision.ContractName,
+			Title:        revision.Title,
+			Description:  revision.Description,
+			CreatedAt:    revision.CreatedAt,
+			UpdatedAt:    revision.UpdatedAt,
+			Status:       revision.Status,
 			ReqUser: dto.RevisionUser{
 				FirstName: revision.ReqUserFirstName,
 				LastName:  revision.ReqUserLastName,
