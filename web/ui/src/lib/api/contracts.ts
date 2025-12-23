@@ -347,6 +347,7 @@ export interface RevisionUser {
 export interface ContractRevision {
 	id: number;
 	contractId: number;
+	contractName: number;
 	title: string;
 	description: string;
 	createdAt: Date;
@@ -363,7 +364,7 @@ export interface ContractRevisionQuery {
 	limit: number;
 }
 
-export async function getContractRevisions(
+export async function getRevisionsByContractId(
 	contractId: number,
 	query: ContractRevisionQuery,
 	signal?: AbortSignal
@@ -381,7 +382,50 @@ export async function getContractRevisions(
 
 	let res: Response;
 	try {
-		res = await fetch(`/api/v1/contracts/revision/${contractId}`, {
+		res = await fetch(`/api/v1/contracts/revision/${contractId}?${url.toString()}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch contract version signatures: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Contract version signatures not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as PaginatedResponse<ContractRevision>;
+	return payload;
+}
+
+export async function getRevisions(query: ContractRevisionQuery, signal?: AbortSignal) {
+	const url = new URLSearchParams();
+
+	// set "q" param if q is truthy
+	if (query.q) url.set('q', query.q);
+
+	// set "status" param if status is truthy
+	if (query.status) url.set('status', query.status);
+
+	url.set('page', query.page.toString());
+	url.set('limit', query.limit.toString());
+
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/revision?${url.toString()}`, {
 			method: 'GET',
 			signal
 		});

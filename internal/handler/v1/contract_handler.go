@@ -54,8 +54,9 @@ func (h *ContractHandler) GetMux(
 	mux.Handle("GET /project/{projectId}", mwChain.Handle(h.GetContractsByProject))
 	mux.Handle("POST /sign/{versionId}", mwChain.Handle(h.SignContractVersion))
 	mux.Handle("POST /reject/{versionId}", mwChain.Handle(h.RejectContractVersion))
+	mux.Handle("GET /revision", mwChain.Handle(h.GetRevisions))
+	mux.Handle("GET /revision/{contractId}", mwChain.Handle(h.GetRevisionsByContract))
 	mux.Handle("POST /revision/{contractId}", mwChain.Handle(h.CreateContractRevision))
-	mux.Handle("GET /revision/{contractId}", mwChain.Handle(h.GetRevisions))
 	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(h.AcceptRevision))
 	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(h.RejectRevision))
 	mux.Handle("GET /version/{contractId}", mwChain.Handle(h.GetVersions))
@@ -278,7 +279,55 @@ func (h *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-// GetRevisions handles HTTP GET requests for getting a paginated
+func (h *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Request) {
+
+	keyword := r.URL.Query().Get("q")
+	status := r.URL.Query().Get("status")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	result, err := h.srv.GetRevisions(r.Context(), &dto.RevisionSearchQuery{
+		Keyword: keyword,
+		Status:  status,
+		Page:    page,
+		Limit:   limit,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+// GetRevisionsByContract handles HTTP GET requests for getting a paginated
 // list of contract revisions for a specified contract.
 // The contract ID is expected as a path parameter, eg: {contractId}.
 // Supports query parameters for pagination and
@@ -296,7 +345,7 @@ func (h *ContractHandler) RejectRevision(w http.ResponseWriter, r *http.Request)
 //   - If contractId is missing or invalid, HTTP 400 BadRequest is returned.
 //   - If page or limit query params are invalid, HTTP 400 BadRequest is returned.
 //   - If an internal error occurs, HTTP 500 InternalServerError is returned.
-func (h *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Request) {
+func (h *ContractHandler) GetRevisionsByContract(w http.ResponseWriter, r *http.Request) {
 	contractId := r.PathValue("contractId")
 	parsedContractId, err := strconv.ParseInt(contractId, 10, 64)
 	if err != nil || parsedContractId < 0 {
@@ -334,7 +383,7 @@ func (h *ContractHandler) GetRevisions(w http.ResponseWriter, r *http.Request) {
 		limit = parsedLimit
 	}
 
-	result, err := h.srv.GetRevisions(r.Context(), parsedContractId, &dto.RevisionSearchQuery{
+	result, err := h.srv.GetRevisionsByContract(r.Context(), parsedContractId, &dto.RevisionSearchQuery{
 		Keyword: keyword,
 		Status:  status,
 		Page:    page,

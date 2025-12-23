@@ -630,14 +630,14 @@ func (q *ContractStoreSqlite) setRevisionStatus(
 	return nil
 }
 
-// GetRevisions returns the total number of revisions found and
+// GetRevisionsByContractId returns the total number of revisions found and
 // a list of contract revision information with user data for
 // a specified contract using the contract ID.
 // The search criteria parameter can be used to filter results
 // by a keyword, limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *ContractStoreSqlite) GetRevisions(
+func (q *ContractStoreSqlite) GetRevisionsByContractId(
 	ctx context.Context,
 	contractId int64,
 	arg *params.ContractRevisionSearch) (*agg.WithCount[agg.ContractRevisionWithUser], error) {
@@ -736,6 +736,126 @@ func (q *ContractStoreSqlite) GetRevisions(
 	}
 
 	return &result, nil
+}
+
+func (q *ContractStoreSqlite) GetRevisionsByUser(
+	ctx context.Context,
+	userId int64,
+	arg *params.ContractRevisionSearch) ([]agg.ContractRevisionWithUser, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+		SELECT
+			cr.id,
+			c.id AS contract_id,
+			c.name AS contract_name,
+			cr.title,
+			cr.description,
+			cr.created_at,
+			cr.updated_at,
+			crs.name AS status,
+			req_u.first_name AS req_user_first_name,
+			req_u.last_name AS req_user_last_name,
+			res_u.last_name AS res_user_first_name,
+			res_u.last_name AS res_user_last_name
+		FROM project_users pu
+		JOIN contracts c ON c.project_id = pu.project_id
+		JOIN contract_revisions cr ON cr.contract_id = c.id
+		JOIN contract_revision_statuses crs ON crs.id = cr.status
+		JOIN users req_u ON req_u.id = cr.req_user_id
+		LEFT JOIN users res_u ON res_u.id = cr.res_user_id
+		WHERE pu.user_id = ?
+	`)
+
+	queryArgs := []any{userId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND ( cr.title LIKE ? OR cr.description LIKE ? )")
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%", "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) != 0 {
+		query.WriteString(" AND crs.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	query.WriteString(" ORDER BY cr.created_at DESC")
+	query.WriteString(" LIMIT ? OFFSET ?")
+	queryArgs = append(queryArgs, arg.Limit, arg.Offset)
+
+	rows, err := q.db.QueryContext(ctx, query.String(), queryArgs...)
+	if err != nil {
+		return nil, store.ErrQueryFailed
+	}
+
+	defer rows.Close()
+
+	result := make([]agg.ContractRevisionWithUser, 0)
+
+	for rows.Next() {
+		var row agg.ContractRevisionWithUser
+		err := rows.Scan(
+			&row.Id,
+			&row.ContractId,
+			&row.ContractName,
+			&row.Title,
+			&row.Description,
+			&row.CreatedAt,
+			&row.UpdatedAt,
+			&row.Status,
+			&row.ReqUserFirstName,
+			&row.ReqUserLastName,
+			&row.ResUserFirstName,
+			&row.ResUserLastName,
+		)
+
+		if err != nil {
+			return nil, store.ErrQueryFailed
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
+}
+
+func (q *ContractStoreSqlite) CountRevisionsByUser(
+	ctx context.Context,
+	userId int64,
+	arg *params.ContractRevisionSearch) (int64, error) {
+
+	var query strings.Builder
+
+	query.WriteString(`
+		SELECT
+			COUNT(cr.id)
+		FROM project_users pu
+		JOIN contracts c ON c.project_id = pu.project_id
+		JOIN contract_revisions cr ON cr.contract_id = c.id
+		JOIN contract_revision_statuses crs ON crs.id = cr.status
+		WHERE pu.user_id = ?
+	`)
+
+	queryArgs := []any{userId}
+
+	if len(arg.Keyword) != 0 {
+		query.WriteString(" AND ( cr.title LIKE ? OR cr.description LIKE ? )")
+		queryArgs = append(queryArgs, "%"+arg.Keyword+"%", "%"+arg.Keyword+"%")
+	}
+
+	if len(arg.Status) != 0 {
+		query.WriteString(" AND crs.name = ?")
+		queryArgs = append(queryArgs, arg.Status)
+	}
+
+	var count int64
+	err := q.db.QueryRowContext(ctx, query.String(), queryArgs...).Scan(&count)
+	if err != nil {
+		return 0, store.ErrQueryFailed
+	}
+
+	return count, nil
 }
 
 // GetContractStatsByProject returns the total number of contracts found and

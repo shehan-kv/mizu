@@ -449,14 +449,107 @@ func (s *ContractService) RejectRevision(ctx context.Context, revisionId int64) 
 	return nil
 }
 
-// GetRevisions retrieves a paginated list of revisions for the specified contract.
+func (s *ContractService) GetRevisions(
+	ctx context.Context,
+	query *dto.RevisionSearchQuery) (*common.Page[[]dto.RevisionResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		s.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	revisions, err := s.contSt.GetRevisionsByUser(ctx, actor.Id, &params.ContractRevisionSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		s.lg.Error("could not get revision list",
+			"event", event.EventGetFailed,
+			"scope", "contract_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	count, err := s.contSt.CountRevisionsByUser(ctx, actor.Id, &params.ContractRevisionSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+	})
+
+	if err != nil {
+		s.lg.Error("could not get revision count",
+			"event", event.EventGetFailed,
+			"scope", "contract_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"status", query.Status,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	revResp := make([]dto.RevisionResponse, len(revisions))
+
+	for i, revision := range revisions {
+		revResp[i] = dto.RevisionResponse{
+			Id:          revision.Id,
+			ContractId:  revision.ContractId,
+			Title:       revision.Title,
+			Description: revision.Description,
+			CreatedAt:   revision.CreatedAt,
+			UpdatedAt:   revision.UpdatedAt,
+			Status:      revision.Status,
+			ReqUser: dto.RevisionUser{
+				FirstName: revision.ReqUserFirstName,
+				LastName:  revision.ReqUserLastName,
+			},
+		}
+
+		if revision.ResUserFirstName != nil && revision.ResUserLastName != nil {
+			revResp[i].ResUser = &dto.RevisionUser{
+				FirstName: *revision.ResUserFirstName,
+				LastName:  *revision.ResUserLastName,
+			}
+		}
+	}
+
+	resp := common.Page[[]dto.RevisionResponse]{
+		Count: count,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  revResp,
+	}
+
+	return &resp, nil
+}
+
+// GetRevisionsByContract retrieves a paginated list of revisions for the specified contract.
 // The contract is specified by the ID.
 // It supports keyword and status filtering,
 // and returns results wrapped in a common.Page payload.
 // This method expects middleware to properly authorize requests.
 //
 //   - If an error occurs, it returns service.ErrInternalError
-func (s *ContractService) GetRevisions(
+func (s *ContractService) GetRevisionsByContract(
 	ctx context.Context,
 	contractId int64,
 	query *dto.RevisionSearchQuery) (*common.Page[[]dto.RevisionResponse], error) {
@@ -476,7 +569,7 @@ func (s *ContractService) GetRevisions(
 		return nil, ErrInternalError
 	}
 
-	revisions, err := s.contSt.GetRevisions(ctx, contractId, &params.ContractRevisionSearch{
+	revisions, err := s.contSt.GetRevisionsByContractId(ctx, contractId, &params.ContractRevisionSearch{
 		Keyword: query.Keyword,
 		Status:  query.Status,
 		Offset:  (query.Page - 1) * query.Limit,
