@@ -12,22 +12,22 @@ import (
 	"github.com/lib/pq"
 )
 
-// ChangeRequestStorePostgres implements the ChangeRequestStore interface using Postgres.
+// ChangeRequestStore implements the ChangeRequestStore interface using Postgres.
 // It persists Contract entities in a SQLite database via the provided *sql.DB.
 // The db connection must be non-nil, open, and initialized with the required
 // contracts schema. Methods wrap lower-level SQL errors into domain-specific
 // errors defined in the store package.
-type ChangeRequestStorePostgres struct {
+type ChangeRequestStore struct {
 	db *sql.DB
 }
 
-// NewChangeRequestStore constructs a ChangeRequestStorePostgres that persists
+// NewChangeRequestStore constructs a ChangeRequestStore that persists
 // ChangeRequest entities in a SQLite database via the provided *sql.DB.
-func NewChangeRequestStore(db *sql.DB) *ChangeRequestStorePostgres {
-	return &ChangeRequestStorePostgres{db: db}
+func NewChangeRequestStore(db *sql.DB) *ChangeRequestStore {
+	return &ChangeRequestStore{db: db}
 }
 
-func (q *ChangeRequestStorePostgres) CreateOne(
+func (q *ChangeRequestStore) CreateOne(
 	ctx context.Context,
 	userId int64,
 	arg *params.ChangeRequestCreate) (int64, error) {
@@ -95,7 +95,7 @@ func (q *ChangeRequestStorePostgres) CreateOne(
 	return reqId, nil
 }
 
-func (q *ChangeRequestStorePostgres) CreateEntry(
+func (q *ChangeRequestStore) CreateEntry(
 	ctx context.Context,
 	userId int64,
 	requestId int64,
@@ -163,7 +163,7 @@ func (q *ChangeRequestStorePostgres) CreateEntry(
 	return nil
 }
 
-func (q *ChangeRequestStorePostgres) GetByProjectId(
+func (q *ChangeRequestStore) GetByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.ChangeRequestSearch) (*agg.WithCount[agg.ChangeRequest], error) {
@@ -279,7 +279,7 @@ func (q *ChangeRequestStorePostgres) GetByProjectId(
 	return &result, nil
 }
 
-func (q *ChangeRequestStorePostgres) CloseById(ctx context.Context, requestId int64) error {
+func (q *ChangeRequestStore) CloseById(ctx context.Context, requestId int64) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -323,7 +323,7 @@ func (q *ChangeRequestStorePostgres) CloseById(ctx context.Context, requestId in
 	return nil
 }
 
-func (q *ChangeRequestStorePostgres) GetEntriesByRequestId(
+func (q *ChangeRequestStore) GetEntriesByRequestId(
 	ctx context.Context,
 	requestId int64) ([]agg.ChangeRequestEntry, error) {
 
@@ -375,7 +375,7 @@ func (q *ChangeRequestStorePostgres) GetEntriesByRequestId(
 	return entries, nil
 }
 
-func (q *ChangeRequestStorePostgres) GetById(
+func (q *ChangeRequestStore) GetById(
 	ctx context.Context,
 	requestId int64) (*agg.ChangeRequest, error) {
 
@@ -417,7 +417,7 @@ func (q *ChangeRequestStorePostgres) GetById(
 	return &req, nil
 }
 
-func (q *ChangeRequestStorePostgres) GetByUserId(
+func (q *ChangeRequestStore) GetByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.ChangeRequestSearch) ([]agg.ChangeRequest, error) {
@@ -511,7 +511,7 @@ func (q *ChangeRequestStorePostgres) GetByUserId(
 	return reqs, nil
 }
 
-func (q *ChangeRequestStorePostgres) CountByUserId(
+func (q *ChangeRequestStore) CountByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.ChangeRequestSearch) (int64, error) {
@@ -561,7 +561,7 @@ func (q *ChangeRequestStorePostgres) CountByUserId(
 	return count, nil
 }
 
-func (q *ChangeRequestStorePostgres) CountByProjectId(
+func (q *ChangeRequestStore) CountByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.ChangeRequestSearch) (int64, error) {

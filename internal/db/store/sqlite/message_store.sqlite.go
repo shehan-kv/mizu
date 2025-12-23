@@ -13,23 +13,23 @@ import (
 )
 
 // SQLite implementation of MessageStore interface
-type MessageStoreSqlite struct {
+type MessageStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of a MessageStoreSqlite
+// Creates a new instance of a MessageStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *MessageStoreSqlite
-func NewMessageStore(db *sql.DB) *MessageStoreSqlite {
-	return &MessageStoreSqlite{db: db}
+//   - *MessageStore
+func NewMessageStore(db *sql.DB) *MessageStore {
+	return &MessageStore{db: db}
 }
 
 // Implementation of CreateOne defined in MessageStore interface
-func (q *MessageStoreSqlite) CreateOne(
+func (q *MessageStore) CreateOne(
 	ctx context.Context,
 	arg *params.MessageCreate) (*agg.MessageWithUser, error) {
 
@@ -95,7 +95,7 @@ func (q *MessageStoreSqlite) CreateOne(
 }
 
 // Implementation of GetChannelsByUserId defined in MessageStore interface
-func (q *MessageStoreSqlite) GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error) {
+func (q *MessageStore) GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error) {
 
 	query := `SELECT channel_id FROM channel_users WHERE user_id = ?`
 
@@ -121,7 +121,7 @@ func (q *MessageStoreSqlite) GetChannelIdsByUserId(ctx context.Context, userId i
 	return channels, nil
 }
 
-func (q *MessageStoreSqlite) GetChannelsByUserId(ctx context.Context, userId int64) ([]models.Channel, error) {
+func (q *MessageStore) GetChannelsByUserId(ctx context.Context, userId int64) ([]models.Channel, error) {
 
 	query := `
 	SELECT 
@@ -165,7 +165,7 @@ func (q *MessageStoreSqlite) GetChannelsByUserId(ctx context.Context, userId int
 }
 
 // Implementation of GetUserIdsByChannelId defined in MessageStore interface
-func (q *MessageStoreSqlite) GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
+func (q *MessageStore) GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
 
 	query := `SELECT user_id FROM channel_users WHERE channel_id = ?`
 
@@ -195,7 +195,7 @@ func (q *MessageStoreSqlite) GetUserIdsByChannelId(ctx context.Context, channelI
 // defined in MessageStore interface. It returns an array of
 // aggregates.MessageWithUser structs.
 // Returns store.ErrQueryFailed if an error occurs.
-func (q *MessageStoreSqlite) GetByChannelId(
+func (q *MessageStore) GetByChannelId(
 	ctx context.Context,
 	channelId int64,
 	arg *params.MessageSearch) ([]agg.MessageWithUser, error) {
@@ -243,7 +243,7 @@ func (q *MessageStoreSqlite) GetByChannelId(
 // defined in MessageStore interface. It returns the number of messages
 // in the specified channel.
 // Returns store.ErrQueryFailed if an error occurs.
-func (q *MessageStoreSqlite) CountByChannelId(ctx context.Context, channelId int64) (int64, error) {
+func (q *MessageStore) CountByChannelId(ctx context.Context, channelId int64) (int64, error) {
 
 	query := `SELECT COUNT(id) FROM messages WHERE channel_id = ?`
 
@@ -255,7 +255,7 @@ func (q *MessageStoreSqlite) CountByChannelId(ctx context.Context, channelId int
 	return count, nil
 }
 
-func (q *MessageStoreSqlite) GetUsersByChannelId(
+func (q *MessageStore) GetUsersByChannelId(
 	ctx context.Context,
 	channelId int64) ([]agg.ChannelMember, error) {
 

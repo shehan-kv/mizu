@@ -10,22 +10,22 @@ import (
 	"strings"
 )
 
-// FileStoreSqlite implements the FileStore interface using Postgres.
+// FileStore implements the FileStore interface using Postgres.
 // It persists File entities in a SQLite database via the provided *sql.DB.
 // The db connection must be non-nil, open, and initialized with the required
 // contracts schema. Methods wrap lower-level SQL errors into domain-specific
 // errors defined in the store package.
-type FileStorePostgres struct {
+type FileStore struct {
 	db *sql.DB
 }
 
-// NewFileStore constructs a FileStoreSqlite that persists
+// NewFileStore constructs a FileStore that persists
 // File entities in a SQLite database via the provided *sql.DB.
-func NewFileStore(db *sql.DB) *FileStorePostgres {
-	return &FileStorePostgres{db: db}
+func NewFileStore(db *sql.DB) *FileStore {
+	return &FileStore{db: db}
 }
 
-func (q *FileStorePostgres) CreateOne(ctx context.Context, arg params.FileCreate) (int64, error) {
+func (q *FileStore) CreateOne(ctx context.Context, arg params.FileCreate) (int64, error) {
 
 	query := `
 	INSERT INTO files(channel_id, user_id, orig_name, saved_name, url, size)
@@ -51,7 +51,7 @@ func (q *FileStorePostgres) CreateOne(ctx context.Context, arg params.FileCreate
 	return fileId, nil
 }
 
-func (q *FileStorePostgres) GetByChannelId(
+func (q *FileStore) GetByChannelId(
 	ctx context.Context,
 	channelId int64,
 	arg *params.FileSearch) (*agg.WithCount[agg.FileWithUser], error) {
@@ -151,7 +151,7 @@ func (q *FileStorePostgres) GetByChannelId(
 	return &result, nil
 }
 
-func (q *FileStorePostgres) GetByProjectId(
+func (q *FileStore) GetByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.FileSearch) ([]agg.FileWithUser, error) {
@@ -231,7 +231,7 @@ func (q *FileStorePostgres) GetByProjectId(
 	return result, nil
 }
 
-func (q *FileStorePostgres) CountByProjectId(
+func (q *FileStore) CountByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.FileSearch) (int64, error) {

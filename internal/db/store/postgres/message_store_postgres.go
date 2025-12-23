@@ -12,23 +12,23 @@ import (
 )
 
 // Postgres implementation of MessageStore interface
-type MessageStorePostgres struct {
+type MessageStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of a MessageStorePostgres
+// Creates a new instance of a MessageStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *MessageStorePostgres
-func NewMessageStore(db *sql.DB) *MessageStorePostgres {
-	return &MessageStorePostgres{db: db}
+//   - *MessageStore
+func NewMessageStore(db *sql.DB) *MessageStore {
+	return &MessageStore{db: db}
 }
 
 // Implementation of CreateOne defined in MessageStore interface
-func (q *MessageStorePostgres) CreateOne(
+func (q *MessageStore) CreateOne(
 	ctx context.Context,
 	arg *params.MessageCreate) (*agg.MessageWithUser, error) {
 
@@ -91,7 +91,7 @@ func (q *MessageStorePostgres) CreateOne(
 }
 
 // Implementation of GetChannelsByUserId defined in MessageStore interface
-func (q *MessageStorePostgres) GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error) {
+func (q *MessageStore) GetChannelIdsByUserId(ctx context.Context, userId int64) ([]int64, error) {
 
 	query := `SELECT channel_id FROM channel_users WHERE user_id = $1`
 
@@ -117,7 +117,7 @@ func (q *MessageStorePostgres) GetChannelIdsByUserId(ctx context.Context, userId
 	return channels, nil
 }
 
-func (q *MessageStorePostgres) GetChannelsByUserId(ctx context.Context, userId int64) ([]models.Channel, error) {
+func (q *MessageStore) GetChannelsByUserId(ctx context.Context, userId int64) ([]models.Channel, error) {
 
 	query := `
 	SELECT 
@@ -159,7 +159,7 @@ func (q *MessageStorePostgres) GetChannelsByUserId(ctx context.Context, userId i
 }
 
 // Implementation of GetUserIdsByChannelId defined in MessageStore interface
-func (q *MessageStorePostgres) GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
+func (q *MessageStore) GetUserIdsByChannelId(ctx context.Context, channelId int64) ([]int64, error) {
 
 	query := `SELECT user_id FROM channel_users WHERE channel_id = $1`
 
@@ -189,7 +189,7 @@ func (q *MessageStorePostgres) GetUserIdsByChannelId(ctx context.Context, channe
 // defined in MessageStore interface. It returns an array of
 // aggregates.MessageWithUser structs.
 // Returns store.ErrQueryFailed if an error occurs.
-func (q *MessageStorePostgres) GetByChannelId(
+func (q *MessageStore) GetByChannelId(
 	ctx context.Context,
 	channelId int64,
 	arg *params.MessageSearch) ([]agg.MessageWithUser, error) {
@@ -237,7 +237,7 @@ func (q *MessageStorePostgres) GetByChannelId(
 // defined in MessageStore interface. It returns the number of messages
 // in the specified channel.
 // Returns store.ErrQueryFailed if an error occurs.
-func (q *MessageStorePostgres) CountByChannelId(ctx context.Context, channelId int64) (int64, error) {
+func (q *MessageStore) CountByChannelId(ctx context.Context, channelId int64) (int64, error) {
 
 	query := `SELECT COUNT(id) FROM messages WHERE channel_id = $1`
 
@@ -249,7 +249,7 @@ func (q *MessageStorePostgres) CountByChannelId(ctx context.Context, channelId i
 	return count, nil
 }
 
-func (q *MessageStorePostgres) GetUsersByChannelId(
+func (q *MessageStore) GetUsersByChannelId(
 	ctx context.Context,
 	channelId int64) ([]agg.ChannelMember, error) {
 

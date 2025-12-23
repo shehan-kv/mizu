@@ -13,23 +13,23 @@ import (
 )
 
 // Postgres implementation of InvoiceStore interface
-type InvoiceStorePostgres struct {
+type InvoiceStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of an InvoiceStorePostgres
+// Creates a new instance of an InvoiceStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *InvoiceStorePostgres
-func NewInvoiceStore(db *sql.DB) *InvoiceStorePostgres {
-	return &InvoiceStorePostgres{db: db}
+//   - *InvoiceStore
+func NewInvoiceStore(db *sql.DB) *InvoiceStore {
+	return &InvoiceStore{db: db}
 }
 
 // Implementing CreateOne defined in InvoiceStore interface
-func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error) {
+func (q *InvoiceStore) CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -138,7 +138,7 @@ func (q *InvoiceStorePostgres) CreateOne(ctx context.Context, userId int64, arg 
 // by the type (invoice/quote), limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStorePostgres) GetSummaryByProjectId(
+func (q *InvoiceStore) GetSummaryByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.InvoiceSearch) ([]agg.Invoice, error) {
@@ -230,7 +230,7 @@ func (q *InvoiceStorePostgres) GetSummaryByProjectId(
 	return result, nil
 }
 
-func (q *InvoiceStorePostgres) CountSummaryByProjectId(
+func (q *InvoiceStore) CountSummaryByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.InvoiceSearch) (int64, error) {
@@ -279,7 +279,7 @@ func (q *InvoiceStorePostgres) CountSummaryByProjectId(
 // by a keyword, the type (invoice/quote), limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStorePostgres) GetSummaryByUserId(
+func (q *InvoiceStore) GetSummaryByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.InvoiceSearch) ([]agg.Invoice, error) {
@@ -381,7 +381,7 @@ func (q *InvoiceStorePostgres) GetSummaryByUserId(
 	return result, nil
 }
 
-func (q *InvoiceStorePostgres) CountSummaryByUserId(
+func (q *InvoiceStore) CountSummaryByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.InvoiceSearch) (int64, error) {
@@ -434,7 +434,7 @@ func (q *InvoiceStorePostgres) CountSummaryByUserId(
 	return count, nil
 }
 
-func (q *InvoiceStorePostgres) GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error) {
+func (q *InvoiceStore) GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error) {
 
 	query := `
 	SELECT 
@@ -478,7 +478,7 @@ func (q *InvoiceStorePostgres) GetSummaryById(ctx context.Context, invoiceId int
 	return &invoice, nil
 }
 
-func (q *InvoiceStorePostgres) GetItemsByInvoiceId(
+func (q *InvoiceStore) GetItemsByInvoiceId(
 	ctx context.Context,
 	invoiceId int64) ([]agg.InvoiceItem, error) {
 
@@ -534,7 +534,7 @@ func (q *InvoiceStorePostgres) GetItemsByInvoiceId(
 	return result, nil
 }
 
-func (q *InvoiceStorePostgres) GetHistoryByInvoiceId(
+func (q *InvoiceStore) GetHistoryByInvoiceId(
 	ctx context.Context,
 	invoiceId int64) ([]agg.InvoiceHistory, error) {
 
@@ -606,7 +606,7 @@ func (q *InvoiceStorePostgres) GetHistoryByInvoiceId(
 //   - false: successfully accepted the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStorePostgres) AcceptById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) AcceptById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -686,7 +686,7 @@ func (q *InvoiceStorePostgres) AcceptById(ctx context.Context, userId int64, inv
 //   - false: successfully rejected the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStorePostgres) RejectById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) RejectById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -768,7 +768,7 @@ func (q *InvoiceStorePostgres) RejectById(ctx context.Context, userId int64, inv
 //   - false: successfully cancelled the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStorePostgres) CancelById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) CancelById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -852,7 +852,7 @@ func (q *InvoiceStorePostgres) CancelById(ctx context.Context, userId int64, inv
 // Errors:
 //   - if the provided ID points to a quote, store.ErrUnexpectedType is returned.
 //   - If any other error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStorePostgres) PayById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) PayById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -938,7 +938,7 @@ func (q *InvoiceStorePostgres) PayById(ctx context.Context, userId int64, invoic
 // Errors:
 //   - if the quote status is invalid, store.ErrUnexpectedType is returned.
 //   - If any other error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStorePostgres) QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error) {
+func (q *InvoiceStore) QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -1009,7 +1009,7 @@ func (q *InvoiceStorePostgres) QuoteToInvoice(ctx context.Context, userId int64,
 	return false, nil
 }
 
-func (q *InvoiceStorePostgres) GetMetricsByProjectId(
+func (q *InvoiceStore) GetMetricsByProjectId(
 	ctx context.Context,
 	projectId int64,
 	event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error) {
@@ -1056,7 +1056,7 @@ func (q *InvoiceStorePostgres) GetMetricsByProjectId(
 	return resp, nil
 }
 
-func (q *InvoiceStorePostgres) GetMetricsByUserId(
+func (q *InvoiceStore) GetMetricsByUserId(
 	ctx context.Context,
 	projectId int64,
 	event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error) {
@@ -1103,7 +1103,7 @@ func (q *InvoiceStorePostgres) GetMetricsByUserId(
 	return resp, nil
 }
 
-func (q *InvoiceStorePostgres) GetAmountSumByUserId(
+func (q *InvoiceStore) GetAmountSumByUserId(
 	ctx context.Context,
 	userId int64,
 	isInvoice bool,

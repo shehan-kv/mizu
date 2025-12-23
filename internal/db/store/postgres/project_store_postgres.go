@@ -13,22 +13,22 @@ import (
 )
 
 // Postgres implementation of ProjectStore interface
-type ProjectStorePostgres struct {
+type ProjectStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of a ProjectStorePostgres
+// Creates a new instance of a ProjectStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *ProjectStorePostgres
-func NewProjectStore(db *sql.DB) *ProjectStorePostgres {
-	return &ProjectStorePostgres{db: db}
+//   - *ProjectStore
+func NewProjectStore(db *sql.DB) *ProjectStore {
+	return &ProjectStore{db: db}
 }
 
-func (q *ProjectStorePostgres) CreateOne(ctx context.Context, arg *params.ProjectCreate) (int64, error) {
+func (q *ProjectStore) CreateOne(ctx context.Context, arg *params.ProjectCreate) (int64, error) {
 
 	query := `
 	INSERT INTO projects(name, status) 
@@ -56,7 +56,7 @@ func (q *ProjectStorePostgres) CreateOne(ctx context.Context, arg *params.Projec
 }
 
 // Implementing CreateTask to comply with the ProjectStore interface
-func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskCreate) (int64, error) {
+func (q *ProjectStore) CreateTask(ctx context.Context, arg *params.TaskCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -114,7 +114,7 @@ func (q *ProjectStorePostgres) CreateTask(ctx context.Context, arg *params.TaskC
 }
 
 // Implementing GetWithStats defined in ProjectStore interface
-func (q *ProjectStorePostgres) GetWithStats(
+func (q *ProjectStore) GetWithStats(
 	ctx context.Context,
 	arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error) {
 
@@ -237,7 +237,7 @@ func (q *ProjectStorePostgres) GetWithStats(
 	return &result, nil
 }
 
-func (q *ProjectStorePostgres) GetTasksByProjectId(
+func (q *ProjectStore) GetTasksByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.TaskSearch) ([]agg.Task, error) {
@@ -355,7 +355,7 @@ func (q *ProjectStorePostgres) GetTasksByProjectId(
 	return tasks, nil
 }
 
-func (q *ProjectStorePostgres) CountTasksByProjectId(
+func (q *ProjectStore) CountTasksByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.TaskSearch) (int64, error) {
@@ -404,7 +404,7 @@ func (q *ProjectStorePostgres) CountTasksByProjectId(
 	return count, nil
 }
 
-func (q *ProjectStorePostgres) GetById(ctx context.Context, projectId int64) (*agg.Project, error) {
+func (q *ProjectStore) GetById(ctx context.Context, projectId int64) (*agg.Project, error) {
 
 	query := `
 	SELECT 
@@ -431,7 +431,7 @@ func (q *ProjectStorePostgres) GetById(ctx context.Context, projectId int64) (*a
 	return &project, nil
 }
 
-func (q *ProjectStorePostgres) GetMembersByProjectId(
+func (q *ProjectStore) GetMembersByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.MemberSearch) ([]agg.ProjectUser, error) {
@@ -521,7 +521,7 @@ func (q *ProjectStorePostgres) GetMembersByProjectId(
 	return resp, nil
 }
 
-func (q *ProjectStorePostgres) CountMembersByProjectId(
+func (q *ProjectStore) CountMembersByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.MemberSearch) (int64, error) {
@@ -573,7 +573,7 @@ func (q *ProjectStorePostgres) CountMembersByProjectId(
 	return count, nil
 }
 
-func (q *ProjectStorePostgres) GetTaskMetricsByProjectId(
+func (q *ProjectStore) GetTaskMetricsByProjectId(
 	ctx context.Context,
 	projectId int64,
 	status params.TaskStatus) ([]agg.TaskMetric, error) {
@@ -617,7 +617,7 @@ func (q *ProjectStorePostgres) GetTaskMetricsByProjectId(
 	return resp, nil
 }
 
-func (q *ProjectStorePostgres) GetCreatedMetricsByUserId(
+func (q *ProjectStore) GetCreatedMetricsByUserId(
 	ctx context.Context,
 	userId int64) ([]agg.ProjectMetric, error) {
 
@@ -662,7 +662,7 @@ func (q *ProjectStorePostgres) GetCreatedMetricsByUserId(
 	return result, nil
 }
 
-func (q *ProjectStorePostgres) SetStatusById(
+func (q *ProjectStore) SetStatusById(
 	ctx context.Context,
 	projectId int64,
 	status params.ProjectStatus) error {
@@ -681,7 +681,7 @@ func (q *ProjectStorePostgres) SetStatusById(
 	return nil
 }
 
-func (q *ProjectStorePostgres) DeleteById(ctx context.Context, projectId int64) error {
+func (q *ProjectStore) DeleteById(ctx context.Context, projectId int64) error {
 
 	query := `
 	DELETE FROM projects
@@ -696,7 +696,7 @@ func (q *ProjectStorePostgres) DeleteById(ctx context.Context, projectId int64) 
 	return nil
 }
 
-func (q *ProjectStorePostgres) DeleteMembersByProjectId(ctx context.Context, projectId int64) error {
+func (q *ProjectStore) DeleteMembersByProjectId(ctx context.Context, projectId int64) error {
 
 	query := `
 	DELETE FROM project_users
@@ -711,7 +711,7 @@ func (q *ProjectStorePostgres) DeleteMembersByProjectId(ctx context.Context, pro
 	return nil
 }
 
-func (q *ProjectStorePostgres) AddMembers(ctx context.Context, projectId int64, members []int64) error {
+func (q *ProjectStore) AddMembers(ctx context.Context, projectId int64, members []int64) error {
 
 	var query strings.Builder
 
@@ -748,7 +748,7 @@ func (q *ProjectStorePostgres) AddMembers(ctx context.Context, projectId int64, 
 	return nil
 }
 
-func (q *ProjectStorePostgres) GetTaskAssigneesByTaskId(
+func (q *ProjectStore) GetTaskAssigneesByTaskId(
 	ctx context.Context,
 	taskId int64) ([]agg.ProjectUser, error) {
 
@@ -793,7 +793,7 @@ func (q *ProjectStorePostgres) GetTaskAssigneesByTaskId(
 	return result, nil
 }
 
-func (q *ProjectStorePostgres) DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error {
+func (q *ProjectStore) DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error {
 
 	query := `
 	DELETE FROM task_assignees
@@ -808,7 +808,7 @@ func (q *ProjectStorePostgres) DeleteTaskAssigneesByTaskId(ctx context.Context, 
 	return nil
 }
 
-func (q *ProjectStorePostgres) AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error {
+func (q *ProjectStore) AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error {
 
 	var query strings.Builder
 

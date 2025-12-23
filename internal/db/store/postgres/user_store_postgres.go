@@ -15,23 +15,23 @@ import (
 )
 
 // Postgres implementation of UserStore interface
-type UserStorePostgres struct {
+type UserStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of a UserStorePostgres
+// Creates a new instance of a UserStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *UserStorePostgres
-func NewUserStore(db *sql.DB) *UserStorePostgres {
-	return &UserStorePostgres{db: db}
+//   - *UserStore
+func NewUserStore(db *sql.DB) *UserStore {
+	return &UserStore{db: db}
 }
 
 // Implementation of CreateOne defined in UserStore interface
-func (q *UserStorePostgres) CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error) {
+func (q *UserStore) CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error) {
 
 	query := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
@@ -65,7 +65,7 @@ func (q *UserStorePostgres) CreateOne(ctx context.Context, arg *params.UserCreat
 }
 
 // Implementation of GetById defined in UserStore interface
-func (q *UserStorePostgres) GetById(ctx context.Context, id int64) (*models.User, error) {
+func (q *UserStore) GetById(ctx context.Context, id int64) (*models.User, error) {
 
 	query := `
 	SELECT id, first_name, last_name, title, email, image, is_active, role, 
@@ -95,7 +95,7 @@ func (q *UserStorePostgres) GetById(ctx context.Context, id int64) (*models.User
 }
 
 // Implementation of GetByEmail defined in UserStore interface
-func (q *UserStorePostgres) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+func (q *UserStore) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	query := `
 	SELECT id, first_name, last_name, title, email, image, is_active, role, 
@@ -125,7 +125,7 @@ func (q *UserStorePostgres) GetByEmail(ctx context.Context, email string) (*mode
 }
 
 // Implementation of GetPasswordById defined in UserStore interface
-func (q *UserStorePostgres) GetPasswordById(ctx context.Context, id int64) (string, error) {
+func (q *UserStore) GetPasswordById(ctx context.Context, id int64) (string, error) {
 
 	query := `SELECT password FROM users WHERE id = $1`
 
@@ -141,7 +141,7 @@ func (q *UserStorePostgres) GetPasswordById(ctx context.Context, id int64) (stri
 }
 
 // Implementation of CountAll defined in UserStore interface
-func (q *UserStorePostgres) CountAll(ctx context.Context, arg *params.UserSearch) (int64, error) {
+func (q *UserStore) CountAll(ctx context.Context, arg *params.UserSearch) (int64, error) {
 
 	var query strings.Builder
 	query.WriteString(`
@@ -202,7 +202,7 @@ func (q *UserStorePostgres) CountAll(ctx context.Context, arg *params.UserSearch
 }
 
 // Implementation of SetPasswordById defined in UserStore interface
-func (q *UserStorePostgres) SetPasswordById(ctx context.Context, id int64, password string) error {
+func (q *UserStore) SetPasswordById(ctx context.Context, id int64, password string) error {
 
 	query := `UPDATE users SET password = $1 WHERE id = $2`
 	_, err := q.db.ExecContext(ctx, query, password, id)
@@ -215,7 +215,7 @@ func (q *UserStorePostgres) SetPasswordById(ctx context.Context, id int64, passw
 }
 
 // Implementation of DeleteById defined in UserStore interface
-func (q *UserStorePostgres) DeleteById(ctx context.Context, id int64) error {
+func (q *UserStore) DeleteById(ctx context.Context, id int64) error {
 
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := q.db.ExecContext(ctx, query, id)
@@ -228,7 +228,7 @@ func (q *UserStorePostgres) DeleteById(ctx context.Context, id int64) error {
 }
 
 // Implementation of UpdateLastLogin defined in UserStore interface
-func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error {
+func (q *UserStore) UpdateLastLogin(ctx context.Context, id int64) error {
 
 	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := q.db.ExecContext(ctx, query, id)
@@ -240,7 +240,7 @@ func (q *UserStorePostgres) UpdateLastLogin(ctx context.Context, id int64) error
 }
 
 // Implementation of GetRoleById defined in UserStore interface
-func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.Role, error) {
+func (q *UserStore) GetRoleById(ctx context.Context, id int64) (*models.Role, error) {
 
 	query := `SELECT id, name FROM roles WHERE id = $1`
 
@@ -255,7 +255,7 @@ func (q *UserStorePostgres) GetRoleById(ctx context.Context, id int64) (*models.
 }
 
 // Implementation of CreateOnboardReq defined in UserStore interface
-func (q *UserStorePostgres) CreateOnboardReq(ctx context.Context, arg *params.UserOnboardReqCreate) error {
+func (q *UserStore) CreateOnboardReq(ctx context.Context, arg *params.UserOnboardReqCreate) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -296,7 +296,7 @@ func (q *UserStorePostgres) CreateOnboardReq(ctx context.Context, arg *params.Us
 }
 
 // Implementation of Onboard defined in UserStore interface
-func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error) {
+func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64, error) {
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, store.ErrInsertFailed
@@ -354,7 +354,7 @@ func (q *UserStorePostgres) Onboard(ctx context.Context, arg *params.UserOnboard
 }
 
 // Implementation of GetOnboardReqByToken defined in UserStore interface
-func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardReq, error) {
+func (q *UserStore) GetOnboardReqByToken(ctx context.Context, token string) (*models.UserOnboardReq, error) {
 
 	query := `SELECT id, user_id, token, issued_at, is_valid FROM user_onboard_reqs WHERE token = $1`
 
@@ -377,7 +377,7 @@ func (q *UserStorePostgres) GetOnboardReqByToken(ctx context.Context, token stri
 }
 
 // Implementation of DeleteOnboardReqById defined in UserStore interface
-func (q *UserStorePostgres) DeleteOnboardReqById(ctx context.Context, id int64) error {
+func (q *UserStore) DeleteOnboardReqById(ctx context.Context, id int64) error {
 
 	query := `DELETE FROM user_onboard_reqs WHERE id = $1`
 
@@ -389,7 +389,7 @@ func (q *UserStorePostgres) DeleteOnboardReqById(ctx context.Context, id int64) 
 }
 
 // Implementation of OnboardVerify defined in UserStore interface
-func (q *UserStorePostgres) OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error {
+func (q *UserStore) OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -415,7 +415,7 @@ func (q *UserStorePostgres) OnboardVerify(ctx context.Context, arg *params.UserO
 	return nil
 }
 
-func (q *UserStorePostgres) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error) {
+func (q *UserStore) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error) {
 
 	var query strings.Builder
 	query.WriteString(`

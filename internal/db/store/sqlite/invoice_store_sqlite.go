@@ -12,23 +12,23 @@ import (
 )
 
 // SQLite implementation of InvoiceStore interface
-type InvoiceStoreSqlite struct {
+type InvoiceStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of an InvoiceStoreSqlite
+// Creates a new instance of an InvoiceStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *InvoiceStoreSqlite
-func NewInvoiceStore(db *sql.DB) *InvoiceStoreSqlite {
-	return &InvoiceStoreSqlite{db: db}
+//   - *InvoiceStore
+func NewInvoiceStore(db *sql.DB) *InvoiceStore {
+	return &InvoiceStore{db: db}
 }
 
 // Implementing CreateOne defined in InvoiceStore interface
-func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error) {
+func (q *InvoiceStore) CreateOne(ctx context.Context, userId int64, arg *params.InvoiceCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -137,7 +137,7 @@ func (q *InvoiceStoreSqlite) CreateOne(ctx context.Context, userId int64, arg *p
 // by the type (invoice/quote), limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStoreSqlite) GetSummaryByProjectId(
+func (q *InvoiceStore) GetSummaryByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.InvoiceSearch) ([]agg.Invoice, error) {
@@ -218,7 +218,7 @@ func (q *InvoiceStoreSqlite) GetSummaryByProjectId(
 	return result, nil
 }
 
-func (q *InvoiceStoreSqlite) CountSummaryByProjectId(
+func (q *InvoiceStore) CountSummaryByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.InvoiceSearch) (int64, error) {
@@ -262,7 +262,7 @@ func (q *InvoiceStoreSqlite) CountSummaryByProjectId(
 // by a keyword, the type (invoice/quote), limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *InvoiceStoreSqlite) GetSummaryByUserId(
+func (q *InvoiceStore) GetSummaryByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.InvoiceSearch) ([]agg.Invoice, error) {
@@ -349,7 +349,7 @@ func (q *InvoiceStoreSqlite) GetSummaryByUserId(
 	return result, nil
 }
 
-func (q *InvoiceStoreSqlite) CountSummaryByUserId(
+func (q *InvoiceStore) CountSummaryByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.InvoiceSearch) (int64, error) {
@@ -393,7 +393,7 @@ func (q *InvoiceStoreSqlite) CountSummaryByUserId(
 	return count, nil
 }
 
-func (q *InvoiceStoreSqlite) GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error) {
+func (q *InvoiceStore) GetSummaryById(ctx context.Context, invoiceId int64) (*agg.Invoice, error) {
 
 	query := `
 	SELECT 
@@ -437,7 +437,7 @@ func (q *InvoiceStoreSqlite) GetSummaryById(ctx context.Context, invoiceId int64
 	return &invoice, nil
 }
 
-func (q *InvoiceStoreSqlite) GetItemsByInvoiceId(
+func (q *InvoiceStore) GetItemsByInvoiceId(
 	ctx context.Context,
 	invoiceId int64) ([]agg.InvoiceItem, error) {
 
@@ -493,7 +493,7 @@ func (q *InvoiceStoreSqlite) GetItemsByInvoiceId(
 	return result, nil
 }
 
-func (q *InvoiceStoreSqlite) GetHistoryByInvoiceId(
+func (q *InvoiceStore) GetHistoryByInvoiceId(
 	ctx context.Context,
 	invoiceId int64) ([]agg.InvoiceHistory, error) {
 
@@ -565,7 +565,7 @@ func (q *InvoiceStoreSqlite) GetHistoryByInvoiceId(
 //   - false: successfully accepted the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) AcceptById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) AcceptById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -645,7 +645,7 @@ func (q *InvoiceStoreSqlite) AcceptById(ctx context.Context, userId int64, invoi
 //   - false: successfully rejected the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) RejectById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) RejectById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -727,7 +727,7 @@ func (q *InvoiceStoreSqlite) RejectById(ctx context.Context, userId int64, invoi
 //   - false: successfully cancelled the invoice
 //
 // If any error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) CancelById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) CancelById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -811,7 +811,7 @@ func (q *InvoiceStoreSqlite) CancelById(ctx context.Context, userId int64, invoi
 // Errors:
 //   - if the provided ID points to a quote, store.ErrUnexpectedType is returned.
 //   - If any other error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) PayById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
+func (q *InvoiceStore) PayById(ctx context.Context, userId int64, invoiceId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -897,7 +897,7 @@ func (q *InvoiceStoreSqlite) PayById(ctx context.Context, userId int64, invoiceI
 // Errors:
 //   - if the quote status is invalid, store.ErrUnexpectedType is returned.
 //   - If any other error occurs, store.ErrUpdateFailed is returned.
-func (q *InvoiceStoreSqlite) QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error) {
+func (q *InvoiceStore) QuoteToInvoice(ctx context.Context, userId int64, quoteId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -968,7 +968,7 @@ func (q *InvoiceStoreSqlite) QuoteToInvoice(ctx context.Context, userId int64, q
 	return false, nil
 }
 
-func (q *InvoiceStoreSqlite) GetMetricsByProjectId(
+func (q *InvoiceStore) GetMetricsByProjectId(
 	ctx context.Context,
 	projectId int64,
 	event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error) {
@@ -1014,7 +1014,7 @@ func (q *InvoiceStoreSqlite) GetMetricsByProjectId(
 	return resp, nil
 }
 
-func (q *InvoiceStoreSqlite) GetMetricsByUserId(
+func (q *InvoiceStore) GetMetricsByUserId(
 	ctx context.Context,
 	userId int64,
 	event params.InvoiceHistoryEvent) ([]agg.InvoiceMetric, error) {
@@ -1061,7 +1061,7 @@ func (q *InvoiceStoreSqlite) GetMetricsByUserId(
 	return resp, nil
 }
 
-func (q *InvoiceStoreSqlite) GetAmountSumByUserId(
+func (q *InvoiceStore) GetAmountSumByUserId(
 	ctx context.Context,
 	userId int64,
 	isInvoice bool,

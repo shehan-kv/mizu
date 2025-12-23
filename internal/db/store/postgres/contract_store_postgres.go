@@ -14,19 +14,19 @@ import (
 	"github.com/lib/pq"
 )
 
-// ContractStorePostgres implements the ContractStore interface using Postgres.
+// ContractStore implements the ContractStore interface using Postgres.
 // It persists Contract entities in a Postgres database via the provided *sql.DB.
 // The db connection must be non-nil, open, and initialized with the required
 // contracts schema. Methods wrap lower-level SQL errors into domain-specific
 // errors defined in the store package.
-type ContractStorePostgres struct {
+type ContractStore struct {
 	db *sql.DB
 }
 
-// NewContractStore constructs a ContractStorePostgres that persists
+// NewContractStore constructs a ContractStore that persists
 // Contract entities in a Postgres database via the provided *sql.DB.
-func NewContractStore(db *sql.DB) *ContractStorePostgres {
-	return &ContractStorePostgres{db: db}
+func NewContractStore(db *sql.DB) *ContractStore {
+	return &ContractStore{db: db}
 }
 
 // CreateOne is an implementation of CreateOne in store.ContractStore.
@@ -39,7 +39,7 @@ func NewContractStore(db *sql.DB) *ContractStorePostgres {
 //   - If a unique constraint violation occurs, it returns store.ErrUniqueViolation.
 //   - If a not-null constraint violation occurs, it returns store.ErrNotNullViolation.
 //   - If any other errors occur, it returns store.ErrInsertFailed
-func (q *ContractStorePostgres) CreateOne(
+func (q *ContractStore) CreateOne(
 	ctx context.Context,
 	projectId int64,
 	arg *params.ContractCreate) (*agg.ContractCreateResult, error) {
@@ -221,7 +221,7 @@ func (q *ContractStorePostgres) CreateOne(
 // If the contract or version was already signed, the method returns true.
 //
 // If any error occurs, store.ErrInsertFailed is returned.
-func (q *ContractStorePostgres) SignVersion(ctx context.Context, versionId int64, userId int64) (bool, error) {
+func (q *ContractStore) SignVersion(ctx context.Context, versionId int64, userId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -318,7 +318,7 @@ func (q *ContractStorePostgres) SignVersion(ctx context.Context, versionId int64
 //
 //   - It returns true if the contract has been signed already.
 //   - If an error occurs, store.ErrQueryFailed is returned.
-func (q *ContractStorePostgres) isContractSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64) (bool, error) {
+func (q *ContractStore) isContractSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64) (bool, error) {
 
 	query := `
 	SELECT 
@@ -353,7 +353,7 @@ func (q *ContractStorePostgres) isContractSignedOrRejected(ctx context.Context, 
 //   - It returns true if the contract has been signed already
 //     by the specified user.
 //   - If an error occurs, store.ErrQueryFailed is returned.
-func (q *ContractStorePostgres) hasUserSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64, userId int64) (bool, error) {
+func (q *ContractStore) hasUserSignedOrRejected(ctx context.Context, tx *sql.Tx, versionId int64, userId int64) (bool, error) {
 
 	userSignedVersionQuery := `
 	SELECT CASE
@@ -381,7 +381,7 @@ func (q *ContractStorePostgres) hasUserSignedOrRejected(ctx context.Context, tx 
 	return false, nil
 }
 
-func (q *ContractStorePostgres) GetUsersWithSignature(
+func (q *ContractStore) GetUsersWithSignature(
 	ctx context.Context,
 	versionId int64) (*agg.ContractUserSignatures, error) {
 
@@ -469,7 +469,7 @@ func (q *ContractStorePostgres) GetUsersWithSignature(
 // If the contract or version was already rejected or signed, the method returns true.
 //
 // If any error occurs, store.ErrInsertFailed is returned.
-func (q *ContractStorePostgres) RejectVersion(ctx context.Context, versionId int64, userId int64) (bool, error) {
+func (q *ContractStore) RejectVersion(ctx context.Context, versionId int64, userId int64) (bool, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -541,7 +541,7 @@ func (q *ContractStorePostgres) RejectVersion(ctx context.Context, versionId int
 // CreateRevision creates a contract revision request for a specified contract.
 //
 // If any error occurs, store.ErrInsertFailed is returned.
-func (q *ContractStorePostgres) CreateRevision(ctx context.Context, arg *params.ContractRevisionCreate) error {
+func (q *ContractStore) CreateRevision(ctx context.Context, arg *params.ContractRevisionCreate) error {
 
 	// TODO: set contract status to revision-requested or something similar.
 	// Check if the contract is already signed or rejected.
@@ -584,7 +584,7 @@ func (q *ContractStorePostgres) CreateRevision(ctx context.Context, arg *params.
 // regardless of the previously set state.
 //
 // If any error occurs, store.ErrInsertFailed is returned.
-func (q *ContractStorePostgres) AcceptRevision(ctx context.Context, revisionId int64, userId int64) error {
+func (q *ContractStore) AcceptRevision(ctx context.Context, revisionId int64, userId int64) error {
 
 	return q.setRevisionStatus(ctx, revisionId, userId, params.ContractRevisionAccepted)
 }
@@ -593,7 +593,7 @@ func (q *ContractStorePostgres) AcceptRevision(ctx context.Context, revisionId i
 // regardless of the previously set state.
 //
 // If any error occurs, store.ErrInsertFailed is returned.
-func (q *ContractStorePostgres) RejectRevision(ctx context.Context, revisionId int64, userId int64) error {
+func (q *ContractStore) RejectRevision(ctx context.Context, revisionId int64, userId int64) error {
 	return q.setRevisionStatus(ctx, revisionId, userId, params.ContractRevisionRejected)
 }
 
@@ -602,7 +602,7 @@ func (q *ContractStorePostgres) RejectRevision(ctx context.Context, revisionId i
 // regardless of the previous state of the contract revision.
 //
 // If any error occurs, store.ErrInsertFailed is returned.
-func (q *ContractStorePostgres) setRevisionStatus(
+func (q *ContractStore) setRevisionStatus(
 	ctx context.Context,
 	revisionId int64,
 	userId int64,
@@ -631,7 +631,7 @@ func (q *ContractStorePostgres) setRevisionStatus(
 // by a keyword, limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *ContractStorePostgres) GetRevisionsByContractId(
+func (q *ContractStore) GetRevisionsByContractId(
 	ctx context.Context,
 	contractId int64,
 	arg *params.ContractRevisionSearch) (*agg.WithCount[agg.ContractRevisionWithUser], error) {
@@ -761,7 +761,7 @@ func (q *ContractStorePostgres) GetRevisionsByContractId(
 	return &result, nil
 }
 
-func (q *ContractStorePostgres) GetRevisionsByUser(
+func (q *ContractStore) GetRevisionsByUser(
 	ctx context.Context,
 	userId int64,
 	arg *params.ContractRevisionSearch) ([]agg.ContractRevisionWithUser, error) {
@@ -863,7 +863,7 @@ func (q *ContractStorePostgres) GetRevisionsByUser(
 	return result, nil
 }
 
-func (q *ContractStorePostgres) CountRevisionsByUser(
+func (q *ContractStore) CountRevisionsByUser(
 	ctx context.Context,
 	userId int64,
 	arg *params.ContractRevisionSearch) (int64, error) {
@@ -920,7 +920,7 @@ func (q *ContractStorePostgres) CountRevisionsByUser(
 // by a keyword, limit and offset results.
 //
 // If any error occurs, store.ErrQueryFailed is returned.
-func (q *ContractStorePostgres) GetContractStatsByProject(
+func (q *ContractStore) GetContractStatsByProject(
 	ctx context.Context,
 	projectId int64,
 	userId int64,
@@ -1072,7 +1072,7 @@ func (q *ContractStorePostgres) GetContractStatsByProject(
 	return &result, nil
 }
 
-func (q *ContractStorePostgres) GetVersionsByContractId(
+func (q *ContractStore) GetVersionsByContractId(
 	ctx context.Context,
 	contractId int64) ([]agg.ContractVersion, error) {
 
@@ -1117,7 +1117,7 @@ func (q *ContractStorePostgres) GetVersionsByContractId(
 	return result, nil
 }
 
-func (q *ContractStorePostgres) CountByProjectId(
+func (q *ContractStore) CountByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.ContractSearch) (int64, error) {
@@ -1159,7 +1159,7 @@ func (q *ContractStorePostgres) CountByProjectId(
 	return count, nil
 }
 
-func (q *ContractStorePostgres) GetByUserId(
+func (q *ContractStore) GetByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.ContractSearch) ([]agg.ContractWithStats, error) {
@@ -1286,7 +1286,7 @@ func (q *ContractStorePostgres) GetByUserId(
 	return result, nil
 }
 
-func (q *ContractStorePostgres) CountByUserId(
+func (q *ContractStore) CountByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.ContractSearch) (int64, error) {
@@ -1330,7 +1330,7 @@ func (q *ContractStorePostgres) CountByUserId(
 	return count, nil
 }
 
-func (q *ContractStorePostgres) GetStatById(
+func (q *ContractStore) GetStatById(
 	ctx context.Context,
 	contractId int64) (*agg.ContractWithStats, error) {
 

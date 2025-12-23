@@ -11,22 +11,22 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-// ChangeRequestStoreSqlite implements the ChangeRequestStore interface using SQLite.
+// ChangeRequestStore implements the ChangeRequestStore interface using SQLite.
 // It persists Contract entities in a SQLite database via the provided *sql.DB.
 // The db connection must be non-nil, open, and initialized with the required
 // contracts schema. Methods wrap lower-level SQL errors into domain-specific
 // errors defined in the store package.
-type ChangeRequestStoreSqlite struct {
+type ChangeRequestStore struct {
 	db *sql.DB
 }
 
-// NewChangeRequestStore constructs a ChangeRequestStoreSqlite that persists
+// NewChangeRequestStore constructs a ChangeRequestStore that persists
 // ChangeRequest entities in a SQLite database via the provided *sql.DB.
-func NewChangeRequestStore(db *sql.DB) *ChangeRequestStoreSqlite {
-	return &ChangeRequestStoreSqlite{db: db}
+func NewChangeRequestStore(db *sql.DB) *ChangeRequestStore {
+	return &ChangeRequestStore{db: db}
 }
 
-func (q *ChangeRequestStoreSqlite) CreateOne(
+func (q *ChangeRequestStore) CreateOne(
 	ctx context.Context,
 	userId int64,
 	arg *params.ChangeRequestCreate) (int64, error) {
@@ -94,7 +94,7 @@ func (q *ChangeRequestStoreSqlite) CreateOne(
 	return reqId, nil
 }
 
-func (q *ChangeRequestStoreSqlite) CreateEntry(
+func (q *ChangeRequestStore) CreateEntry(
 	ctx context.Context,
 	userId int64,
 	requestId int64,
@@ -163,7 +163,7 @@ func (q *ChangeRequestStoreSqlite) CreateEntry(
 	return nil
 }
 
-func (q *ChangeRequestStoreSqlite) GetByProjectId(
+func (q *ChangeRequestStore) GetByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.ChangeRequestSearch) (*agg.WithCount[agg.ChangeRequest], error) {
@@ -265,7 +265,7 @@ func (q *ChangeRequestStoreSqlite) GetByProjectId(
 	return &result, nil
 }
 
-func (q *ChangeRequestStoreSqlite) CloseById(ctx context.Context, requestId int64) error {
+func (q *ChangeRequestStore) CloseById(ctx context.Context, requestId int64) error {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -309,7 +309,7 @@ func (q *ChangeRequestStoreSqlite) CloseById(ctx context.Context, requestId int6
 	return nil
 }
 
-func (q *ChangeRequestStoreSqlite) GetEntriesByRequestId(
+func (q *ChangeRequestStore) GetEntriesByRequestId(
 	ctx context.Context,
 	requestId int64) ([]agg.ChangeRequestEntry, error) {
 
@@ -361,7 +361,7 @@ func (q *ChangeRequestStoreSqlite) GetEntriesByRequestId(
 	return entries, nil
 }
 
-func (q *ChangeRequestStoreSqlite) GetById(
+func (q *ChangeRequestStore) GetById(
 	ctx context.Context,
 	requestId int64) (*agg.ChangeRequest, error) {
 
@@ -403,7 +403,7 @@ func (q *ChangeRequestStoreSqlite) GetById(
 	return &req, nil
 }
 
-func (q *ChangeRequestStoreSqlite) GetByUserId(
+func (q *ChangeRequestStore) GetByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.ChangeRequestSearch) ([]agg.ChangeRequest, error) {
@@ -478,7 +478,7 @@ func (q *ChangeRequestStoreSqlite) GetByUserId(
 	return reqs, nil
 }
 
-func (q *ChangeRequestStoreSqlite) CountByUserId(
+func (q *ChangeRequestStore) CountByUserId(
 	ctx context.Context,
 	userId int64,
 	arg *params.ChangeRequestSearch) (int64, error) {
@@ -516,7 +516,7 @@ func (q *ChangeRequestStoreSqlite) CountByUserId(
 	return count, nil
 }
 
-func (q *ChangeRequestStoreSqlite) CountByProjectId(
+func (q *ChangeRequestStore) CountByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.ChangeRequestSearch) (int64, error) {

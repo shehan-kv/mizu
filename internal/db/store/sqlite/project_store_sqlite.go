@@ -12,22 +12,22 @@ import (
 )
 
 // SQLite implementation of ProjectStore interface
-type ProjectStoreSqlite struct {
+type ProjectStore struct {
 	db *sql.DB
 }
 
-// Creates a new instance of a ProjectStoreSqlite
+// Creates a new instance of a ProjectStore
 //
 // Parameters:
 //   - db: *sql.DB
 //
 // Returns:
-//   - *ProjectStoreSqlite
-func NewProjectStore(db *sql.DB) *ProjectStoreSqlite {
-	return &ProjectStoreSqlite{db: db}
+//   - *ProjectStore
+func NewProjectStore(db *sql.DB) *ProjectStore {
+	return &ProjectStore{db: db}
 }
 
-func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectCreate) (int64, error) {
+func (q *ProjectStore) CreateOne(ctx context.Context, arg *params.ProjectCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -82,7 +82,7 @@ func (q *ProjectStoreSqlite) CreateOne(ctx context.Context, arg *params.ProjectC
 }
 
 // Implementing CreateTask defined in ProjectStore interface
-func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCreate) (int64, error) {
+func (q *ProjectStore) CreateTask(ctx context.Context, arg *params.TaskCreate) (int64, error) {
 
 	tx, err := q.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -139,7 +139,7 @@ func (q *ProjectStoreSqlite) CreateTask(ctx context.Context, arg *params.TaskCre
 }
 
 // Implementing GetWithStats defined in ProjectStore interface
-func (q *ProjectStoreSqlite) GetWithStats(
+func (q *ProjectStore) GetWithStats(
 	ctx context.Context,
 	arg *params.ProjectsSearch) (*agg.WithCount[agg.ProjectWithStats], error) {
 
@@ -251,7 +251,7 @@ func (q *ProjectStoreSqlite) GetWithStats(
 	return &result, nil
 }
 
-func (q *ProjectStoreSqlite) GetTasksByProjectId(
+func (q *ProjectStore) GetTasksByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.TaskSearch) ([]agg.Task, error) {
@@ -354,7 +354,7 @@ func (q *ProjectStoreSqlite) GetTasksByProjectId(
 	return tasks, nil
 }
 
-func (q *ProjectStoreSqlite) CountTasksByProjectId(
+func (q *ProjectStore) CountTasksByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.TaskSearch) (int64, error) {
@@ -395,7 +395,7 @@ func (q *ProjectStoreSqlite) CountTasksByProjectId(
 	return count, nil
 }
 
-func (q *ProjectStoreSqlite) GetById(ctx context.Context, projectId int64) (*agg.Project, error) {
+func (q *ProjectStore) GetById(ctx context.Context, projectId int64) (*agg.Project, error) {
 
 	query := `
 	SELECT 
@@ -422,7 +422,7 @@ func (q *ProjectStoreSqlite) GetById(ctx context.Context, projectId int64) (*agg
 	return &project, nil
 }
 
-func (q *ProjectStoreSqlite) GetMembersByProjectId(
+func (q *ProjectStore) GetMembersByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.MemberSearch) ([]agg.ProjectUser, error) {
@@ -492,7 +492,7 @@ func (q *ProjectStoreSqlite) GetMembersByProjectId(
 	return resp, nil
 }
 
-func (q *ProjectStoreSqlite) CountMembersByProjectId(
+func (q *ProjectStore) CountMembersByProjectId(
 	ctx context.Context,
 	projectId int64,
 	arg *params.MemberSearch) (int64, error) {
@@ -530,7 +530,7 @@ func (q *ProjectStoreSqlite) CountMembersByProjectId(
 	return count, nil
 }
 
-func (q *ProjectStoreSqlite) GetTaskMetricsByProjectId(
+func (q *ProjectStore) GetTaskMetricsByProjectId(
 	ctx context.Context,
 	projectId int64,
 	status params.TaskStatus) ([]agg.TaskMetric, error) {
@@ -574,7 +574,7 @@ func (q *ProjectStoreSqlite) GetTaskMetricsByProjectId(
 	return resp, nil
 }
 
-func (q *ProjectStoreSqlite) GetCreatedMetricsByUserId(
+func (q *ProjectStore) GetCreatedMetricsByUserId(
 	ctx context.Context,
 	userId int64) ([]agg.ProjectMetric, error) {
 
@@ -617,7 +617,7 @@ func (q *ProjectStoreSqlite) GetCreatedMetricsByUserId(
 	return result, nil
 }
 
-func (q *ProjectStoreSqlite) SetStatusById(
+func (q *ProjectStore) SetStatusById(
 	ctx context.Context,
 	projectId int64,
 	status params.ProjectStatus) error {
@@ -636,7 +636,7 @@ func (q *ProjectStoreSqlite) SetStatusById(
 	return nil
 }
 
-func (q *ProjectStoreSqlite) DeleteById(ctx context.Context, projectId int64) error {
+func (q *ProjectStore) DeleteById(ctx context.Context, projectId int64) error {
 
 	query := `
 	DELETE FROM projects
@@ -651,7 +651,7 @@ func (q *ProjectStoreSqlite) DeleteById(ctx context.Context, projectId int64) er
 	return nil
 }
 
-func (q *ProjectStoreSqlite) DeleteMembersByProjectId(ctx context.Context, projectId int64) error {
+func (q *ProjectStore) DeleteMembersByProjectId(ctx context.Context, projectId int64) error {
 
 	query := `
 	DELETE FROM project_users
@@ -666,7 +666,7 @@ func (q *ProjectStoreSqlite) DeleteMembersByProjectId(ctx context.Context, proje
 	return nil
 }
 
-func (q *ProjectStoreSqlite) AddMembers(ctx context.Context, projectId int64, members []int64) error {
+func (q *ProjectStore) AddMembers(ctx context.Context, projectId int64, members []int64) error {
 
 	var query strings.Builder
 
@@ -694,7 +694,7 @@ func (q *ProjectStoreSqlite) AddMembers(ctx context.Context, projectId int64, me
 	return nil
 }
 
-func (q *ProjectStoreSqlite) GetTaskAssigneesByTaskId(
+func (q *ProjectStore) GetTaskAssigneesByTaskId(
 	ctx context.Context,
 	taskId int64) ([]agg.ProjectUser, error) {
 
@@ -741,7 +741,7 @@ func (q *ProjectStoreSqlite) GetTaskAssigneesByTaskId(
 	return result, nil
 }
 
-func (q *ProjectStoreSqlite) DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error {
+func (q *ProjectStore) DeleteTaskAssigneesByTaskId(ctx context.Context, taskId int64) error {
 
 	query := `
 	DELETE FROM task_assignees
@@ -756,7 +756,7 @@ func (q *ProjectStoreSqlite) DeleteTaskAssigneesByTaskId(ctx context.Context, ta
 	return nil
 }
 
-func (q *ProjectStoreSqlite) AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error {
+func (q *ProjectStore) AddTaskAssignees(ctx context.Context, taskId int64, assignees []int64) error {
 
 	var query strings.Builder
 
