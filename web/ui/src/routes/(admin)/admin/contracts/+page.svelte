@@ -82,7 +82,6 @@
 		loadContracts();
 	});
 
-	let revisionDialog = createDialogState();
 	let signDialog = createDialogState();
 	let rejectDialog = createDialogState();
 
