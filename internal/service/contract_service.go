@@ -626,6 +626,75 @@ func (s *ContractService) GetRevisionsByContract(
 	return &resp, nil
 }
 
+func (s *ContractService) GetRevisionById(
+	ctx context.Context,
+	revisionId int64) (*dto.RevisionResponse, error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		s.lg.Error("could not get actor from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "contract_service",
+			"revision_id", revisionId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	revision, err := s.contSt.GetRevisionById(ctx, revisionId)
+
+	if err != nil {
+		if errors.Is(err, store.ErrRecordNotFound) {
+			s.lg.Error("revision not found",
+				"event", event.EventGetFailed,
+				"scope", "contract_service",
+				"correlation_id", correlationId,
+				"actor_id", actor.Id,
+				"revision_id", revisionId,
+				"err", err)
+
+			return nil, ErrNotFound
+		}
+		s.lg.Error("could not get revision list",
+			"event", event.EventGetFailed,
+			"scope", "contract_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"revision_id", revisionId,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	resp := dto.RevisionResponse{
+		Id:           revision.Id,
+		ContractId:   revision.ContractId,
+		ContractName: revision.ContractName,
+		Project: dto.RevisionProject{
+			Id:   revision.ProjectId,
+			Name: revision.ProjectName,
+		},
+		Title:       revision.Title,
+		Description: revision.Description,
+		CreatedAt:   revision.CreatedAt,
+		UpdatedAt:   revision.UpdatedAt,
+		Status:      revision.Status,
+		ReqUser: dto.RevisionUser{
+			FirstName: revision.ReqUserFirstName,
+			LastName:  revision.ReqUserLastName,
+		},
+	}
+
+	if revision.ResUserFirstName != nil && revision.ResUserLastName != nil {
+		resp.ResUser = &dto.RevisionUser{
+			FirstName: *revision.ResUserFirstName,
+			LastName:  *revision.ResUserLastName,
+		}
+	}
+
+	return &resp, nil
+}
+
 // GetContractsByProject retrieves a paginated list of contracts for
 // the specified project. The project is specified by the ID.
 // It supports keyword and status filtering,

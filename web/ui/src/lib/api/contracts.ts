@@ -344,10 +344,16 @@ export interface RevisionUser {
 	lastName: string;
 }
 
+export interface RevisionProject {
+	id: number;
+	name: string;
+}
+
 export interface ContractRevision {
 	id: number;
 	contractId: number;
 	contractName: number;
+	project: RevisionProject;
 	title: string;
 	description: string;
 	createdAt: Date;
@@ -387,7 +393,7 @@ export async function getRevisionsByContractId(
 			signal
 		});
 	} catch (err) {
-		throw new NetworkError(`Failed to fetch contract version signatures: ${err}`);
+		throw new NetworkError(`Failed to fetch contract revisions: ${err}`);
 	}
 
 	if (!res.ok) {
@@ -411,7 +417,7 @@ export async function getRevisionsByContractId(
 	return payload;
 }
 
-export async function getRevisions(query: ContractRevisionQuery, signal?: AbortSignal) {
+export async function getContractRevisions(query: ContractRevisionQuery, signal?: AbortSignal) {
 	const url = new URLSearchParams();
 
 	// set "q" param if q is truthy
@@ -430,7 +436,7 @@ export async function getRevisions(query: ContractRevisionQuery, signal?: AbortS
 			signal
 		});
 	} catch (err) {
-		throw new NetworkError(`Failed to fetch contract version signatures: ${err}`);
+		throw new NetworkError(`Failed to fetch contract revisions: ${err}`);
 	}
 
 	if (!res.ok) {
@@ -451,6 +457,42 @@ export async function getRevisions(query: ContractRevisionQuery, signal?: AbortS
 	}
 
 	const payload = (await res.json()) as PaginatedResponse<ContractRevision>;
+	return payload;
+}
+
+export async function getContractRevision(
+	contractId: number,
+	revisionId: number,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/revision/${contractId}/${revisionId}`, {
+			method: 'GET',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to fetch contract revision: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Contract version signatures not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+
+	const payload = (await res.json()) as ContractRevision;
 	return payload;
 }
 

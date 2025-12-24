@@ -56,6 +56,7 @@ func (h *ContractHandler) GetMux(
 	mux.Handle("POST /reject/{versionId}", mwChain.Handle(h.RejectContractVersion))
 	mux.Handle("GET /revision", mwChain.Handle(h.GetRevisions))
 	mux.Handle("GET /revision/{contractId}", mwChain.Handle(h.GetRevisionsByContract))
+	mux.Handle("GET /revision/{contractId}/{revisionId}", mwChain.Handle(h.GetRevisionById))
 	mux.Handle("POST /revision/{contractId}", mwChain.Handle(h.CreateContractRevision))
 	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(h.AcceptRevision))
 	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(h.RejectRevision))
@@ -391,6 +392,30 @@ func (h *ContractHandler) GetRevisionsByContract(w http.ResponseWriter, r *http.
 	})
 
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}
+
+func (h *ContractHandler) GetRevisionById(w http.ResponseWriter, r *http.Request) {
+	revisionId := r.PathValue("revisionId")
+	parsedRevisionId, err := strconv.ParseInt(revisionId, 10, 64)
+	if err != nil || parsedRevisionId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.srv.GetRevisionById(r.Context(), parsedRevisionId)
+
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

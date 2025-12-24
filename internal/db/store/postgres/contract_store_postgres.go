@@ -916,6 +916,63 @@ func (q *ContractStore) CountRevisionsByUser(
 	return count, nil
 }
 
+func (q *ContractStore) GetRevisionById(
+	ctx context.Context,
+	revisionId int64) (*agg.ContractRevisionWithUser, error) {
+
+	query := `
+	SELECT 
+		cr.id,
+		c.id AS contract_id,
+		c.name AS contract_name,
+		p.id AS project_id,
+		p.name AS project_name,
+		cr.title,
+		cr.description,
+		cr.created_at,
+		cr.updated_at,
+		crs.name AS status,
+		req_u.first_name AS req_user_first_name,
+		req_u.last_name AS req_user_last_name,
+		res_u.last_name AS res_user_first_name,
+		res_u.last_name AS res_user_last_name
+	FROM contract_revisions cr
+	JOIN contracts c ON c.id = cr.contract_id
+	JOIN projects p ON p.id = c.project_id
+	JOIN contract_revision_statuses crs ON crs.id = cr.status
+	JOIN users req_u ON req_u.id = cr.req_user_id
+	LEFT JOIN users res_u ON res_u.id = cr.res_user_id
+	WHERE cr.id = $1
+	`
+
+	var result agg.ContractRevisionWithUser
+	err := q.db.QueryRowContext(ctx, query, revisionId).Scan(
+		&result.Id,
+		&result.ContractId,
+		&result.ContractName,
+		&result.ProjectId,
+		&result.ProjectName,
+		&result.Title,
+		&result.Description,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.Status,
+		&result.ReqUserFirstName,
+		&result.ReqUserLastName,
+		&result.ResUserFirstName,
+		&result.ResUserLastName,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, store.ErrRecordNotFound
+		}
+
+		return nil, store.ErrQueryFailed
+	}
+
+	return &result, nil
+}
+
 // GetContractStatsByProject returns the total number of contracts found and
 // a list of contract with metrics such as number of versions and revisions
 // for a specified project.

@@ -82,13 +82,14 @@ type ContractStore interface {
 		contractId int64,
 		arg *params.ContractRevisionSearch) (*agg.WithCount[agg.ContractRevisionWithUser], error)
 
-	// Implement these in the store layer
 	GetRevisionsByUser(
 		ctx context.Context,
 		userId int64,
 		arg *params.ContractRevisionSearch) ([]agg.ContractRevisionWithUser, error)
 
 	CountRevisionsByUser(ctx context.Context, userId int64, arg *params.ContractRevisionSearch) (int64, error)
+
+	GetRevisionById(ctx context.Context, revisionId int64) (*agg.ContractRevisionWithUser, error)
 
 	// GetContractStatsByProject returns the total number of contracts found and
 	// a list of contract with metrics such as number of versions and revisions
