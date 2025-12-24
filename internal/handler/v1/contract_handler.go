@@ -58,8 +58,8 @@ func (h *ContractHandler) GetMux(
 	mux.Handle("GET /revision/{contractId}", mwChain.Handle(h.GetRevisionsByContract))
 	mux.Handle("GET /revision/{contractId}/{revisionId}", mwChain.Handle(h.GetRevisionById))
 	mux.Handle("POST /revision/{contractId}", mwChain.Handle(h.CreateContractRevision))
-	mux.Handle("POST /revision/accept/{revisionId}", mwChain.Handle(h.AcceptRevision))
-	mux.Handle("POST /revision/reject/{revisionId}", mwChain.Handle(h.RejectRevision))
+	mux.Handle("PUT /revision/{contractId}/{revisionId}/accept", mwChain.Handle(h.AcceptRevision))
+	mux.Handle("PUT /revision/{contractId}/{revisionId}/reject", mwChain.Handle(h.RejectRevision))
 	mux.Handle("GET /version/{contractId}", mwChain.Handle(h.GetVersions))
 	mux.Handle("GET /version/signature/{versionId}", mwChain.Handle(h.GetVersionSignatures))
 
