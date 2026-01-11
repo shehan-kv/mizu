@@ -1,7 +1,7 @@
 export function formatDate(date: Date) {
 	return new Date(date).toLocaleString(undefined, {
 		year: 'numeric',
-		month: 'long',
+		month: 'short',
 		day: 'numeric',
 		hour: 'numeric',
 		minute: '2-digit',

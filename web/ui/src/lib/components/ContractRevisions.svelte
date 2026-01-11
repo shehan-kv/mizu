@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Spinner from './Spinner.svelte';
-	import { getContractRevisions, type Contract, type ContractRevision } from '$lib/api/contracts';
+	import { getRevisionsByContractId, type ContractRevision } from '$lib/api/contracts';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import {
 		APIBadRequestError,
@@ -27,7 +27,7 @@
 
 		abortController = new AbortController();
 
-		revisionsPromise = getContractRevisions(
+		revisionsPromise = getRevisionsByContractId(
 			contractId,
 			{ page: 1, limit: 30 },
 			abortController.signal

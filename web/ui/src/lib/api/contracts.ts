@@ -448,7 +448,7 @@ export async function getContractRevisions(query: ContractRevisionQuery, signal?
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
-				throw new APINotFoundError(`Contract version signatures not found`);
+				throw new APINotFoundError(`Not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
@@ -484,7 +484,7 @@ export async function getContractRevision(
 			case 403:
 				throw new APIForbiddenError('Forbidden');
 			case 404:
-				throw new APINotFoundError(`Contract version signatures not found`);
+				throw new APINotFoundError(`Not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
@@ -531,6 +531,72 @@ export async function createContract(
 				throw new APINotFoundError(`Not found`);
 			case 409:
 				throw new APIConflictError(`Already exists`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function acceptContractRevision(
+	contractId: number,
+	revisionId: number,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/revision/${contractId}/${revisionId}/accept`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to accept contract revision: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function rejectContractRevision(
+	contractId: number,
+	revisionId: number,
+	signal?: AbortSignal
+) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/contracts/revision/${contractId}/${revisionId}/reject`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to accept contract revision: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
 			case 500:
 				throw new APIServerError('Internal server error');
 			default:
