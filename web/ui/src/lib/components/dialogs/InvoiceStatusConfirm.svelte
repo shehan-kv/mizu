@@ -107,7 +107,7 @@
 			<div class="px-6 pb-6">
 				<p class="inline-flex items-center gap-1 font-bold">
 					<WarningCircle weight="fill" size={18} class="text-red-400 dark:text-red-500" />
-					Mark As {toTitleCase(status)}
+					Mark #{invoiceId} As {toTitleCase(status)}
 				</p>
 				<p class="mt-2 text-sm">
 					Please ensure you have reviewed the invoice carefully before proceeding. This action
