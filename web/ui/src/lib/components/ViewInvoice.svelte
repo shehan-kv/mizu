@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { getInvoiceDetails, type InvoiceDetails } from '$lib/api/invoices';
+	import { getInvoiceDetails, type InvoiceDetails, type InvoiceStatus } from '$lib/api/invoices';
 	import * as Table from '$lib/components/ui/table';
+	import * as Dialog from '$lib/components/dialogs';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
@@ -20,15 +21,15 @@
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
-	import InvoiceAcceptDialog from './dialogs/InvoiceAcceptDialog.svelte';
-	import InvoiceRejectDialog from './dialogs/InvoiceRejectDialog.svelte';
+	import type { UserRole } from '$lib/api/users';
 
 	interface Props {
 		invoiceId: number;
-		showTitle?: boolean;
+		role?: UserRole;
+		onLoad?: (invoice: InvoiceDetails) => any;
 	}
 
-	let { invoiceId, showTitle = false }: Props = $props();
+	let { invoiceId, role = 'client', onLoad }: Props = $props();
 
 	let invoicePromise: Promise<InvoiceDetails> | null = $state(null);
 	let abortController: AbortController | null = null;
@@ -39,11 +40,20 @@
 		}
 		abortController = new AbortController();
 
-		invoicePromise = getInvoiceDetails(invoiceId, abortController.signal);
+		invoicePromise = getInvoiceDetails(invoiceId, abortController.signal).then((res) => {
+			onLoad && onLoad(res);
+			return res;
+		});
 	}
 
-	let acceptDialog = createDialogState();
-	let rejectDialog = createDialogState();
+	let setStatusDialog = createDialogState();
+	type Status = Exclude<InvoiceStatus, 'pending'>;
+	let selectedStatus: Status | null = $state(null);
+
+	function openStatusDialog(status: Status) {
+		selectedStatus = status;
+		setStatusDialog.open();
+	}
 
 	onMount(() => {
 		loadInvoice();
@@ -54,14 +64,13 @@
 	<Spinner />
 {:then invoice}
 	{#if invoice}
-		{#if showTitle}
-			<div class="mb-8">
-				<p class="font-bold">{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}</p>
-			</div>
-		{/if}
 		<div class="flex justify-between">
 			<div class="flex gap-20">
 				<div class="space-y-2">
+					<div>
+						<p class="text-xs text-neutral-500">Id</p>
+						<p>{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}</p>
+					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Project</p>
 						<p>{invoice.projectName}</p>
@@ -98,10 +107,10 @@
 					</div>
 				</div>
 			</div>
-			{#if invoice.status == 'pending'}
+			{#if role == 'client' && invoice.status == 'pending'}
 				<div class="space-x-1">
 					<button
-						onclick={() => acceptDialog.open()}
+						onclick={() => openStatusDialog('accepted')}
 						class="inline-flex cursor-pointer items-center gap-2
 						rounded bg-neutral-950 px-4 py-3 text-xs text-neutral-50 transition
 						hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950
@@ -110,13 +119,34 @@
 						Accept <Checks size={16} />
 					</button>
 					<button
-						onclick={() => rejectDialog.open()}
+						onclick={() => openStatusDialog('rejected')}
 						class="inline-flex cursor-pointer items-center gap-2
 						rounded bg-neutral-100 px-4 py-3 text-xs text-neutral-950 transition
 						hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100
 						dark:hover:bg-neutral-800"
 					>
 						Reject <WarningCircle size={16} />
+					</button>
+				</div>
+			{:else if invoice.status == 'pending'}
+				<div class="space-x-1">
+					<button
+						onclick={() => openStatusDialog('paid')}
+						class="inline-flex cursor-pointer items-center gap-2
+						rounded bg-neutral-950 px-4 py-3 text-xs text-neutral-50 transition
+						hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950
+						dark:hover:bg-neutral-300"
+					>
+						Mark As Paid <Checks size={16} />
+					</button>
+					<button
+						onclick={() => openStatusDialog('cancelled')}
+						class="inline-flex cursor-pointer items-center gap-2
+						rounded bg-neutral-100 px-4 py-3 text-xs text-neutral-950 transition
+						hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100
+						dark:hover:bg-neutral-800"
+					>
+						Cancel <WarningCircle size={16} />
 					</button>
 				</div>
 			{/if}
@@ -268,5 +298,14 @@
 	{/if}
 {/await}
 
-<InvoiceAcceptDialog bind:open={acceptDialog.isOpen} {invoiceId} onSuccess={loadInvoice} />
-<InvoiceRejectDialog bind:open={rejectDialog.isOpen} {invoiceId} onSuccess={loadInvoice} />
+{#if selectedStatus}
+	<Dialog.InvoiceStatusConfirm
+		bind:open={setStatusDialog.isOpen}
+		{invoiceId}
+		status={selectedStatus}
+		onSuccess={() => {
+			selectedStatus = null;
+			loadInvoice();
+		}}
+	/>
+{/if}
