@@ -29,5 +29,5 @@
 			<p class="">...</p>
 		{/if}
 	</div>
-	<ViewInvoice invoiceId={id} showTitle {role} onLoad={setState} />
+	<ViewInvoice invoiceId={id} {role} onLoad={setState} />
 </div>
