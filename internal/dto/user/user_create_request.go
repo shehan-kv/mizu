@@ -13,6 +13,7 @@ type UserCreateRequest struct {
 	Title     *string `json:"title"`
 	Role      string  `json:"role"`
 	IsActive  bool    `json:"isActive"`
+	Projects  []int64 `json:"projects"`
 }
 
 // Validates the request against a set of acceptable

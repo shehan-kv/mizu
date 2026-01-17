@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"mizu/internal/db/models"
 	agg "mizu/internal/db/models/aggregates"
 	"mizu/internal/db/params"
@@ -33,7 +34,7 @@ func NewUserStore(db *sql.DB) *UserStore {
 func (q *UserStore) CreateOne(ctx context.Context, arg *params.UserCreate) (int64, error) {
 
 	query := `
-	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
+	INSERT INTO users(first_name, last_name, title, email, image, is_active, is_verified, role)
 	VALUES(?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
 	`
 
@@ -47,6 +48,7 @@ func (q *UserStore) CreateOne(ctx context.Context, arg *params.UserCreate) (int6
 		arg.Email,
 		arg.Image,
 		arg.IsActive,
+		arg.IsVerified,
 		arg.Role,
 	).Scan(&id)
 
@@ -66,7 +68,7 @@ func (q *UserStore) CreateOne(ctx context.Context, arg *params.UserCreate) (int6
 func (q *UserStore) GetById(ctx context.Context, id int64) (*models.User, error) {
 
 	query := `
-	SELECT id, first_name, last_name, title, email, image, is_active, role, 
+	SELECT id, first_name, last_name, title, email, image, is_active, is_verified, role, 
 	created_at, last_login FROM users WHERE id = ?
 	`
 
@@ -80,6 +82,7 @@ func (q *UserStore) GetById(ctx context.Context, id int64) (*models.User, error)
 		&user.Email,
 		&user.Image,
 		&user.IsActive,
+		&user.IsVerified,
 		&user.Role,
 		&user.CreatedAt,
 		&user.LastLogin,
@@ -96,7 +99,7 @@ func (q *UserStore) GetById(ctx context.Context, id int64) (*models.User, error)
 func (q *UserStore) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	query := `
-	SELECT id, first_name, last_name, title, email, image, is_active, role, 
+	SELECT id, first_name, last_name, title, email, image, is_active, is_verified, role, 
 	created_at, last_login FROM users WHERE email = ?
 	`
 
@@ -110,12 +113,14 @@ func (q *UserStore) GetByEmail(ctx context.Context, email string) (*models.User,
 		&user.Email,
 		&user.Image,
 		&user.IsActive,
+		&user.IsVerified,
 		&user.Role,
 		&user.CreatedAt,
 		&user.LastLogin,
 	)
 
 	if err != nil {
+		log.Println(err)
 		return &user, store.ErrRecordNotFound
 	}
 
@@ -285,7 +290,7 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 	defer tx.Rollback()
 
 	insertUserQuery := `
-	INSERT INTO users(first_name, last_name, title, email, image, is_active, role)
+	INSERT INTO users(first_name, last_name, title, email, image, is_active, is_verified, role)
 	VALUES(?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
 	`
 
@@ -297,6 +302,7 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 		arg.Email,
 		arg.Image,
 		arg.IsActive,
+		arg.IsVerified,
 		arg.Role).Scan(&userId)
 	if err != nil {
 		if sqlite3Err, ok := err.(sqlite3.Error); ok {
@@ -310,6 +316,30 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 		}
 
 		return 0, store.ErrInsertFailed
+	}
+
+	if len(arg.Projects) > 0 {
+		var assignProjectsQuery strings.Builder
+		assignProjectsQuery.WriteString("INSERT INTO project_users(user_id, project_id)")
+		projectsArgs := []any{}
+		valueArgs := []string{}
+		for _, val := range arg.Projects {
+			valueArgs = append(valueArgs, " VALUES(?, ?)")
+			projectsArgs = append(projectsArgs, userId, val)
+		}
+
+		assignProjectsQuery.WriteString(strings.Join(valueArgs, ","))
+
+		_, err = tx.ExecContext(ctx, assignProjectsQuery.String(), projectsArgs...)
+		if err != nil {
+			if sqlite3Err, ok := err.(sqlite3.Error); ok {
+				if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
+					return 0, store.ErrForeignKeyViolation
+				}
+			}
+
+			return 0, store.ErrInsertFailed
+		}
 	}
 
 	insertOnboardRequestQuery := `
@@ -400,7 +430,7 @@ func (q *UserStore) OnboardVerify(ctx context.Context, arg *params.UserOnboardVe
 
 	defer tx.Rollback()
 
-	setPasswordQuery := `UPDATE users SET password = ? WHERE id = ?`
+	setPasswordQuery := `UPDATE users SET password = ?, is_verified = 1 WHERE id = ?`
 	if _, err := tx.ExecContext(ctx, setPasswordQuery, arg.HashedPassword, arg.UserId); err != nil {
 		return store.ErrUpdateFailed
 	}
@@ -431,7 +461,8 @@ func (q *UserStore) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.U
 		u.image,
 		u.created_at,
 		u.last_login,
-		u.is_active
+		u.is_active,
+		u.is_verified
 	FROM users u
 	JOIN roles r ON r.id = u.role
 	`)
@@ -481,6 +512,7 @@ func (q *UserStore) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.U
 			&row.CreatedAt,
 			&row.LastLogin,
 			&row.IsActive,
+			&row.IsVerified,
 		)
 
 		if err != nil {

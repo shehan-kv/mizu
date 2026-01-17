@@ -79,15 +79,19 @@ func (s *UserService) CreateUser(ctx context.Context, request *dto.UserCreateReq
 	}
 
 	userId, err := s.usrSt.Onboard(ctx, &params.UserOnboard{
-		FirstName: request.FirstName,
-		LastName:  request.LastName,
-		Title:     request.Title,
-		Email:     request.Email,
-		Role:      request.Role,
-		IsActive:  request.IsActive,
-		Image:     nil,
-		ActorID:   actor.Id,
-		Token:     token.String(),
+		FirstName:  request.FirstName,
+		LastName:   request.LastName,
+		Title:      request.Title,
+		Email:      request.Email,
+		Role:       request.Role,
+		IsActive:   request.IsActive,
+		IsVerified: false,
+		Image:      nil,
+		ActorID:    actor.Id,
+		Token:      token.String(),
+		Projects:   request.Projects,
+		// Verify if the requesting user is authorized to assign
+		// the specified projects to a new user
 	})
 
 	if err != nil {
@@ -351,12 +355,13 @@ func (s *UserService) GetSelf(ctx context.Context) (*dto.UserSelfResponse, error
 	}
 
 	selfResponse := dto.UserSelfResponse{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		Email:     user.Email,
-		Title:     user.Title.String,
-		Image:     user.Image.String,
-		Role:      role.Name,
+		FirstName:  user.FirstName,
+		LastName:   user.LastName,
+		Email:      user.Email,
+		Title:      user.Title.String,
+		Image:      user.Image.String,
+		Role:       role.Name,
+		IsVerified: user.IsVerified,
 	}
 
 	return &selfResponse, nil
@@ -421,16 +426,17 @@ func (s *UserService) GetAll(
 
 	for i, v := range users {
 		resp.Data[i] = dto.UserResponse{
-			Id:        v.Id,
-			FirstName: v.FirstName,
-			LastName:  v.LastName,
-			Title:     v.Title,
-			Email:     v.Email,
-			Role:      v.Role,
-			Image:     v.Image,
-			CreatedAt: v.CreatedAt,
-			LastLogin: v.LastLogin,
-			IsActive:  v.IsActive,
+			Id:         v.Id,
+			FirstName:  v.FirstName,
+			LastName:   v.LastName,
+			Title:      v.Title,
+			Email:      v.Email,
+			Role:       v.Role,
+			Image:      v.Image,
+			CreatedAt:  v.CreatedAt,
+			LastLogin:  v.LastLogin,
+			IsActive:   v.IsActive,
+			IsVerified: v.IsVerified,
 		}
 	}
 
