@@ -538,3 +538,34 @@ func (s *UserService) Deactivate(ctx context.Context, userID int64) error {
 
 	return nil
 }
+
+func (s *UserService) Delete(ctx context.Context, userID int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		s.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	err = s.usrSt.DeleteById(ctx, userID)
+	if err != nil {
+		s.lg.Error("could not delete user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	return nil
+}

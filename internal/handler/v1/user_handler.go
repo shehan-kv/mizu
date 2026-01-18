@@ -64,6 +64,7 @@ func (h *UserHandler) GetMux(
 	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(h.CreateVerifyRequest))
 	mux.Handle("PUT /{userId}/activate", mwChain.Handle(h.Activate))
 	mux.Handle("PUT /{userId}/deactivate", mwChain.Handle(h.Deactivate))
+	mux.Handle("DELETE /{userId}", mwChain.Handle(h.Delete))
 
 	return mux
 }
@@ -287,4 +288,21 @@ func (h *UserHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("userId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.srv.Delete(r.Context(), parsedId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
