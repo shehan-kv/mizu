@@ -552,3 +552,14 @@ func (q *UserStore) GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.U
 
 	return result, nil
 }
+
+func (q *UserStore) SetActive(ctx context.Context, userID int64, isActive bool) error {
+
+	query := `UPDATE users SET is_active = $1 WHERE id = $2`
+
+	if _, err := q.db.ExecContext(ctx, query, isActive, userID); err != nil {
+		return store.ErrUpdateFailed
+	}
+
+	return nil
+}

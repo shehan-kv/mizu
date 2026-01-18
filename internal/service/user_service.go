@@ -442,3 +442,99 @@ func (s *UserService) GetAll(
 
 	return &resp, nil
 }
+
+func (s *UserService) Activate(ctx context.Context, userID int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		s.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	user, err := s.usrSt.GetById(ctx, userID)
+	if err != nil {
+		s.lg.Error("could not get user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	if user.IsActive {
+		return ErrAlreadyExists
+	}
+
+	err = s.usrSt.SetActive(ctx, userID, true)
+	if err != nil {
+		s.lg.Error("could not activate user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	return nil
+}
+
+func (s *UserService) Deactivate(ctx context.Context, userID int64) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		s.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	user, err := s.usrSt.GetById(ctx, userID)
+	if err != nil {
+		s.lg.Error("could not get user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	if !user.IsActive {
+		return ErrAlreadyExists
+	}
+
+	err = s.usrSt.SetActive(ctx, userID, false)
+	if err != nil {
+		s.lg.Error("could not deactivate user",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	return nil
+}

@@ -62,6 +62,8 @@ func (h *UserHandler) GetMux(
 	mux.Handle("GET /self", mwChain.Handle(h.GetSelf))
 	mux.Handle("POST /verify/onboard/{token}", mwChain.Handle(h.OnboardVerify))
 	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(h.CreateVerifyRequest))
+	mux.Handle("PUT /{userId}/activate", mwChain.Handle(h.Activate))
+	mux.Handle("PUT /{userId}/deactivate", mwChain.Handle(h.Deactivate))
 
 	return mux
 }
@@ -241,4 +243,48 @@ func (h *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *UserHandler) Activate(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("userId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.srv.Activate(r.Context(), parsedId); err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *UserHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("userId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.srv.Deactivate(r.Context(), parsedId); err != nil {
+		if errors.Is(err, service.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

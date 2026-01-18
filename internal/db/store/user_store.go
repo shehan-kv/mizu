@@ -173,4 +173,6 @@ type UserStore interface {
 	OnboardVerify(ctx context.Context, arg *params.UserOnboardVerify) error
 
 	GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error)
+
+	SetActive(ctx context.Context, userID int64, isActive bool) error
 }
