@@ -35,7 +35,7 @@ func (q *UserStore) CreateOne(ctx context.Context, arg *params.UserCreate) (int6
 
 	query := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, is_verified, role)
-	VALUES(?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
+	VALUES(?,?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
 	`
 
 	var id int64 = 0
@@ -291,7 +291,7 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 
 	insertUserQuery := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, is_verified, role)
-	VALUES(?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
+	VALUES(?,?,?,?,?,?,?, (SELECT id FROM roles WHERE name = ?)) RETURNING id
 	`
 
 	var userId int64
@@ -320,18 +320,20 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 
 	if len(arg.Projects) > 0 {
 		var assignProjectsQuery strings.Builder
-		assignProjectsQuery.WriteString("INSERT INTO project_users(user_id, project_id)")
+		assignProjectsQuery.WriteString("INSERT INTO project_users(user_id, project_id) VALUES")
 		projectsArgs := []any{}
 		valueArgs := []string{}
 		for _, val := range arg.Projects {
-			valueArgs = append(valueArgs, " VALUES(?, ?)")
+			valueArgs = append(valueArgs, " (?, ?)")
 			projectsArgs = append(projectsArgs, userId, val)
 		}
 
 		assignProjectsQuery.WriteString(strings.Join(valueArgs, ","))
+		log.Println(assignProjectsQuery.String())
 
 		_, err = tx.ExecContext(ctx, assignProjectsQuery.String(), projectsArgs...)
 		if err != nil {
+			log.Println(err)
 			if sqlite3Err, ok := err.(sqlite3.Error); ok {
 				if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
 					return 0, store.ErrForeignKeyViolation

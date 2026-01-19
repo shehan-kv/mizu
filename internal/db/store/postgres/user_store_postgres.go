@@ -35,7 +35,7 @@ func (q *UserStore) CreateOne(ctx context.Context, arg *params.UserCreate) (int6
 
 	query := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, is_verified, role)
-	VALUES($1,$2,$3,$4,$5,$6, (SELECT id FROM roles WHERE name = $7)) RETURNING id
+	VALUES($1,$2,$3,$4,$5,$6,$7, (SELECT id FROM roles WHERE name = $8)) RETURNING id
 	`
 
 	var id int64 = 0
@@ -309,7 +309,7 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 
 	insertUserQuery := `
 	INSERT INTO users(first_name, last_name, title, email, image, is_active, is_verified, role)
-	VALUES($1, $2, $3, $4, $5, $6, (SELECT id FROM roles WHERE name = $7)) RETURNING id
+	VALUES($1, $2, $3, $4, $5, $6, $7, (SELECT id FROM roles WHERE name = $8)) RETURNING id
 	`
 
 	var userId int64
@@ -328,7 +328,7 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 
 	if len(arg.Projects) > 0 {
 		var assignProjectsQuery strings.Builder
-		assignProjectsQuery.WriteString("INSERT INTO project_users(user_id, project_id)")
+		assignProjectsQuery.WriteString("INSERT INTO project_users(user_id, project_id) VALUES")
 		projectsArgs := []any{}
 		valueArgs := []string{}
 		projectParamCount := 0
@@ -337,7 +337,7 @@ func (q *UserStore) Onboard(ctx context.Context, arg *params.UserOnboard) (int64
 			projectParamCount++
 
 			var value strings.Builder
-			value.WriteString(" VALUES($")
+			value.WriteString(" ($")
 			value.WriteString(strconv.Itoa(projectParamCount))
 
 			projectParamCount++
