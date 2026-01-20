@@ -58,7 +58,7 @@
 					{#each options as option, i (i + option.value)}
 						<Select.Item
 							class="data-highlighted:bg-muted outline-hidden data-disabled:opacity-50 flex h-fit 
-                        w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
+						w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
 							value={option.value}
 							label={option.label}
 						>

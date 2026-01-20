@@ -1,6 +1,8 @@
 import { goto } from '$app/navigation';
+import type { USER_ROLES } from '$lib/constants/user';
 import {
 	APIBadRequestError,
+	APIConflictError,
 	APIError,
 	APIForbiddenError,
 	APINotFoundError,
@@ -8,7 +10,7 @@ import {
 	NetworkError
 } from './errors';
 
-export type UserRole = 'admin' | 'staff' | 'client';
+export type UserRole = (typeof USER_ROLES)[number];
 
 export interface User {
 	id: number;
@@ -21,6 +23,7 @@ export interface User {
 	createdAt: Date;
 	lastLogin?: Date;
 	isActive: boolean;
+	isVerified: boolean;
 }
 
 export interface UserQuery {
@@ -70,4 +73,164 @@ export async function getUsers(query: UserQuery, signal?: AbortSignal) {
 
 	const payload = (await res.json()) as PaginatedResponse<User>;
 	return payload;
+}
+
+export interface UserCreateParams {
+	firstName: string;
+	lastName: string;
+	email: string;
+	title?: string;
+	role: string;
+	isActive: boolean;
+	projects: number[];
+}
+export async function createUser(req: UserCreateParams, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/users/ `, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(req),
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to create user: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function activateUser(userId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/users/${userId}/activate`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to activate user: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already activated`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function deactivateUser(userId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/users/${userId}/deactivate`, {
+			method: 'PUT',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to deactivate user: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 409:
+				throw new APIConflictError(`Already deactivated`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function deleteUser(userId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/users/${userId}`, {
+			method: 'DELETE',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to delete user: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
+}
+
+export async function sendUserVerificationEmail(userId: number, signal?: AbortSignal) {
+	let res: Response;
+	try {
+		res = await fetch(`/api/v1/users/${userId}/resend-verification`, {
+			method: 'POST',
+			signal
+		});
+	} catch (err) {
+		throw new NetworkError(`Failed to resend user verification email: ${err}`);
+	}
+
+	if (!res.ok) {
+		switch (res.status) {
+			case 400:
+				throw new APIBadRequestError('Bad request');
+			case 401:
+				goto('/sign-in');
+			case 403:
+				throw new APIForbiddenError('Forbidden');
+			case 404:
+				throw new APINotFoundError(`Not found`);
+			case 500:
+				throw new APIServerError('Internal server error');
+			default:
+				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
+		}
+	}
 }

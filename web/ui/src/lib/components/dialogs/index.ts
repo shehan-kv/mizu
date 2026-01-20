@@ -20,6 +20,10 @@ import ChangeReqStatusConfirm from './ChangeReqStatusConfirm.svelte';
 import TaskStatusConfirm from './TaskStatusConfirm.svelte';
 import ManageTaskAssignees from './ManageTaskAssignees.svelte';
 import ViewContractRevision from './ViewContractRevision.svelte';
+import NewUser from './NewUser.svelte';
+import UserStatusConfirm from './UserStatusConfirm.svelte';
+import UserDeleteConfirm from './UserDeleteConfirm.svelte';
+import ResendVerifyEmailConfirm from './ResendVerifyEmailConfirm.svelte';
 
 export {
 	NewChangeRequest,
@@ -43,5 +47,9 @@ export {
 	ChangeReqStatusConfirm,
 	TaskStatusConfirm,
 	ManageTaskAssignees,
-	ViewContractRevision
+	ViewContractRevision,
+	NewUser,
+	UserStatusConfirm,
+	UserDeleteConfirm,
+	ResendVerifyEmailConfirm
 };
