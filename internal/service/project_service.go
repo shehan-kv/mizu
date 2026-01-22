@@ -1045,3 +1045,69 @@ func (s *ProjectService) SetTaskAssignees(
 
 	return nil
 }
+
+func (s *ProjectService) GetByUser(
+	ctx context.Context,
+	userID int64,
+	query *dto.ProjectSearchQuery) (*common.Page[[]dto.ProjectsStatsResponse], error) {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+
+	if err != nil {
+		s.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	projects, err := s.prjSt.GetWithStats(ctx, &params.ProjectsSearch{
+		Keyword: query.Keyword,
+		Status:  query.Status,
+		Offset:  (query.Page - 1) * query.Limit,
+		Limit:   query.Limit,
+		UserId:  userID,
+	})
+
+	if err != nil {
+		s.lg.Error("could not get projects by user",
+			"event", event.EventGetFailed,
+			"scope", "project_service",
+			"correlation_id", correlationId,
+			"actor_id", actor.Id,
+			"page", query.Page,
+			"limit", query.Limit,
+			"err", err)
+		return nil, ErrInternalError
+	}
+
+	prjResp := []dto.ProjectsStatsResponse{}
+	for _, response := range projects.Items {
+		stat := dto.ProjectsStatsResponse{
+			Id:             response.Id,
+			Name:           response.Name,
+			Status:         response.Status,
+			CreatedAt:      response.CreatedAt,
+			TotalTasks:     response.TotalTasks,
+			TasksCompleted: response.TasksCompleted,
+			TotalInvoices:  response.TotalInvoices,
+			InvoicesPaid:   response.InvoicesPaid,
+			TotalQuotes:    response.TotalQuotes,
+		}
+
+		prjResp = append(prjResp, stat)
+	}
+
+	resp := &common.Page[[]dto.ProjectsStatsResponse]{
+		Count: projects.Total,
+		Limit: query.Limit,
+		Page:  query.Page,
+		Data:  prjResp,
+	}
+
+	return resp, nil
+}

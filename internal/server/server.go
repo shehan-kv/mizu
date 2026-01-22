@@ -76,7 +76,7 @@ func RunServer() {
 	authMux := v1.NewAuthHandler(authService).GetMux(logger)
 	projectMux := v1.NewProjectHandler(projectService).GetMux(logger, sessionStore, userStore)
 	invoiceMux := v1.NewInvoiceHandler(invoiceService).GetMux(logger, sessionStore, userStore)
-	userMux := v1.NewUserHandler(userService).GetMux(logger, sessionStore, userStore)
+	userMux := v1.NewUserHandler(userService, projectService).GetMux(logger, sessionStore, userStore)
 	messageMux := v1.NewMessageHandler(messageService).GetMux(logger, sessionStore, userStore)
 	contractMux := v1.NewContractHandler(contractService).GetMux(logger, sessionStore, userStore)
 	changeReqMux := v1.NewChangeRequestHandler(changeReqService).GetMux(logger, sessionStore, userStore)

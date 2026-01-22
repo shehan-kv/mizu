@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"mizu/internal/db/store"
+	"mizu/internal/dto/project"
 	dto "mizu/internal/dto/user"
 	"mizu/internal/logger"
 	"mizu/internal/middleware"
@@ -15,22 +16,24 @@ import (
 
 // Handles user-related HTTP requests.
 //
-// Uses an UserService to perform
+// Uses a UserService to perform
 // user operations
 type UserHandler struct {
-	srv *service.UserService
+	usrSrv *service.UserService
+	prjSrv *service.ProjectService
 }
 
 // Creates a new instance of UserHandler
 //
 // Parameters:
-//   - srv: a pointer to a UserService
+//   - usrSrv: a pointer to a UserService
 //
 // Returns:
 //   - a pointer to a new UserHandler
-func NewUserHandler(srv *service.UserService) *UserHandler {
+func NewUserHandler(usrSrv *service.UserService, prjSrv *service.ProjectService) *UserHandler {
 	return &UserHandler{
-		srv: srv,
+		usrSrv: usrSrv,
+		prjSrv: prjSrv,
 	}
 }
 
@@ -64,6 +67,7 @@ func (h *UserHandler) GetMux(
 	mux.Handle("POST /{userId}/verify-request", mwChain.Handle(h.CreateVerifyRequest))
 	mux.Handle("PUT /{userId}/activate", mwChain.Handle(h.Activate))
 	mux.Handle("PUT /{userId}/deactivate", mwChain.Handle(h.Deactivate))
+	mux.Handle("GET /{userId}/projects", mwChain.Handle(h.Projects))
 	mux.Handle("DELETE /{userId}", mwChain.Handle(h.Delete))
 
 	return mux
@@ -93,7 +97,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.srv.CreateUser(r.Context(), &createRequest); err != nil {
+	if err := h.usrSrv.CreateUser(r.Context(), &createRequest); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -128,7 +132,7 @@ func (h *UserHandler) CreateVerifyRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := h.srv.CreateVerifyRequest(r.Context(), parsedId); err != nil {
+	if err := h.usrSrv.CreateVerifyRequest(r.Context(), parsedId); err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -166,7 +170,7 @@ func (h *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.srv.OnboardVerify(r.Context(), token, &verifyRequest)
+	err := h.usrSrv.OnboardVerify(r.Context(), token, &verifyRequest)
 	if err != nil {
 		if errors.Is(err, service.ErrBadRequest) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -189,7 +193,7 @@ func (h *UserHandler) OnboardVerify(w http.ResponseWriter, r *http.Request) {
 //   - 200 OK - Verified successfully
 func (h *UserHandler) GetSelf(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := h.srv.GetSelf(r.Context())
+	resp, err := h.usrSrv.GetSelf(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -231,7 +235,7 @@ func (h *UserHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		limit = parsedLimit
 	}
 
-	resp, err := h.srv.GetAll(r.Context(), &dto.UserSearch{
+	resp, err := h.usrSrv.GetAll(r.Context(), &dto.UserSearch{
 		Keyword: keyword,
 		Role:    role,
 		Page:    page,
@@ -255,7 +259,7 @@ func (h *UserHandler) Activate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.srv.Activate(r.Context(), parsedId); err != nil {
+	if err := h.usrSrv.Activate(r.Context(), parsedId); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -277,7 +281,7 @@ func (h *UserHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.srv.Deactivate(r.Context(), parsedId); err != nil {
+	if err := h.usrSrv.Deactivate(r.Context(), parsedId); err != nil {
 		if errors.Is(err, service.ErrAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
@@ -299,10 +303,64 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.srv.Delete(r.Context(), parsedId); err != nil {
+	if err := h.usrSrv.Delete(r.Context(), parsedId); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *UserHandler) Projects(w http.ResponseWriter, r *http.Request) {
+
+	keyword := r.URL.Query().Get("q")
+	status := r.URL.Query().Get("status")
+	strPage := r.URL.Query().Get("page")
+	strLimit := r.URL.Query().Get("limit")
+
+	var page int64
+	var limit int64
+
+	if strPage == "" {
+		page = 1
+	} else {
+		parsedPage, err := strconv.ParseInt(strPage, 10, 64)
+		if err != nil || parsedPage <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = parsedPage
+	}
+
+	if strLimit == "" {
+		limit = 15
+	} else {
+		parsedLimit, err := strconv.ParseInt(strLimit, 10, 64)
+		if err != nil || parsedLimit <= 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	id := r.PathValue("userId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.prjSrv.GetByUser(r.Context(), parsedId, &project.ProjectSearchQuery{
+		Keyword: keyword,
+		Status:  status,
+		Page:    page,
+		Limit:   limit,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
