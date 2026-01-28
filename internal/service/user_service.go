@@ -569,3 +569,60 @@ func (s *UserService) Delete(ctx context.Context, userID int64) error {
 
 	return nil
 }
+
+func (s *UserService) SetProjects(ctx context.Context, userID int64, request *dto.ProjectSetRequest) error {
+
+	correlationId := middleware.GetCorrelationID(ctx)
+	actor, err := middleware.GetUserFromContext(ctx)
+	if err != nil {
+		s.lg.Error("could not get user from context",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	err = s.usrSt.RemoveProjects(ctx, userID)
+	if err != nil {
+		s.lg.Error("could not remove user projects",
+			"event", event.EventInternalError,
+			"correlation_id", correlationId,
+			"scope", "user_service",
+			"actor_id", actor.Id,
+			"err", err,
+		)
+
+		return ErrInternalError
+	}
+
+	if len(request.Projects) > 0 {
+		err = s.usrSt.SetProjects(ctx, userID, request.Projects)
+		if err != nil {
+			if errors.Is(err, store.ErrForeignKeyViolation) {
+				s.lg.Error("invalid user projects",
+					"event", event.EventInternalError,
+					"correlation_id", correlationId,
+					"scope", "user_service",
+					"actor_id", actor.Id,
+					"err", err,
+				)
+				return ErrBadRequest
+			}
+
+			s.lg.Error("could not set user projects",
+				"event", event.EventInternalError,
+				"correlation_id", correlationId,
+				"scope", "user_service",
+				"actor_id", actor.Id,
+				"err", err,
+			)
+
+			return ErrInternalError
+		}
+	}
+
+	return nil
+}

@@ -537,3 +537,41 @@ func (q *UserStore) SetActive(ctx context.Context, userID int64, isActive bool) 
 
 	return nil
 }
+
+func (q *UserStore) RemoveProjects(ctx context.Context, userID int64) error {
+	query := "DELETE FROM project_users WHERE user_id = ?"
+
+	if _, err := q.db.ExecContext(ctx, query, userID); err != nil {
+		return store.ErrDeleteFailed
+	}
+
+	return nil
+}
+
+func (q *UserStore) SetProjects(ctx context.Context, userID int64, projectIDs []int64) error {
+
+	var query strings.Builder
+	query.WriteString("INSERT INTO project_users(user_id, project_id) VALUES")
+
+	var queryArgs = []any{}
+
+	var values = []string{}
+	for _, v := range projectIDs {
+		values = append(values, " (?, ?)")
+		queryArgs = append(queryArgs, userID, v)
+	}
+
+	query.WriteString(strings.Join(values, ","))
+
+	if _, err := q.db.ExecContext(ctx, query.String(), queryArgs...); err != nil {
+		if sqlite3Err, ok := err.(sqlite3.Error); ok {
+			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintForeignKey {
+				return store.ErrForeignKeyViolation
+			}
+		}
+
+		return store.ErrInsertFailed
+	}
+
+	return nil
+}

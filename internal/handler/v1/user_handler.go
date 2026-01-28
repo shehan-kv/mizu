@@ -68,6 +68,7 @@ func (h *UserHandler) GetMux(
 	mux.Handle("PUT /{userId}/activate", mwChain.Handle(h.Activate))
 	mux.Handle("PUT /{userId}/deactivate", mwChain.Handle(h.Deactivate))
 	mux.Handle("GET /{userId}/projects", mwChain.Handle(h.Projects))
+	mux.Handle("PUT /{userId}/projects", mwChain.Handle(h.SetProjects))
 	mux.Handle("DELETE /{userId}", mwChain.Handle(h.Delete))
 
 	return mux
@@ -363,4 +364,31 @@ func (h *UserHandler) Projects(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *UserHandler) SetProjects(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("userId")
+	parsedId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil || parsedId < 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var setRequest dto.ProjectSetRequest
+	if err := json.NewDecoder(r.Body).Decode(&setRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.usrSrv.SetProjects(r.Context(), parsedId, &setRequest); err != nil {
+		if errors.Is(err, service.ErrBadRequest) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

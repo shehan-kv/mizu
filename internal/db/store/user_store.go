@@ -175,4 +175,8 @@ type UserStore interface {
 	GetAll(ctx context.Context, arg *params.UserSearch) ([]agg.User, error)
 
 	SetActive(ctx context.Context, userID int64, isActive bool) error
+
+	RemoveProjects(ctx context.Context, userID int64) error
+
+	SetProjects(ctx context.Context, userID int64, projectIDs []int64) error
 }
