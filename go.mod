@@ -1,6 +1,6 @@
 module mizu
 
-go 1.24.2
+go 1.26.0
 
 require github.com/pressly/goose/v3 v3.24.3
 
