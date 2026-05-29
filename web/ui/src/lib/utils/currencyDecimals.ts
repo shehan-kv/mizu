@@ -143,5 +143,6 @@ export const currencyDecimals: { [key: string]: number } = {
 	XOF: 0,
 	YER: 2,
 	ZMK: 2,
+	ZMW: 2,
 	ZWL: 2
 };
