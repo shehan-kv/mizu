@@ -23,7 +23,7 @@ vet: fmt
 	go vet ./...
 
 
-OUTPUT = bin/mizupm
+OUTPUT = bin/mizu
 
 ifeq ($(OS),Windows_NT)
 	OUTPUT := $(OUTPUT).exe
@@ -31,15 +31,26 @@ endif
 
 
 # Build for current OS
-build: vet
+build: ui vet
+	@echo "Building for current platform..."
+	go build -tags "sqlite_foreign_keys" -o $(OUTPUT) ./cmd/...
+
+# Build backend for current OS
+build-go:
 	@echo "Building for current platform..."
 	go build -tags "sqlite_foreign_keys" -o $(OUTPUT) ./cmd/...
 
 # Cross-Compile for Windows
-build-xwin: vet
+build-xwin: ui vet
 	@echo "Cross-Compiling for Windows..."
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc \
-	go build -o $(OUTPUT) ./cmd/...
+	go build -o $(OUTPUT).exe ./cmd/...
+
+# Cross-Compile backend for Windows
+build-xwin-go:
+	@echo "Cross-Compiling for Windows..."
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc \
+	go build -o $(OUTPUT).exe ./cmd/...
 
 # Clean built binaries
 clean:
@@ -51,3 +62,5 @@ clean-ui:
 	@echo "Cleaning ui build files..."
 	rm -rf web/ui/.svelte-kit/
 	rm -rf web/ui/build/
+
+clean-all: clean clean-ui
