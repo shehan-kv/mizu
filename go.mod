@@ -4,7 +4,12 @@ go 1.26.0
 
 require github.com/pressly/goose/v3 v3.24.3
 
-require github.com/cockroachdb/apd/v3 v3.2.1 // indirect
+require (
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
+	github.com/redis/go-redis/v9 v9.20.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
+)
 
 require (
 	github.com/google/uuid v1.6.0
