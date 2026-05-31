@@ -1,574 +1,269 @@
-import { goto } from '$app/navigation';
-import {
-	APIBadRequestError,
-	APIConflictError,
-	APIError,
-	APIForbiddenError,
-	APINotFoundError,
-	APIServerError,
-	NetworkError
-} from './errors';
+import type { INVOICE_STATUS } from '$lib/constants/invoice';
+import { apiFetch } from './client';
+import type { PaginatedResponse } from './page';
 
-export type InvoiceStatus = 'pending' | 'paid' | 'accepted' | 'rejected' | 'cancelled';
+export type InvoiceStatus = (typeof INVOICE_STATUS)[number];
 
-export interface InvoiceSummary {
-	id: number;
-	projectId: number;
+export interface InvoiceOverview {
+	id: string;
+	projectId: string;
 	projectName: string;
 	isInvoice: boolean;
-	issuedAt: Date;
-	dueAt?: Date;
-	total: Intl.StringNumericLiteral;
-	discount: Intl.StringNumericLiteral;
-	tax: Intl.StringNumericLiteral;
-	currencyCode: string;
 	status: InvoiceStatus;
+	dueAt?: Date;
+	currencyCode: string;
+	note?: string;
+	totalTax: Intl.StringNumericLiteral;
+	totalDiscount: Intl.StringNumericLiteral;
+	subTotal: Intl.StringNumericLiteral;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export interface InvoiceQuery {
 	q?: string;
-	status?: InvoiceStatus;
+	status?: string;
 	type?: string;
 	page: number;
 	limit: number;
 }
 
 export async function getInvoices(query: InvoiceQuery, signal?: AbortSignal) {
-	const url = new URLSearchParams();
+	const params = new URLSearchParams();
 
 	// set "q" param if q is truthy
-	if (query.q) url.set('q', query.q);
+	if (query.q) params.set('q', query.q);
 
 	// set "status" param if status is truthy
-	if (query.status) url.set('status', query.status);
+	if (query.status) params.set('status', query.status);
 
 	// set "type" param if type is truthy
-	if (query.type) url.set('type', query.type);
+	if (query.type) params.set('type', query.type);
 
-	url.set('page', query.page.toString());
-	url.set('limit', query.limit.toString());
+	params.set('page', query.page.toString());
+	params.set('limit', query.limit.toString());
 
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/?${url.toString()}`, {
-			method: 'GET',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to fetch invoices: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Invoices not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-
-	const payload = (await res.json()) as PaginatedResponse<InvoiceSummary>;
-	return payload;
+	return apiFetch<PaginatedResponse<InvoiceOverview>>(`invoices?${params.toString()}`, {
+		method: 'GET',
+		signal
+	});
 }
 
-export interface InvoiceWithStatus {
-	id: number;
-	isInvoice: boolean;
-	issuedAt: Date;
-	dueAt?: Date;
-	total: Intl.StringNumericLiteral;
-	currencyCode: string;
-	status: InvoiceStatus;
-}
-
-export async function getInvoicesByProjectId(
-	projectId: number,
+export async function getInvoicesByProject(
+	projectId: string,
 	query: InvoiceQuery,
 	signal?: AbortSignal
 ) {
-	const url = new URLSearchParams();
+	const params = new URLSearchParams();
 
 	// set "q" param if q is truthy
-	if (query.q) url.set('q', query.q);
+	if (query.q) params.set('q', query.q);
 
 	// set "status" param if status is truthy
-	if (query.status) url.set('status', query.status);
+	if (query.status) params.set('status', query.status);
 
 	// set "type" param if type is truthy
-	if (query.type) url.set('type', query.type);
+	if (query.type) params.set('type', query.type);
 
-	url.set('page', query.page.toString());
-	url.set('limit', query.limit.toString());
+	params.set('page', query.page.toString());
+	params.set('limit', query.limit.toString());
 
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/project/${projectId}?${url.toString()}`, {
+	return apiFetch<PaginatedResponse<InvoiceOverview>>(
+		`invoices/project/${projectId}?${params.toString()}`,
+		{
 			method: 'GET',
 			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to fetch invoices: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Invoices not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
 		}
-	}
+	);
+}
 
-	const payload = (await res.json()) as PaginatedResponse<InvoiceWithStatus>;
-	return payload;
+export async function getInvoicesByMember(
+	memberId: string,
+	query: InvoiceQuery,
+	signal?: AbortSignal
+) {
+	const params = new URLSearchParams();
+
+	// set "q" param if q is truthy
+	if (query.q) params.set('q', query.q);
+
+	// set "status" param if status is truthy
+	if (query.status) params.set('status', query.status);
+
+	// set "type" param if type is truthy
+	if (query.type) params.set('type', query.type);
+
+	params.set('page', query.page.toString());
+	params.set('limit', query.limit.toString());
+
+	return apiFetch<PaginatedResponse<InvoiceOverview>>(
+		`invoices/member/${memberId}?${params.toString()}`,
+		{
+			method: 'GET',
+			signal
+		}
+	);
 }
 
 export interface InvoiceItem {
-	id: number;
+	id: string;
 	description: string;
 	qty: Intl.StringNumericLiteral;
 	unitPrice: Intl.StringNumericLiteral;
-	unitDiscount: Intl.StringNumericLiteral;
+	discountRate: Intl.StringNumericLiteral;
 	discountType: string;
-	unitTax: Intl.StringNumericLiteral;
+	taxRate: Intl.StringNumericLiteral;
 	taxType: string;
-	totalTax: Intl.StringNumericLiteral;
-	totalDiscount: Intl.StringNumericLiteral;
-	total: Intl.StringNumericLiteral;
+	discountAmountPerUnit: Intl.StringNumericLiteral;
+	taxAmountPerUnit: Intl.StringNumericLiteral;
+	taxableBasePerUnit: Intl.StringNumericLiteral;
+	lineGross: Intl.StringNumericLiteral;
+	lineDiscount: Intl.StringNumericLiteral;
+	lineNet: Intl.StringNumericLiteral;
+	lineTax: Intl.StringNumericLiteral;
+	lineTotal: Intl.StringNumericLiteral;
 }
 
-export interface InvoiceHistoryUser {
-	id: number;
-	firstName: string;
-	lastName: string;
-	title?: string;
-	image?: string;
-	role: string;
-}
-
-export interface InvoiceHistory {
-	id: number;
-	user: InvoiceHistoryUser;
-	event: string;
-	recoredAt: Date;
-	isInvoice: boolean;
-	lastStatus?: string;
-	newStatus?: string;
-}
-
-export interface InvoiceDetails {
-	id: number;
-	projectId: number;
+export interface Invoice {
+	id: string;
+	projectId: string;
 	projectName: string;
 	isInvoice: boolean;
 	status: InvoiceStatus;
-	issuedAt: Date;
-	dueAt: Date;
-	total: Intl.StringNumericLiteral;
-	discount: Intl.StringNumericLiteral;
-	tax: Intl.StringNumericLiteral;
+	dueAt?: Date;
 	currencyCode: string;
 	note?: string;
+	totalTax: Intl.StringNumericLiteral;
+	totalDiscount: Intl.StringNumericLiteral;
+	subTotal: Intl.StringNumericLiteral;
 	items: InvoiceItem[];
-	history: InvoiceHistory[];
+	createdAt: Date;
+	updatedAt: Date;
 }
 
-export async function getInvoiceDetails(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/${invoiceId}`, {
-			method: 'GET',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to fetch invoice: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Invoice not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-
-	const payload = (await res.json()) as InvoiceDetails;
-	return payload;
+export async function getInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<Invoice>(`invoices/${invoiceId}`, {
+		method: 'GET',
+		signal
+	});
 }
 
-export async function acceptInvoice(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/accept/${invoiceId}`, {
-			method: 'POST',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to accept invoice: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Not eligible for acceptance`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
+export async function acceptInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`invoices/${invoiceId}/accept`, {
+		method: 'PUT',
+		signal
+	});
 }
 
-export async function rejectInvoice(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/reject/${invoiceId}`, {
-			method: 'POST',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to reject invoice: ${err}`);
-	}
+export async function rejectInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`invoices/${invoiceId}/reject`, {
+		method: 'PUT',
+		signal
+	});
+}
 
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Not eligible for rejection`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
+export async function payInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`invoices/${invoiceId}/pay`, {
+		method: 'PUT',
+		signal
+	});
+}
+
+export async function cancelInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`invoices/${invoiceId}/cancel`, {
+		method: 'PUT',
+		signal
+	});
+}
+
+export async function convertInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`invoices/${invoiceId}/convert`, {
+		method: 'PUT',
+		signal
+	});
 }
 
 export interface InvoiceMetric {
 	key: string;
 	value: number;
 }
-export async function getPaidInvoiceCountByProject(projectId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/metrics/paid/${projectId}`, {
-			method: 'GET',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to get paid invoice metrics: ${err}`);
-	}
 
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-
-	const payload = (await res.json()) as InvoiceMetric[];
-	return payload;
+export async function getPaidInvoiceCountByProject(projectId: string, signal?: AbortSignal) {
+	return apiFetch<InvoiceMetric[]>(`invoices/paid-count/project/${projectId}`, {
+		method: 'GET',
+		signal
+	});
 }
 
-export async function getPaidInvoiceMetrics(signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/metrics/paid`, {
-			method: 'GET',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to get paid invoice metrics: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-
-	const payload = (await res.json()) as InvoiceMetric[];
-	return payload;
+export async function getPaidInvoiceCountByMember(memberId: string, signal?: AbortSignal) {
+	return apiFetch<InvoiceMetric[]>(`invoices/paid-count/member/${memberId}`, {
+		method: 'GET',
+		signal
+	});
 }
 
-export interface InvoiceOverviewMetric {
+export async function getPaidInvoiceCount(signal?: AbortSignal) {
+	return apiFetch<InvoiceMetric[]>(`invoices/paid-count`, {
+		method: 'GET',
+		signal
+	});
+}
+
+export interface InvoicesSummaryMetric {
 	currencyCode: string;
 	count: number;
 	amount: Intl.StringNumericLiteral;
 }
 
-export interface InvoiceOverview {
-	paid: InvoiceOverviewMetric[];
-	pending: InvoiceOverviewMetric[];
-	accepted: InvoiceOverviewMetric[];
-	rejected: InvoiceOverviewMetric[];
-	cancelled: InvoiceOverviewMetric[];
-	quotesRejected: InvoiceOverviewMetric[];
-	quotesPending: InvoiceOverviewMetric[];
+export interface InvoicesSummary {
+	paid: InvoicesSummaryMetric[];
+	pending: InvoicesSummaryMetric[];
+	accepted: InvoicesSummaryMetric[];
+	rejected: InvoicesSummaryMetric[];
+	cancelled: InvoicesSummaryMetric[];
+	quotesRejected: InvoicesSummaryMetric[];
+	quotesPending: InvoicesSummaryMetric[];
 }
 
-export async function getInvoiceOverview(signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/metrics/overview`, {
-			method: 'GET',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to get invoice overview: ${err}`);
-	}
+export async function getInvoiceSummmaryByMember(memberId: string, signal?: AbortSignal) {
+	return apiFetch<InvoiceOverview>(`invoices/member/${memberId}/summary`, {
+		method: 'GET',
+		signal
+	});
+}
 
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-
-	const payload = (await res.json()) as InvoiceOverview;
-	return payload;
+export async function getInvoiceSummmary(signal?: AbortSignal) {
+	return apiFetch<InvoicesSummary>(`invoices/summary`, {
+		method: 'GET',
+		signal
+	});
 }
 
 export interface InvoiceItemParams {
 	description: string;
 	qty: string;
 	unitPrice: string;
-	tax: string;
-	taxType: string;
-	discount: string;
+	discountRate: string;
 	discountType: string;
+	taxRate: string;
+	taxType: string;
 }
+
 export interface CreateInvoiceParams {
 	isInvoice: boolean;
-	status: string;
 	currencyCode: string;
 	note: string;
+	dueDate?: Date;
 	items: InvoiceItemParams[];
 }
 export async function createInvoice(
-	projectId: number,
+	projectId: string,
 	req: CreateInvoiceParams,
 	signal: AbortSignal
 ) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/project/${projectId}`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(req),
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to create invoice: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-
-export async function markInvoicePaid(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/${invoiceId}/status/paid`, {
-			method: 'PUT',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to change invoice status: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Already paid`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-
-export async function markInvoiceCancelled(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/${invoiceId}/status/cancelled`, {
-			method: 'PUT',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to change invoice status: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Already cancelled`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-
-export async function markInvoiceAccepted(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/${invoiceId}/status/accepted`, {
-			method: 'PUT',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to change invoice status: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Already accepted`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-export async function markInvoiceRejected(invoiceId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/invoices/${invoiceId}/status/rejected`, {
-			method: 'PUT',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to change invoice status: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Already rejected`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
+	return apiFetch<void>(`invoices/project/${projectId}`, {
+		method: 'POST',
+		body: JSON.stringify(req),
+		signal
+	});
 }

@@ -1,19 +1,29 @@
-import { goto } from '$app/navigation';
 import type { USER_ROLES } from '$lib/constants/user';
-import {
-	APIBadRequestError,
-	APIConflictError,
-	APIError,
-	APIForbiddenError,
-	APINotFoundError,
-	APIServerError,
-	NetworkError
-} from './errors';
+import { apiFetch } from './client';
+import type { PaginatedResponse } from './page';
 
 export type UserRole = (typeof USER_ROLES)[number];
 
+export interface UserCreateParams {
+	firstName: string;
+	lastName: string;
+	email: string;
+	title?: string;
+	role: string;
+	isActive: boolean;
+	projectIds: string[];
+}
+
+export function createUser(req: UserCreateParams, signal?: AbortSignal) {
+	return apiFetch<void>('users', {
+		method: 'POST',
+		body: JSON.stringify(req),
+		signal
+	});
+}
+
 export interface User {
-	id: number;
+	id: string;
 	firstName: string;
 	lastName: string;
 	title?: string;
@@ -32,205 +42,110 @@ export interface UserQuery {
 	page: number;
 	limit: number;
 }
+
 export async function getUsers(query: UserQuery, signal?: AbortSignal) {
-	const url = new URLSearchParams();
+	const params = new URLSearchParams();
 
-	// set "q" param if q is truthy
-	if (query.q) url.set('q', query.q);
+	if (query.q) params.set('q', query.q);
 
-	// set "role" param if status is truthy
-	if (query.role) url.set('role', query.role);
-
-	url.set('page', query.page.toString());
-	url.set('limit', query.limit.toString());
-
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/users/?${url.toString()}`, {
-			method: 'GET',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to fetch users: ${err}`);
+	if (query.role) {
+		params.set('role', query.role);
 	}
 
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
+	params.set('page', query.page.toString());
+	params.set('limit', query.limit.toString());
 
-	const payload = (await res.json()) as PaginatedResponse<User>;
-	return payload;
+	return apiFetch<PaginatedResponse<User>>(`users?${params.toString()}`, {
+		method: 'GET',
+		signal
+	});
 }
 
-export interface UserCreateParams {
-	firstName: string;
-	lastName: string;
+export async function getMe(signal?: AbortSignal) {
+	return apiFetch<User>('users/me', {
+		method: 'GET',
+		signal
+	});
+}
+
+export async function activateUser(userId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`users/${userId}/activate`, {
+		method: 'PUT',
+		signal
+	});
+}
+
+export async function deactivateUser(userId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`users/${userId}/deactivate`, {
+		method: 'PUT',
+		signal
+	});
+}
+
+export async function getUser(userId: string, signal?: AbortSignal) {
+	return apiFetch<User>(`users/${userId}`, {
+		method: 'GET',
+		signal
+	});
+}
+
+export async function deleteUser(userId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`users/${userId}`, {
+		method: 'DELETE',
+		signal
+	});
+}
+
+export async function regenerateUserVerification(userId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`users/verifications/${userId}/regenerate-verification`, {
+		method: 'POST',
+		signal
+	});
+}
+
+export interface VerificationConfirmParams {
+	password: string;
+	confirmPassword: string;
+}
+
+export async function verifyUser(
+	verificationId: string,
+	req: VerificationConfirmParams,
+	signal?: AbortSignal
+) {
+	return apiFetch<void>(`users/verifications/${verificationId}/confirm`, {
+		method: 'POST',
+		body: JSON.stringify(req),
+		signal
+	});
+}
+
+export async function validateUserVerification(verificationId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`users/verifications/${verificationId}`, {
+		method: 'GET',
+		signal
+	});
+}
+
+export interface SignInParams {
 	email: string;
-	title?: string;
+	password: string;
+	rememberMe: boolean;
+}
+
+export interface SignInResponse {
+	status: string;
 	role: string;
-	isActive: boolean;
-	projects: number[];
 }
-export async function createUser(req: UserCreateParams, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/users/ `, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(req),
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to create user: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
+export function signIn(req: SignInParams) {
+	return apiFetch<SignInResponse>('users/auth/sign-in', {
+		method: 'POST',
+		body: JSON.stringify(req)
+	});
 }
 
-export async function activateUser(userId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/users/${userId}/activate`, {
-			method: 'PUT',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to activate user: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Already activated`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-
-export async function deactivateUser(userId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/users/${userId}/deactivate`, {
-			method: 'PUT',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to deactivate user: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 409:
-				throw new APIConflictError(`Already deactivated`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-
-export async function deleteUser(userId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/users/${userId}`, {
-			method: 'DELETE',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to delete user: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
-}
-
-export async function sendUserVerificationEmail(userId: number, signal?: AbortSignal) {
-	let res: Response;
-	try {
-		res = await fetch(`/api/v1/users/${userId}/resend-verification`, {
-			method: 'POST',
-			signal
-		});
-	} catch (err) {
-		throw new NetworkError(`Failed to resend user verification email: ${err}`);
-	}
-
-	if (!res.ok) {
-		switch (res.status) {
-			case 400:
-				throw new APIBadRequestError('Bad request');
-			case 401:
-				goto('/sign-in');
-			case 403:
-				throw new APIForbiddenError('Forbidden');
-			case 404:
-				throw new APINotFoundError(`Not found`);
-			case 500:
-				throw new APIServerError('Internal server error');
-			default:
-				throw new APIError(`Unexpected error: ${res.status} ${res.statusText}`, res.status);
-		}
-	}
+export function signOut() {
+	return apiFetch<void>('users/auth/sign-out', {
+		method: 'POST'
+	});
 }
