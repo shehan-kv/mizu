@@ -4,7 +4,6 @@ import (
 	"context"
 	"mizu/internal/application/eventbus"
 	"mizu/internal/application/logger"
-	"mizu/internal/domain/common"
 	"sync"
 )
 
@@ -13,8 +12,8 @@ import (
 // Replace with Redis Pub/Sub or RabbitMQ for multi-instance.
 type InMemoryBus struct {
 	mu       sync.RWMutex
-	handlers map[common.EventType][]eventbus.EventHandler
-	ch       chan common.Event
+	handlers map[eventbus.EventType][]eventbus.ExtEventHandler
+	ch       chan eventbus.Event
 	logger   logger.Logger
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -22,19 +21,19 @@ type InMemoryBus struct {
 
 func NewInMemoryBus(logger logger.Logger, buffer int) *InMemoryBus {
 	return &InMemoryBus{
-		handlers: make(map[common.EventType][]eventbus.EventHandler),
-		ch:       make(chan common.Event, buffer),
+		handlers: make(map[eventbus.EventType][]eventbus.ExtEventHandler),
+		ch:       make(chan eventbus.Event, buffer),
 		logger:   logger,
 	}
 }
 
-func (b *InMemoryBus) Subscribe(eventType common.EventType, handler eventbus.EventHandler) {
+func (b *InMemoryBus) Subscribe(eventType eventbus.EventType, handler eventbus.ExtEventHandler) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.handlers[eventType] = append(b.handlers[eventType], handler)
 }
 
-func (b *InMemoryBus) Publish(ctx context.Context, event common.Event) error {
+func (b *InMemoryBus) Publish(ctx context.Context, event eventbus.Event) error {
 	select {
 	case b.ch <- event:
 		return nil
@@ -79,7 +78,7 @@ func (b *InMemoryBus) Stop() {
 	b.wg.Wait()
 }
 
-func (b *InMemoryBus) dispatch(ctx context.Context, event common.Event) {
+func (b *InMemoryBus) dispatch(ctx context.Context, event eventbus.Event) {
 	b.mu.RLock()
 	handlers := b.handlers[event.EventType()]
 	b.mu.RUnlock()

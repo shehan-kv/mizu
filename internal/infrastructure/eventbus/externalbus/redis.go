@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mizu/internal/application/eventbus"
 	"mizu/internal/application/logger"
-	"mizu/internal/domain/common"
 	"sync"
 
 	"github.com/redis/go-redis/v9"
@@ -15,8 +14,8 @@ import (
 const redisChannel = "mizu:events"
 
 type envelope struct {
-	Type common.EventType `json:"type"`
-	Data json.RawMessage  `json:"data"`
+	Type eventbus.EventType `json:"type"`
+	Data json.RawMessage    `json:"data"`
 }
 
 // RedisBus is a Redis Pub/Sub implementation of ExternalBus.
@@ -27,11 +26,11 @@ type envelope struct {
 type RedisBus struct {
 	mu       sync.RWMutex
 	client   *redis.Client
-	handlers map[common.EventType][]eventbus.EventHandler
+	handlers map[eventbus.EventType][]eventbus.ExtEventHandler
 
 	// Used to reconstruct concrete event types when
 	// receiving events from Redis.
-	factories map[common.EventType]func() common.Event
+	factories map[eventbus.EventType]func() eventbus.Event
 
 	logger logger.Logger
 	cancel context.CancelFunc
@@ -44,8 +43,8 @@ func NewRedisBus(
 ) *RedisBus {
 	return &RedisBus{
 		client:    client,
-		handlers:  make(map[common.EventType][]eventbus.EventHandler),
-		factories: make(map[common.EventType]func() common.Event),
+		handlers:  make(map[eventbus.EventType][]eventbus.ExtEventHandler),
+		factories: make(map[eventbus.EventType]func() eventbus.Event),
 		logger:    logger,
 	}
 }
@@ -53,8 +52,8 @@ func NewRedisBus(
 // RegisterEvent registers a factory used to reconstruct
 // a concrete event when received from Redis.
 func (b *RedisBus) RegisterEvent(
-	eventType common.EventType,
-	factory func() common.Event,
+	eventType eventbus.EventType,
+	factory func() eventbus.Event,
 ) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -65,8 +64,8 @@ func (b *RedisBus) RegisterEvent(
 // Subscribe registers a handler for the given event type.
 // Subscribe all handlers before calling Start.
 func (b *RedisBus) Subscribe(
-	eventType common.EventType,
-	handler eventbus.EventHandler,
+	eventType eventbus.EventType,
+	handler eventbus.ExtEventHandler,
 ) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -80,7 +79,7 @@ func (b *RedisBus) Subscribe(
 // Publish serializes and publishes an event to Redis.
 func (b *RedisBus) Publish(
 	ctx context.Context,
-	event common.Event,
+	event eventbus.Event,
 ) error {
 	data, err := json.Marshal(event)
 	if err != nil {
