@@ -22,6 +22,3 @@ type TaskStatusChangedEvent struct {
 func (e TaskStatusChangedEvent) EventType() common.EventType {
 	return EventTypeTaskStatusChanged
 }
-func (e TaskStatusChangedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}

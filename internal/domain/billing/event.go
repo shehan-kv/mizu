@@ -24,9 +24,6 @@ type InvoiceCreatedEvent struct {
 func (e InvoiceCreatedEvent) EventType() common.EventType {
 	return EventTypeInvoiceCreated
 }
-func (e InvoiceCreatedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}
 
 type InvoiceStatusChangedEvent struct {
 	InvoiceID    InvoiceID
@@ -41,9 +38,6 @@ type InvoiceStatusChangedEvent struct {
 func (e InvoiceStatusChangedEvent) EventType() common.EventType {
 	return EventTypeInvoiceStatusChanged
 }
-func (e InvoiceStatusChangedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}
 
 type InvoiceConvertedEvent struct {
 	InvoiceID    InvoiceID
@@ -56,7 +50,4 @@ type InvoiceConvertedEvent struct {
 
 func (e InvoiceConvertedEvent) EventType() common.EventType {
 	return EventTypeInvoiceConverted
-}
-func (e InvoiceConvertedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
 }

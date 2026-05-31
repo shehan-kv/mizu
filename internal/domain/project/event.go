@@ -20,6 +20,3 @@ type ProjectCreatedEvent struct {
 func (e ProjectCreatedEvent) EventType() common.EventType {
 	return EventTypeProjectCreated
 }
-func (e ProjectCreatedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}

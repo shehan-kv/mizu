@@ -21,9 +21,6 @@ type UserCreatedEvent struct {
 func (e UserCreatedEvent) EventType() common.EventType {
 	return EventTypeUserCreated
 }
-func (e UserCreatedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}
 
 type UserVerifiedEvent struct {
 	UserID     UserID
@@ -32,7 +29,4 @@ type UserVerifiedEvent struct {
 
 func (e UserVerifiedEvent) EventType() common.EventType {
 	return EventTypeUserVerified
-}
-func (e UserVerifiedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
 }

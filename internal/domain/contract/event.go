@@ -21,9 +21,6 @@ type ContractCreatedEvent struct {
 func (e ContractCreatedEvent) EventType() common.EventType {
 	return EventTypeContractCreated
 }
-func (e ContractCreatedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}
 
 type ContractStatusChangedEvent struct {
 	ContractID ContractID
@@ -36,7 +33,4 @@ type ContractStatusChangedEvent struct {
 
 func (e ContractStatusChangedEvent) EventType() common.EventType {
 	return EventTypeContractStatusChanged
-}
-func (e ContractStatusChangedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
 }

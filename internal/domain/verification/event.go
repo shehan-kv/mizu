@@ -19,6 +19,3 @@ type VerificationCreatedEvent struct {
 func (e VerificationCreatedEvent) EventType() common.EventType {
 	return EventTypeVerificationCreated
 }
-func (e VerificationCreatedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}

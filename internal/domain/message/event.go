@@ -24,6 +24,3 @@ type FileCreatedEvent struct {
 func (e FileCreatedEvent) EventType() common.EventType {
 	return EventTypeFileCreated
 }
-func (e FileCreatedEvent) EventScope() common.EventScope {
-	return common.EventScopeInternal
-}
