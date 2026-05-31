@@ -9,7 +9,7 @@
 	font-style: normal;
 	font-weight: 400;
 	font-display: swap;
-	src: url('/Manrope-Regular.ttf') format('truetype');
+	src: url('/assets/Manrope-Regular.ttf') format('truetype');
 }
 
 @font-face {
@@ -17,7 +17,7 @@
 	font-style: bold;
 	font-weight: 700;
 	font-display: swap;
-	src: url('/Manrope-Bold.ttf') format('truetype');
+	src: url('/assets/Manrope-Bold.ttf') format('truetype');
 }
 
 :root {
