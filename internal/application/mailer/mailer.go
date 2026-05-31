@@ -1,0 +1,15 @@
+package mailer
+
+import (
+	"context"
+	"errors"
+	"mizu/internal/domain/iam"
+	"mizu/internal/domain/verification"
+)
+
+var ErrMailDeliveryFailed = errors.New("failed to deliver email")
+
+type Mailer interface {
+	SendVerificationEmail(ctx context.Context, email iam.Email, verificationID verification.VerificationID) error
+	SendVerifiedEmail(ctx context.Context, email iam.Email) error
+}
