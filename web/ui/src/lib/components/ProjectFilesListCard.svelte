@@ -1,26 +1,23 @@
 <script lang="ts">
 	import * as Table from '$lib/components/ui/table';
-	import { getFilesByProject, type File } from '$lib/api/files';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import { onMount } from 'svelte';
 	import Spinner from './Spinner.svelte';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import type { UserRole } from '$lib/api/users';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { downloadChannelFile, getChannelFiles, type ChannelFile } from '$lib/api/messages';
+	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		projectId: number;
+		projectId: string;
 		role?: UserRole;
 	}
 	let { projectId, role = 'client' }: Props = $props();
 
-	let filesPromise: Promise<PaginatedResponse<File>> | null = $state(null);
+	let filesPromise: Promise<PaginatedResponse<ChannelFile>> | null = $state(null);
 	let abort: AbortController | null = null;
 	function loadFiles() {
 		if (abort) {
@@ -28,7 +25,7 @@
 		}
 		abort = new AbortController();
 
-		filesPromise = getFilesByProject(projectId, '', 1, 20, abort.signal);
+		filesPromise = getChannelFiles(projectId, { page: 1, limit: 20 }, abort.signal);
 	}
 
 	onMount(() => {
@@ -37,7 +34,7 @@
 
 	// svelte-ignore non_reactive_update
 	let linksPrefix = '';
-	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'administrator') linksPrefix = '/admin';
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
@@ -47,7 +44,10 @@
 >
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Files</p>
-		<a href={`${linksPrefix}/projects/${projectId}/files`} class="flex items-center gap-1 text-sm">
+		<a
+			href={resolve(`${linksPrefix}/projects/${projectId}/files`)}
+			class="flex items-center gap-1 text-sm"
+		>
 			<span>View All</span>
 			<ArrowRight />
 		</a>
@@ -56,25 +56,28 @@
 		{#await filesPromise}
 			<Spinner />
 		{:then res}
-			{#if res && res.data.length > 0}
+			{#if res && res.items.length > 0}
 				<Table.Root>
 					<Table.Body>
-						{#each res.data as file (file)}
+						{#each res.items as file (file.id)}
 							<Table.Row
 								class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 	        						dark:text-neutral-400 dark:hover:text-neutral-50"
 							>
 								<Table.Cell class="pl-0">
-									{file.originalName}
+									{file.name}
 								</Table.Cell>
 								<Table.Cell>
 									{file.user.firstName}
 									{file.user.lastName}
 								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
-									<a href={file.url} class="inline-block cursor-pointer">
+									<button
+										onclick={() => downloadChannelFile(file.id)}
+										class="inline-block cursor-pointer"
+									>
 										<DownloadSimple size={18} />
-									</a>
+									</button>
 								</Table.Cell>
 							</Table.Row>
 						{/each}
@@ -84,20 +87,10 @@
 				<ErrorMessage variant="warn" text="Files Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadFiles} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View Files"
-					retry={loadFiles}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadFiles} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadFiles} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadFiles} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadFiles} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadFiles} />
 			{/if}
 		{/await}
 	</div>

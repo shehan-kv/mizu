@@ -10,23 +10,20 @@
 	import { formatDate } from '$lib/utils/formatDate';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import {
-		getInvoicesByProjectId,
-		type InvoiceStatus,
-		type InvoiceWithStatus
+		getInvoicesByProject,
+		type InvoiceOverview,
+		type InvoiceStatus
 	} from '$lib/api/invoices';
 	import { onMount } from 'svelte';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import type { UserRole } from '$lib/api/users';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		projectId: number;
+		projectId: string;
 		role?: UserRole;
 		page?: number;
 		limit?: number;
@@ -34,7 +31,7 @@
 
 	let { projectId, role = 'client', page = 1, limit = 20 }: Props = $props();
 
-	let invoices: Promise<PaginatedResponse<InvoiceWithStatus>> | null = $state(null);
+	let invoices: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
 	let abort: AbortController | null = null;
 	function loadInvoices() {
 		if (abort) {
@@ -42,7 +39,7 @@
 		}
 		abort = new AbortController();
 
-		invoices = getInvoicesByProjectId(projectId, { page, limit }, abort.signal);
+		invoices = getInvoicesByProject(projectId, { page, limit }, abort.signal);
 	}
 
 	export function refresh() {
@@ -54,29 +51,29 @@
 	});
 
 	type ActionsAllowed = Exclude<InvoiceStatus, 'pending'>;
-	type SelectedInvoice = InvoiceWithStatus & { action?: ActionsAllowed };
+	type SelectedInvoice = InvoiceOverview & { action?: ActionsAllowed };
 	let selectedInvoice: SelectedInvoice | null = $state(null);
 	let setStatusDialog = createDialogState();
 
-	function openStatusDialog(invoice: InvoiceWithStatus, action: ActionsAllowed) {
+	function openStatusDialog(invoice: InvoiceOverview, action: ActionsAllowed) {
 		selectedInvoice = { ...invoice, action };
 		setStatusDialog.open();
 	}
 
 	// svelte-ignore non_reactive_update
 	let linksPrefix = '';
-	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'administrator') linksPrefix = '/admin';
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div
-	class="min-h-50 max-h-100 col-span-4 grid grid-rows-[min-content_1fr]
+	class="col-span-4 grid max-h-100 min-h-50 grid-rows-[min-content_1fr]
 		overflow-hidden rounded border"
 >
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Invoices / Quotes</p>
 		<a
-			href={`${linksPrefix}/projects/${projectId}/invoices`}
+			href={resolve(`${linksPrefix}/projects/${projectId}/invoices`)}
 			class="flex items-center gap-1 text-sm"
 		>
 			<span>View All</span>
@@ -87,10 +84,10 @@
 		{#await invoices}
 			<Spinner />
 		{:then res}
-			{#if res && res.data.length > 0}
+			{#if res && res.items.length > 0}
 				<Table.Root>
 					<Table.Body>
-						{#each res.data as invoice (invoice)}
+						{#each res.items as invoice (invoice.id)}
 							<Table.Row
 								class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 								dark:text-neutral-400 dark:hover:text-neutral-50"
@@ -105,10 +102,10 @@
 									{/if}
 								</Table.Cell>
 								<Table.Cell>
-									{currencyFormatter(invoice.currencyCode, invoice.total)} Total
+									{currencyFormatter(invoice.currencyCode, invoice.subTotal)} Total
 								</Table.Cell>
 								<Table.Cell>
-									Issued On {formatDate(invoice.issuedAt)}
+									Issued On {formatDate(invoice.createdAt)}
 								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
 									<div
@@ -117,7 +114,7 @@
 										*:dark:hover:text-neutral-50"
 									>
 										<a
-											href={`/admin/invoices-and-quotes/${invoice.id}`}
+											href={resolve(`/admin/invoices-and-quotes/${invoice.id}`)}
 											class="inline-block"
 											title="View"
 										>
@@ -131,7 +128,7 @@
 												<DotsThree size={18} />
 											</DropdownMenu.Trigger>
 											<DropdownMenu.Content class="mr-4 *:text-xs">
-												{#if role == 'admin' || role == 'staff'}
+												{#if role == 'administrator' || role == 'staff'}
 													{#if invoice.status == 'pending' || invoice.status == 'accepted'}
 														<DropdownMenu.Group class="text-xs">
 															<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
@@ -185,20 +182,10 @@
 				<ErrorMessage variant="warn" text="Invoices / Quotes Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View Invoices/Quotes"
-					retry={loadInvoices}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadInvoices} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoices} />
 			{/if}
 		{/await}
 	</div>

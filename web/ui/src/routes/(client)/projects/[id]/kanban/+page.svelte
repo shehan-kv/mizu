@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { getProjectDetails, type ProjectDetails } from '$lib/api/projects';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import KanbanTaskList from '$lib/components/KanbanTaskList.svelte';
+	import { resolve } from '$app/paths';
+	import { getProject, type Project } from '$lib/api/projects';
 
-	let id = Number(page.params.id);
+	let id = page.params.id || '';
 
-	let projectPromise: Promise<ProjectDetails> | null = $state(null);
+	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
 	function loadProject() {
 		if (projectAbort) {
@@ -16,7 +17,7 @@
 
 		projectAbort = new AbortController();
 
-		projectPromise = getProjectDetails(id, projectAbort.signal).then((d) => {
+		projectPromise = getProject(id, projectAbort.signal).then((d) => {
 			document.title = 'Kanban Board - ' + d.name;
 			return d;
 		});
@@ -37,7 +38,7 @@
 			{#await projectPromise}
 				<p class="">...</p>
 			{:then res}
-				<a href={`/projects/${res?.id}`} class="underline">{res?.name}</a>
+				<a href={resolve(`/projects/${res?.id}`)} class="underline">{res?.name}</a>
 			{/await}
 
 			<ChevronRight size={18} />

@@ -5,7 +5,7 @@
 	import type { Channel } from '$lib/api/messages';
 
 	interface Props {
-		open: Boolean;
+		open: boolean;
 		channel: Channel;
 	}
 	let { open = $bindable(), channel }: Props = $props();

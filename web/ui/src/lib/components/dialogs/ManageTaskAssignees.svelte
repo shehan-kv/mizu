@@ -1,17 +1,4 @@
 <script lang="ts">
-	import {
-		APIBadRequestError,
-		APIError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError,
-		NetworkError
-	} from '$lib/api/errors';
-	import {
-		getProjectTaskAssignees,
-		setProjectTaskAssignees,
-		type ProjectMember
-	} from '$lib/api/projects';
 	import { Dialog } from 'bits-ui';
 	import X from 'phosphor-svelte/lib/X';
 	import { toast } from 'svelte-sonner';
@@ -19,19 +6,22 @@
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import UserCard from '../UserCard.svelte';
 	import SearchProjectMember from '../SearchProjectMember.svelte';
+	import type { ProjectMember } from '$lib/api/projects';
+	import { ApiError } from '$lib/api/client';
+	import { getTaskAssignees, replaceTaskAssignees } from '$lib/api/task';
 
 	interface Props {
 		open: boolean;
-		projectId: number;
-		taskId: number;
-		onSuccess: () => any;
+		projectId: string;
+		taskId: string;
+		onSuccess: () => unknown;
 	}
 	let { open = $bindable(), projectId, taskId, onSuccess }: Props = $props();
 
 	let confirmAssignees: ProjectMember[] = $state([]);
 
 	let assigneesLoading = $state(false);
-	let assigneesError: APIError | null = $state(null);
+	let assigneesError: ApiError | null = $state(null);
 	let assigneesAbort: AbortController | null = null;
 	async function loadAssignees() {
 		if (assigneesAbort) {
@@ -41,9 +31,9 @@
 
 		try {
 			assigneesLoading = true;
-			confirmAssignees = await getProjectTaskAssignees(projectId, taskId, assigneesAbort.signal);
+			confirmAssignees = await getTaskAssignees(taskId, assigneesAbort.signal);
 		} catch (error) {
-			assigneesError = error as APIError;
+			assigneesError = error as ApiError;
 			confirmAssignees = [];
 		} finally {
 			assigneesLoading = false;
@@ -80,28 +70,19 @@
 		confirmAbort = new AbortController();
 
 		try {
-			await setProjectTaskAssignees(
-				projectId,
+			await replaceTaskAssignees(
 				taskId,
-				{ assignees: confirmAssignees.map((a) => a.id) },
+				{ assigneeIds: confirmAssignees.map((a) => a.id) },
 				confirmAbort.signal
 			);
 			toast.success('Assigned Successfully');
-			onSuccess && onSuccess();
+			onSuccess?.();
 			open = false;
 		} catch (error) {
-			if (error instanceof APIBadRequestError) {
-				toast.error('Invalid Request');
-			} else if (error instanceof APIForbiddenError) {
-				toast.error('Not Authorized');
-			} else if (error instanceof APINotFoundError) {
-				toast.error('Not Found');
-			} else if (error instanceof APIServerError) {
-				toast.error('Server Error');
-			} else if (error instanceof APIError) {
-				toast.error('Unexpected Error, Try Again');
-			} else if (error instanceof NetworkError) {
-				toast.error('Request Failed, Try Again');
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('An Error Occurred');
 			}
 		}
 	}
@@ -124,8 +105,8 @@
 			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
 			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
 			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 
-			rounded"
+			fixed top-1/2 left-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded outline-hidden 
+			duration-250"
 		>
 			<div class="text-right">
 				<Dialog.Close
@@ -147,29 +128,7 @@
 						{/if}
 
 						{#if assigneesError}
-							{#if assigneesError instanceof APIBadRequestError}
-								<ErrorMessage variant="warn" text="Invalid Request" retry={loadAssignees} />
-							{:else if assigneesError instanceof APIForbiddenError}
-								<ErrorMessage
-									variant="warn"
-									text="You Don't Have Permission To View Members"
-									retry={loadAssignees}
-								/>
-							{:else if assigneesError instanceof APINotFoundError}
-								<ErrorMessage variant="info" text="Not Found" retry={loadAssignees} />
-							{:else if assigneesError instanceof APIServerError}
-								<ErrorMessage
-									variant="warn"
-									text="Server Ran Into An Error"
-									retry={loadAssignees}
-								/>
-							{:else}
-								<ErrorMessage
-									variant="warn"
-									text="An Unexpected Error Occured"
-									retry={loadAssignees}
-								/>
-							{/if}
+							<ErrorMessage variant="warn" text={assigneesError.message} retry={loadAssignees} />
 						{/if}
 
 						{#if confirmAssignees.length > 0}

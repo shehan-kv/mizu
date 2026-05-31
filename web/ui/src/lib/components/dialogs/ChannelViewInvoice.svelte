@@ -4,7 +4,7 @@
 
 	interface Props {
 		open: boolean;
-		invoiceId: number;
+		invoiceId: string;
 		isInvoice: boolean;
 	}
 

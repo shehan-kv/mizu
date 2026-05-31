@@ -6,11 +6,11 @@
 	import Sun from 'phosphor-svelte/lib/Sun';
 	import { toast } from 'svelte-sonner';
 
-	import { signIn } from '$lib/api/auth';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { toggleTheme } from '$lib/utils/theme';
 	import { goto } from '$app/navigation';
-	import { json } from '@sveltejs/kit';
+	import { resolve } from '$app/paths';
+	import { signIn } from '$lib/api/users';
 
 	let isLoading = $state(false);
 	let signInForm = $state({
@@ -24,18 +24,11 @@
 
 		isLoading = true;
 		signIn(signInForm)
-			.then((response) => {
-				if (!response.ok) {
-					throw new Error('request failed');
-				}
-
-				return response.json();
-			})
 			.then((data) => {
 				if (data.role == 'administrator') {
-					goto('/admin');
+					goto(resolve('/admin'));
 				} else {
-					goto('/');
+					goto(resolve('/'));
 				}
 			})
 			.catch(() => {
@@ -53,15 +46,15 @@
 	class="grid h-dvh grid-cols-1 p-4 lg:grid-cols-[1fr_28rem] dark:bg-neutral-950 dark:text-neutral-50"
 >
 	<div
-		class="lg: flex hidden size-full items-center justify-center rounded bg-[url('/wave.svg')] px-8 lg:flex dark:bg-[url('/wave-dark.svg')]"
+		class="hidden size-full items-center justify-center rounded bg-[url('/assets/wave.svg')] px-8 lg:flex dark:bg-[url('/assets/wave-dark.svg')]"
 	>
 		<div class="@container w-full max-w-3xl rounded bg-neutral-50 p-8 dark:bg-neutral-900">
 			<div>
 				<span class="inline-block rounded-full bg-neutral-200 p-2 dark:bg-neutral-800">
 					<TrendUp size={20} />
 				</span>
-				<p class="@lg:text-base mt-2 text-sm font-bold">Track Progress</p>
-				<p class="max-w-2/3 @lg:text-sm mt-1 text-xs">
+				<p class="mt-2 text-sm font-bold @lg:text-base">Track Progress</p>
+				<p class="mt-1 max-w-2/3 text-xs @lg:text-sm">
 					Organize tasks, monitor progress, and maintain focus through a simple, visual workflow
 					with Kanban boards
 				</p>
@@ -74,8 +67,8 @@
 					<span class="inline-block rounded-full bg-neutral-200 p-2 dark:bg-neutral-800">
 						<Files size={20} />
 					</span>
-					<p class="@lg:text-base mt-2 text-sm font-bold">Sign Contracts</p>
-					<p class="@lg:text-sm mt-1 mt-1 text-xs">
+					<p class="mt-2 text-sm font-bold @lg:text-base">Sign Contracts</p>
+					<p class="mt-1 text-xs @lg:text-sm">
 						Accelerate deal closures with integrated contract signing workflows — no external tools.
 						Simply review, sign, and proceed with confidence.
 					</p>
@@ -84,8 +77,8 @@
 					<span class="inline-block rounded-full bg-neutral-200 p-2 dark:bg-neutral-800">
 						<Chats size={20} />
 					</span>
-					<p class="@lg:text-base mt-2 text-sm font-bold">Unified Chat</p>
-					<p class="@lg:text-sm mt-1 mt-1 text-xs">
+					<p class="mt-2 text-sm font-bold @lg:text-base">Unified Chat</p>
+					<p class="mt-1 text-xs @lg:text-sm">
 						Foster clear and organized collaboration through built-in messaging, ensuring all
 						project-related conversations remain accessible and centralized
 					</p>
@@ -108,8 +101,8 @@
 
 		<div class="mx-auto size-full max-w-md content-center">
 			<div class="text-neutral-950 dark:text-neutral-50">
-				<img src="/logo-light.svg" alt="MizuPM logo" class="hidden dark:block" />
-				<img src="/logo-dark.svg" alt="MizuPM logo" class="block dark:hidden" />
+				<img src="/assets/logo-light.svg" alt="MizuPM logo" class="hidden dark:block" />
+				<img src="/assets/logo-dark.svg" alt="MizuPM logo" class="block dark:hidden" />
 			</div>
 
 			<div class="mt-4">
@@ -164,7 +157,7 @@
 			</form>
 
 			<a
-				href="/"
+				href={resolve('/')}
 				class="mt-4 block text-sm text-neutral-700 transition hover:text-neutral-950
 			dark:text-neutral-400 dark:hover:text-neutral-50"
 			>

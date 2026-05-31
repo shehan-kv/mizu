@@ -1,22 +1,21 @@
 <script lang="ts">
-	import { getUsers } from '$lib/api/users';
 	import { debounce } from '$lib/utils/debounce';
 	import MagnifyingGlass from 'phosphor-svelte/lib/MagnifyingGlass';
 	import Spinner from './Spinner.svelte';
-	import UserCard from './UserCard.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import { getProjects, type Project } from '$lib/api/projects';
+	import { getProjectStats, type ProjectStat } from '$lib/api/projects';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import type { PaginatedResponse } from '$lib/api/page';
 
 	interface Props {
-		onSelect: (project: Project) => any;
+		onSelect: (project: ProjectStat) => unknown;
 	}
 
 	let { onSelect }: Props = $props();
 
 	let searchTerm = $state('');
 
-	let projectsPromise: Promise<PaginatedResponse<Project>> | null = $state(null);
+	let projectsPromise: Promise<PaginatedResponse<ProjectStat>> | null = $state(null);
 	let abort: AbortController | null = null;
 	function search() {
 		if (!searchTerm) {
@@ -35,7 +34,7 @@
 
 		abort = new AbortController();
 
-		projectsPromise = getProjects(searchTerm.trim(), 1, 50, undefined, abort.signal);
+		projectsPromise = getProjectStats({ q: searchTerm.trim(), page: 1, limit: 50 }, abort.signal);
 	}
 
 	const searchDebounced = debounce(() => {
@@ -52,13 +51,13 @@
 		bind:value={searchTerm}
 		oninput={searchDebounced}
 		type="text"
-		class="outline-hidden peer grow p-2 text-sm placeholder:text-xs placeholder:italic"
+		class="peer grow p-2 text-sm outline-hidden placeholder:text-xs placeholder:italic"
 		placeholder="Search For Projects..."
 	/>
 	<MagnifyingGlass size={16} class="mx-2" />
 
 	<div
-		class="max-h-50 absolute left-0 top-10 hidden min-h-10 w-full overflow-scroll
+		class="absolute top-10 left-0 hidden max-h-50 min-h-10 w-full overflow-scroll
 									rounded bg-neutral-900 px-2 py-3 ring-0 transition"
 	>
 		{#if !searchTerm && !projectsPromise}
@@ -68,9 +67,9 @@
 		{#await projectsPromise}
 			<Spinner size={16} />
 		{:then res}
-			{#if res && res.data.length > 0}
+			{#if res && res.items.length > 0}
 				<div>
-					{#each res.data as project (project)}
+					{#each res.items as project (project.id)}
 						<div
 							class="cursor-pointer rounded p-2 hover:bg-neutral-950"
 							onmousedown={() => {

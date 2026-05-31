@@ -2,23 +2,27 @@
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import KanbanTaskList from './KanbanTaskList.svelte';
 	import type { UserRole } from '$lib/api/users';
+	import { resolve } from '$app/paths';
 
 	interface Props {
-		projectId: number;
+		projectId: string;
 		role?: UserRole;
 	}
 	let { projectId, role = 'client' }: Props = $props();
 
 	// svelte-ignore non_reactive_update
 	let linksPrefix = '';
-	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'administrator') linksPrefix = '/admin';
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden rounded border">
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Kanban Board</p>
-		<a href={`${linksPrefix}/projects/${projectId}/kanban`} class="flex items-center gap-1 text-sm">
+		<a
+			href={resolve(`${linksPrefix}/projects/${projectId}/kanban`)}
+			class="flex items-center gap-1 text-sm"
+		>
 			<span>View</span>
 			<ArrowRight />
 		</a>

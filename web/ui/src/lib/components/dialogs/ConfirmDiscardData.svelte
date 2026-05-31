@@ -5,7 +5,7 @@
 
 	interface Props {
 		open: boolean;
-		onDiscard: () => any;
+		onDiscard: () => unknown;
 	}
 	let { open = $bindable(), onDiscard }: Props = $props();
 </script>
@@ -21,8 +21,8 @@
 			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
 			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
 			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 
-			rounded"
+			fixed top-1/2 left-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded outline-hidden 
+			duration-250"
 		>
 			<div class="text-right">
 				<Dialog.Close

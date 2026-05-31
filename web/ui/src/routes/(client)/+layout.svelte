@@ -3,13 +3,13 @@
 	import Chats from 'phosphor-svelte/lib/Chats';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
 	import UserGear from 'phosphor-svelte/lib/UserGear';
-	import Swap from 'phosphor-svelte/lib/Swap';
 	import X from 'phosphor-svelte/lib/X';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import { page } from '$app/state';
 	import Header from '$lib/components/Header.svelte';
 	import { fade, fly } from 'svelte/transition';
 	import FileText from 'phosphor-svelte/lib/FileText';
+	import { resolve } from '$app/paths';
 
 	let { children } = $props();
 	let isMobileMenuOpen = $state(false);
@@ -28,8 +28,8 @@
 		<ul class="flex h-full flex-col text-sm">
 			<li>
 				<a
-					href="/"
-					class="block flex items-center gap-2 border-l py-2 pl-4
+					href={resolve("/")}
+					class="flex items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname == '/'}
 					onclick={closeMobileMenu}
@@ -39,8 +39,8 @@
 			</li>
 			<li>
 				<a
-					href="/projects"
-					class="block flex items-center gap-2 border-l py-2 pl-4
+					href={resolve("/projects")}
+					class="flex items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/projects')}
 					onclick={closeMobileMenu}
@@ -50,8 +50,8 @@
 			</li>
 			<li>
 				<a
-					href="/contracts"
-					class="block flex items-center gap-2 border-l py-2 pl-4
+					href={resolve("/contracts")}
+					class="flex items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/contracts')}
 					onclick={closeMobileMenu}
@@ -61,8 +61,8 @@
 			</li>
 			<li>
 				<a
-					href="/messages"
-					class="block flex items-center gap-2 border-l py-2 pl-4
+					href={resolve("/messages")}
+					class="flex items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/messages')}
 					onclick={closeMobileMenu}
@@ -72,8 +72,8 @@
 			</li>
 			<li>
 				<a
-					href="/invoices-and-quotes"
-					class="block flex items-center gap-2 border-l py-2 pl-4
+					href={resolve("/invoices-and-quotes")}
+					class="flex items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
 					class:border-sky-500={page.url.pathname.startsWith('/invoices-and-quotes')}
 					onclick={closeMobileMenu}
@@ -81,20 +81,9 @@
 					<Invoice size={20} /> Invoices & Quotes
 				</a>
 			</li>
-			<li>
-				<a
-					href="/change-requests"
-					class="block flex items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname.startsWith('/change-requests')}
-					onclick={closeMobileMenu}
-				>
-					<Swap size={20} /> Change Requests
-				</a>
-			</li>
 			<li class="mt-auto">
 				<button
-					class="block flex cursor-pointer items-center gap-2 border-l py-2 pl-4
+					class="flex cursor-pointer items-center gap-2 border-l py-2 pl-4
 					hover:border-neutral-400 dark:hover:border-neutral-700"
 				>
 					<UserGear size={20} /> Profile Settings
@@ -128,11 +117,11 @@
 			onkeydown={(e) => {
 				if (e.key === 'Enter' || e.key === ' ') closeMobileMenu();
 			}}
-			class="backdrop-blur-xs fixed inset-0 bg-neutral-200/30 dark:bg-neutral-800/30"
+			class="fixed inset-0 bg-neutral-200/30 backdrop-blur-xs dark:bg-neutral-800/30"
 		></div>
 		<div
 			transition:fly={{ x: -50 }}
-			class="fixed bottom-2 left-2 top-2 grid max-h-dvh w-full max-w-xs auto-rows-[min-content_1fr] overflow-y-scroll rounded bg-neutral-50 p-6 dark:bg-neutral-900"
+			class="fixed top-2 bottom-2 left-2 grid max-h-dvh w-full max-w-xs auto-rows-[min-content_1fr] overflow-y-scroll rounded bg-neutral-50 p-6 dark:bg-neutral-900"
 		>
 			<div class="mb-6 flex items-center justify-between">
 				<button onclick={closeMobileMenu} class="ml-auto cursor-pointer rounded-full border p-1.5">

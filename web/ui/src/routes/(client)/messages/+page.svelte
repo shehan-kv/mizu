@@ -17,20 +17,13 @@
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import SendButton from '$lib/components/SendButton.svelte';
 	import AiSuggestionsButton from '$lib/components/AiSuggestionsButton.svelte';
-	import Swap from 'phosphor-svelte/lib/Swap';
 	import {
+		getChannelMembers,
 		getChannels,
-		getMembersByChannel,
 		type Channel,
 		type ChannelMember
 	} from '$lib/api/messages';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import { toast } from 'svelte-sonner';
+	import { ApiError } from '$lib/api/client';
 
 	// svelte-ignore non_reactive_update
 	let chatWindow: HTMLDivElement | null = null;
@@ -86,7 +79,7 @@
 
 		memberAbortController = new AbortController();
 
-		membersPromise = getMembersByChannel(selectedChannel?.id, memberAbortController.signal);
+		membersPromise = getChannelMembers(selectedChannel?.id, memberAbortController.signal);
 	}
 
 	let channelsPromise: Promise<Channel[]> | null = $state(null);
@@ -119,8 +112,6 @@
 	let contractDialog = createDialogState();
 	let invoiceDialog = createDialogState();
 	let kanbanDialog = createDialogState();
-	let allTicketDialog = createDialogState();
-	let newTicketDialog = createDialogState();
 
 	let messageToSend = $state('');
 
@@ -194,20 +185,10 @@
 					{/if}
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadChannels} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View These Channels"
-						retry={loadChannels}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadChannels} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadChannels} />
+				{#if err instanceof ApiError}
+					<ErrorMessage variant="warn" text={err.message} retry={loadChannels} />
 				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadChannels} />
+					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadChannels} />
 				{/if}
 			{/await}
 		</div>
@@ -238,20 +219,10 @@
 					{/if}
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadMembers} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View These Members"
-						retry={loadMembers}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadMembers} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadMembers} />
+				{#if err instanceof ApiError}
+					<ErrorMessage variant="warn" text={err.message} retry={loadMembers} />
 				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadMembers} />
+					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadMembers} />
 				{/if}
 			{/await}
 		</div>
@@ -259,7 +230,7 @@
 		{#if selectedChannel}
 			<div class="border-t p-4 text-sm text-neutral-700 dark:text-neutral-300">
 				<div
-					class="*:block *:flex *:w-full *:cursor-pointer *:items-center *:gap-2 *:py-1.5 *:text-left
+					class="*:flex *:w-full *:cursor-pointer *:items-center *:gap-2 *:py-1.5 *:text-left
 			*:hover:text-neutral-950 *:hover:underline *:disabled:text-neutral-400 *:disabled:hover:no-underline
 			*:dark:hover:text-neutral-50 *:dark:disabled:text-neutral-600"
 				>
@@ -272,21 +243,6 @@
 					</button>
 					<button onclick={kanbanDialog.open} disabled={!selectedChannel.projectId}>
 						<Kanban size={18} />Kanban Board
-					</button>
-				</div>
-				<p class="mt-3 flex items-center gap-2 text-neutral-500">
-					<Swap class="size-5" />Change Requests
-				</p>
-				<div
-					class="mt-1.5 border-l pl-4 *:block *:w-full *:cursor-pointer *:py-1
-				*:text-left *:hover:text-neutral-950 *:hover:underline *:disabled:text-neutral-400 *:disabled:hover:no-underline
-				*:dark:hover:text-neutral-50 *:dark:disabled:text-neutral-600"
-				>
-					<button onclick={allTicketDialog.open} disabled={!selectedChannel.projectId}>
-						All Change Requests
-					</button>
-					<button onclick={newTicketDialog.open} disabled={!selectedChannel.projectId}>
-						New Request
 					</button>
 				</div>
 			</div>
@@ -302,7 +258,7 @@
 	{:else if !loading.messages && selectedChannel}
 		<div class="grid auto-rows-[1fr_min-content] overflow-y-auto p-4">
 			{#if channelMessages.length > 0}
-				<div class="grow overflow-y-auto whitespace-pre-line pb-8" bind:this={chatWindow}>
+				<div class="grow overflow-y-auto pb-8 whitespace-pre-line" bind:this={chatWindow}>
 					{#each channelMessages as message (message.id)}
 						{#if message.type == 'USER'}
 							<Message.User
@@ -360,12 +316,4 @@
 	<Dialog.ChannelContracts bind:open={contractDialog.isOpen} channel={selectedChannel} />
 	<Dialog.ChannelInvoices bind:open={invoiceDialog.isOpen} channel={selectedChannel} />
 	<Dialog.ChannelKanban bind:open={kanbanDialog.isOpen} channel={selectedChannel} />
-	<Dialog.ChannelChangeRequests bind:open={allTicketDialog.isOpen} channel={selectedChannel} />
-
-	{#if selectedChannel.projectId}
-		<Dialog.NewChangeRequest
-			bind:open={newTicketDialog.isOpen}
-			projectId={selectedChannel.projectId}
-		/>
-	{/if}
 {/if}

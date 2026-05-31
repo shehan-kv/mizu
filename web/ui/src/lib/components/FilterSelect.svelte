@@ -7,7 +7,7 @@
 
 	interface Props {
 		value: string;
-		onchange: () => any;
+		onchange: () => unknown;
 		options: { value: string; label: string }[];
 		name: string;
 	}
@@ -21,7 +21,7 @@
 	);
 </script>
 
-<div class="flex h-full items-center gap-3 rounded bg-neutral-100 pl-2 pr-1 dark:bg-neutral-900">
+<div class="flex h-full items-center gap-3 rounded bg-neutral-100 pr-1 pl-2 dark:bg-neutral-900">
 	<p class="text-xs">{name}</p>
 	<Select.Root
 		type="single"
@@ -45,8 +45,8 @@
             data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
             data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
             data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-            data-[side=top]:slide-in-from-bottom-2 outline-hidden z-50 max-h-[var(--bits-select-content-available-height)] 
-            w-fit min-w-[var(--bits-select-anchor-width)] select-none rounded-xl border px-1 py-3 
+            data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--bits-select-content-available-height) w-fit 
+            min-w-(--bits-select-anchor-width) rounded-xl border px-1 py-3 outline-hidden select-none 
             data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 
             data-[side=top]:-translate-y-1"
 				sideOffset={10}
@@ -57,8 +57,8 @@
 				<Select.Viewport class="p-1">
 					{#each options as option, i (i + option.value)}
 						<Select.Item
-							class="data-highlighted:bg-muted outline-hidden data-disabled:opacity-50 flex h-fit 
-						w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
+							class="data-highlighted:bg-muted flex h-fit w-full items-center 
+						gap-1 rounded px-4 py-2 text-xs capitalize outline-hidden select-none data-disabled:opacity-50"
 							value={option.value}
 							label={option.label}
 						>

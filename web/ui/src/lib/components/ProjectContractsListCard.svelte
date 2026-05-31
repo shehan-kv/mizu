@@ -8,20 +8,18 @@
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import { getContractsByProject, type Contract } from '$lib/api/contracts';
+
+	import { getContractOverviewsByProject, type Contract } from '$lib/api/contracts';
 	import { onMount } from 'svelte';
 	import type { UserRole } from '$lib/api/users';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		projectId: number;
+		projectId: string;
 		role?: UserRole;
 	}
 	let { projectId, role = 'client' }: Props = $props();
@@ -34,7 +32,11 @@
 		}
 		abort = new AbortController();
 
-		contractsPromise = getContractsByProject(projectId, '', '', 1, 20, abort.signal);
+		contractsPromise = getContractOverviewsByProject(
+			projectId,
+			{ page: 1, limit: 20 },
+			abort.signal
+		);
 	}
 
 	export function refresh() {
@@ -70,7 +72,7 @@
 
 	// svelte-ignore non_reactive_update
 	let linksPrefix = '';
-	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'administrator') linksPrefix = '/admin';
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
@@ -78,7 +80,7 @@
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Contracts</p>
 		<a
-			href={`${linksPrefix}/projects/${projectId}/contracts`}
+			href={resolve(`${linksPrefix}/projects/${projectId}/contracts`)}
 			class="flex items-center gap-1 text-sm"
 		>
 			<span>View All</span>
@@ -90,10 +92,10 @@
 		{#await contractsPromise}
 			<Spinner />
 		{:then res}
-			{#if res && res.data.length > 0}
+			{#if res && res.items.length > 0}
 				<Table.Root>
 					<Table.Body>
-						{#each res.data as contract (contract)}
+						{#each res.items as contract (contract)}
 							<Table.Row
 								class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 								dark:text-neutral-400 dark:hover:text-neutral-50"
@@ -112,18 +114,17 @@
 								<Table.Cell>
 									Created On {formatDate(contract.createdAt)}
 								</Table.Cell>
-								<Table.Cell>
-									{contract.versions}
-									{contract.versions == 1 ? 'Version' : 'Versions'}
-									(Latest {contract.latestVersion.version})
-								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
 									<div
 										class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5
 										*:hover:text-neutral-950 dark:text-neutral-400
 										*:dark:hover:text-neutral-50"
 									>
-										<a href={`/admin/contracts/${contract.id}`} class="inline-block" title="View">
+										<a
+											href={resolve(`/admin/contracts/${contract.id}`)}
+											class="inline-block"
+											title="View"
+										>
 											<ArrowRight size={18} />
 										</a>
 
@@ -180,20 +181,10 @@
 				<ErrorMessage variant="warn" text="Contracts Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadContracts} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View Contracts"
-					retry={loadContracts}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadContracts} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadContracts} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadContracts} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadContracts} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadContracts} />
 			{/if}
 		{/await}
 	</div>
@@ -202,19 +193,13 @@
 {#if selectedContract}
 	<Dialog.ConfirmSignContract
 		bind:open={signDialog.isOpen}
-		versionId={selectedContract.latestVersion.id}
+		contractId={selectedContract.id}
 		onSuccess={loadContracts}
 	/>
 
 	<Dialog.ConfirmRejectContract
 		bind:open={rejectDialog.isOpen}
-		versionId={selectedContract.latestVersion.id}
-		onSuccess={loadContracts}
-	/>
-
-	<Dialog.RequestRevision
 		contractId={selectedContract.id}
-		bind:open={revisionDialog.isOpen}
 		onSuccess={loadContracts}
 	/>
 {/if}

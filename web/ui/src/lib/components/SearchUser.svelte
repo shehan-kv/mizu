@@ -5,9 +5,10 @@
 	import Spinner from './Spinner.svelte';
 	import UserCard from './UserCard.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
+	import type { PaginatedResponse } from '$lib/api/page';
 
 	interface Props {
-		onSelect: (user: User) => any;
+		onSelect: (user: User) => unknown;
 	}
 
 	let { onSelect }: Props = $props();
@@ -50,13 +51,13 @@
 		bind:value={searchTerm}
 		oninput={memberSearchDebounced}
 		type="text"
-		class="outline-hidden peer grow p-2 text-sm placeholder:text-xs placeholder:italic"
+		class="peer grow p-2 text-sm outline-hidden placeholder:text-xs placeholder:italic"
 		placeholder="Search For Members..."
 	/>
 	<MagnifyingGlass size={16} class="mx-2" />
 
 	<div
-		class="max-h-50 absolute left-0 top-10 hidden min-h-10 w-full overflow-scroll
+		class="absolute top-10 left-0 hidden max-h-50 min-h-10 w-full overflow-scroll
 									rounded bg-neutral-900 px-2 py-3 ring-0 transition"
 	>
 		{#if !searchTerm && !membersPromise}
@@ -66,9 +67,9 @@
 		{#await membersPromise}
 			<Spinner size={16} />
 		{:then res}
-			{#if res && res.data.length > 0}
+			{#if res && res.items.length > 0}
 				<div>
-					{#each res.data as member (member)}
+					{#each res.items as member (member.id)}
 						<div
 							class="cursor-pointer rounded p-2 hover:bg-neutral-950"
 							onmousedown={() => {

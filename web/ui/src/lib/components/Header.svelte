@@ -13,13 +13,15 @@
 	let { openMobileMenu }: { openMobileMenu: () => void } = $props();
 </script>
 
-<header class="flex items-center justify-between border-b px-8 py-2">
+<header
+	class="flex items-center justify-between rounded bg-neutral-50 px-8 py-2 dark:bg-neutral-950"
+>
 	<div class="flex gap-4">
 		<button class="cursor-pointer lg:hidden" onclick={openMobileMenu}>
 			<List />
 		</button>
-		<img src="/logo-light.svg" alt="MizuPM logo" class="w-15 hidden dark:block" />
-		<img src="/logo-dark.svg" alt="MizuPM logo" class="w-15 block dark:hidden" />
+		<img src="/assets/logo-light.svg" alt="MizuPM logo" class="hidden w-15 dark:block" />
+		<img src="/assets/logo-dark.svg" alt="MizuPM logo" class="block w-15 dark:hidden" />
 	</div>
 
 	<div class="flex items-center gap-5 text-neutral-700 dark:text-neutral-300">
@@ -35,7 +37,7 @@
 			<Popover.Trigger class="cursor-pointer p-1 hover:text-neutral-950 dark:hover:text-neutral-50">
 				<Bell size={20} />
 			</Popover.Trigger>
-			<Popover.Content class="mr-4 mt-2 text-sm">No Notifications Yet</Popover.Content>
+			<Popover.Content class="mt-2 mr-4 text-sm">No Notifications Yet</Popover.Content>
 		</Popover.Root>
 
 		<DropdownMenu.Root>
@@ -44,7 +46,7 @@
 			>
 				<User size={20} />
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content class="mr-4 mt-2">
+			<DropdownMenu.Content class="mt-2 mr-4">
 				<DropdownMenu.Item class="py-2">
 					<span class="flex items-center gap-3"><SignOut />Sign Out</span>
 				</DropdownMenu.Item>

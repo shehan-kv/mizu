@@ -9,19 +9,14 @@
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { createDialogState } from './createDialogState.svelte';
-	import { getInvoicesByProjectId, type InvoiceWithStatus } from '$lib/api/invoices';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import Spinner from '../Spinner.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { Channel } from '$lib/api/messages';
 	import ChannelViewInvoice from './ChannelViewInvoice.svelte';
+	import { getInvoicesByProject, type InvoiceOverview } from '$lib/api/invoices';
+	import type { PaginatedResponse } from '$lib/api/page';
 
 	interface Props {
 		open: boolean;
@@ -36,10 +31,10 @@
 	let limit = $state(DEFAULT_LIMIT);
 
 	// For the invoice details dialog
-	let selectedInvoice: InvoiceWithStatus | null = $state(null);
+	let selectedInvoice: InvoiceOverview | null = $state(null);
 	let invoiceViewDialog = createDialogState();
 
-	let invoicePromise: Promise<PaginatedResponse<InvoiceWithStatus>> | null = $state(null);
+	let invoicePromise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
 
 	let abortController: AbortController | null = null;
 	function loadInvoices() {
@@ -52,7 +47,7 @@
 		}
 		abortController = new AbortController();
 
-		invoicePromise = getInvoicesByProjectId(
+		invoicePromise = getInvoicesByProject(
 			channel.projectId,
 			{ page, limit },
 			abortController.signal
@@ -79,12 +74,12 @@
 			{#await invoicePromise}
 				<Spinner />
 			{:then res}
-				{#if res && res.data}
+				{#if res && res.items}
 					<div class="overflow-y-auto">
-						{#if res.data.length == 0}
+						{#if res.items.length == 0}
 							<ErrorMessage variant="info" text="Invoices/Quotes Not Found" />
 						{/if}
-						{#if res.data.length > 0}
+						{#if res.items.length > 0}
 							<Table.Root class="container mx-auto">
 								<Table.Header>
 									<Table.Row>
@@ -98,18 +93,18 @@
 									</Table.Row>
 								</Table.Header>
 								<Table.Body>
-									{#each res.data as invoice (invoice)}
+									{#each res.items as invoice (invoice.id)}
 										<Table.Row>
 											<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
 											<Table.Cell>#{invoice.id}</Table.Cell>
-											<Table.Cell>{currencyFormatter('USD', invoice.total)}</Table.Cell>
+											<Table.Cell>{currencyFormatter('USD', invoice.subTotal)}</Table.Cell>
 											<Table.Cell class="flex items-center gap-1">
 												{toTitleCase(invoice.status)}
 												{#if invoice.status == 'paid' || invoice.status == 'accepted'}
 													<Checks size={18} class="text-emerald-500" />
 												{/if}
 											</Table.Cell>
-											<Table.Cell>{formatDate(invoice.issuedAt)}</Table.Cell>
+											<Table.Cell>{formatDate(invoice.createdAt)}</Table.Cell>
 											<Table.Cell>
 												{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}
 											</Table.Cell>
@@ -138,28 +133,14 @@
 							</Table.Root>
 						{/if}
 					</div>
-					{#if res.data.length > 0}
+					{#if res.items.length > 0}
 						<div class="container mx-auto flex justify-end">
-							<Pagination bind:page count={res.count} perPage={res.limit} />
+							<Pagination bind:page count={res.totalCount} perPage={res.limit} />
 						</div>
 					{/if}
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View These Invoices/Quotes"
-						retry={loadInvoices}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
-				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
-				{/if}
+				<ErrorMessage variant="warn" text={err} retry={loadInvoices} />
 			{/await}
 		{/if}
 	</div>

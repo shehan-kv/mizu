@@ -5,7 +5,7 @@
 	interface Props {
 		value: string;
 		delay?: number;
-		onchange?: () => any;
+		onchange?: () => unknown;
 	}
 	let { value = $bindable(), onchange, delay = 300 }: Props = $props();
 
@@ -30,9 +30,9 @@
 		id="search"
 		bind:value={inputValue}
 		oninput={onInput}
-		class="w-full py-1.5 pl-2 pr-10 text-sm outline-none"
+		class="w-full py-1.5 pr-10 pl-2 text-sm outline-none"
 	/>
 	<MagnifyingGlass
-		class="absolute right-1 top-1/2 mr-2 -translate-y-1/2 self-center text-neutral-700 dark:text-neutral-400"
+		class="absolute top-1/2 right-1 mr-2 -translate-y-1/2 self-center text-neutral-700 dark:text-neutral-400"
 	/>
 </div>

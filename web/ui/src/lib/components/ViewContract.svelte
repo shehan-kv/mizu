@@ -4,87 +4,74 @@
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import ArrowCounterClockwise from 'phosphor-svelte/lib/ArrowCounterClockwise';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
-
-	import {
-		getContractSignatures,
-		getContractVersions,
-		type ContractSignature,
-		type ContractVersion
-	} from '$lib/api/contracts';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
-
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import Spinner from './Spinner.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import ContractRevisions from './ContractRevisions.svelte';
 	import ConfirmSignContract from './dialogs/ConfirmSignContract.svelte';
 	import ConfirmRejectContract from './dialogs/ConfirmRejectContract.svelte';
-	import RequestRevision from './dialogs/RequestRevision.svelte';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		contractId: number;
+		contractId: string;
 	}
 	let { contractId }: Props = $props();
 
-	let activeSidebar: 'ABOUT' | 'REVISION' = $state('ABOUT');
+	// let activeSidebar: 'ABOUT' | 'REVISION' = $state('ABOUT');
 
-	let signaturesPromise: Promise<ContractSignature[]> | null = $state(null);
-	let signatureAbortController: AbortController | null = null;
+	// let signaturesPromise: Promise<ContractSignature[]> | null = $state(null);
+	// let signatureAbortController: AbortController | null = null;
 
-	async function loadSignatures() {
-		if (!selectedVersion) return;
+	// async function loadSignatures() {
+	// 	if (!selectedVersion) return;
 
-		if (signatureAbortController) {
-			signatureAbortController.abort();
-		}
+	// 	if (signatureAbortController) {
+	// 		signatureAbortController.abort();
+	// 	}
 
-		signatureAbortController = new AbortController();
+	// 	signatureAbortController = new AbortController();
 
-		signaturesPromise = getContractSignatures(selectedVersion.id, signatureAbortController.signal);
-	}
+	// 	signaturesPromise = getContractSignatures(selectedVersion.id, signatureAbortController.signal);
+	// }
 
-	let versionsPromise: Promise<ContractVersion[]> | null = $state(null);
-	let versionAbortController: AbortController | null = null;
-	let selectedVersion: ContractVersion | null = $state(null);
+	// let versionsPromise: Promise<ContractVersion[]> | null = $state(null);
+	// let versionAbortController: AbortController | null = null;
+	// let selectedVersion: ContractVersion | null = $state(null);
 
-	function loadVersions() {
-		if (versionAbortController) {
-			versionAbortController.abort();
-		}
+	// function loadVersions() {
+	// 	if (versionAbortController) {
+	// 		versionAbortController.abort();
+	// 	}
 
-		versionAbortController = new AbortController();
+	// 	versionAbortController = new AbortController();
 
-		versionsPromise = getContractVersions(contractId, versionAbortController.signal).then(
-			(versions) => {
-				if (versions.length > 0) selectedVersion = versions[0];
-				loadSignatures();
-				return versions;
-			}
-		);
-	}
+	// 	versionsPromise = getContractVersions(contractId, versionAbortController.signal).then(
+	// 		(versions) => {
+	// 			if (versions.length > 0) selectedVersion = versions[0];
+	// 			loadSignatures();
+	// 			return versions;
+	// 		}
+	// 	);
+	// }
 
-	function openContractVersion(version: ContractVersion) {
-		selectedVersion = version;
-	}
+	// function openContractVersion(version: ContractVersion) {
+	// 	selectedVersion = version;
+	// }
 
-	let confirmSignDialog = createDialogState();
-	let confirmRejectDialog = createDialogState();
-	let requestRevisionDialog = createDialogState();
+	// let confirmSignDialog = createDialogState();
+	// let confirmRejectDialog = createDialogState();
+	// let requestRevisionDialog = createDialogState();
 
-	$effect(() => {
-		if (!open) return;
-		loadVersions();
-	});
+	// $effect(() => {
+	// 	if (!open) return;
+	// 	loadVersions();
+	// });
 </script>
 
-{#snippet cardTitle(text: string)}
+<p>This Component Is To Be Implemented</p>
+
+<!-- {#snippet cardTitle(text: string)}
 	<p class="mb-4 text-xs text-neutral-500">{text}</p>
 {/snippet}
 
@@ -278,35 +265,23 @@
 		<ErrorMessage variant="info" text="Versions Not Found" />
 	{/if}
 {:catch err}
-	{#if err instanceof APIBadRequestError}
-		<ErrorMessage variant="warn" text="Invalid Request" retry={loadVersions} />
-	{:else if err instanceof APIForbiddenError}
-		<ErrorMessage
-			variant="warn"
-			text="You Don't Have Permission To View These Versions"
-			retry={loadVersions}
-		/>
-	{:else if err instanceof APINotFoundError}
-		<ErrorMessage variant="info" text="Not Found" retry={loadVersions} />
-	{:else if err instanceof APIServerError}
-		<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadVersions} />
+	{#if err instanceof ApiError}
+		<ErrorMessage variant="warn" text={err.message} retry={loadVersions} />
 	{:else}
-		<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadVersions} />
+		<ErrorMessage variant="warn" text="An Error Occurred" retry={loadVersions} />
 	{/if}
 {/await}
 
 {#if selectedVersion}
 	<ConfirmSignContract
 		bind:open={confirmSignDialog.isOpen}
-		versionId={selectedVersion.id}
+		contractId={selectedVersion.id}
 		onSuccess={loadVersions}
 	/>
 
 	<ConfirmRejectContract
 		bind:open={confirmRejectDialog.isOpen}
-		versionId={selectedVersion.id}
+		contractId={selectedVersion.id}
 		onSuccess={loadVersions}
 	/>
-{/if}
-
-<RequestRevision bind:open={requestRevisionDialog.isOpen} {contractId} onSuccess={loadVersions} />
+{/if} -->

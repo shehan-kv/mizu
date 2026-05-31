@@ -7,24 +7,17 @@
 	import CaretDoubleDown from 'phosphor-svelte/lib/CaretDoubleDown';
 	import { toast } from 'svelte-sonner';
 	import InputLabel from '../InputLabel.svelte';
-	import {
-		APIBadRequestError,
-		APIError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError,
-		NetworkError
-	} from '$lib/api/errors';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import Info from 'phosphor-svelte/lib/Info';
 	import { createUser, type UserRole } from '$lib/api/users';
-	import { type Project } from '$lib/api/projects';
+	import { type ProjectStat } from '$lib/api/projects';
 	import SearchProject from '../SearchProject.svelte';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
 		open: boolean;
-		onSuccess?: () => any;
+		onSuccess?: () => unknown;
 	}
 
 	let { open = $bindable(), onSuccess }: Props = $props();
@@ -49,7 +42,7 @@
 		email: string;
 		role: UserRole;
 		status: UserStatus;
-		projects: Project[];
+		projects: ProjectStat[];
 		projectSearchTerm: string;
 	}>({
 		firstName: '',
@@ -98,33 +91,25 @@
 					email: req.email,
 					role: req.role,
 					isActive: req.status == 'active' ? true : false,
-					projects: req.projects.map((p) => p.id)
+					projectIds: req.projects.map((p) => p.id)
 				},
 				createAbort.signal
 			);
 
 			toast.success('Successfully Created');
 			resetState();
-			onSuccess && onSuccess();
+			onSuccess?.();
 			open = false;
 		} catch (error) {
-			if (error instanceof APIBadRequestError) {
-				toast.error('Invalid Request');
-			} else if (error instanceof APIForbiddenError) {
-				toast.error('Not Authorized');
-			} else if (error instanceof APINotFoundError) {
-				toast.error('Not Found');
-			} else if (error instanceof APIServerError) {
-				toast.error('Server Error');
-			} else if (error instanceof APIError) {
-				toast.error('Unexpected Error, Try Again');
-			} else if (error instanceof NetworkError) {
-				toast.error('Request Failed, Try Again');
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('An Error Occurred');
 			}
 		}
 	}
 
-	function addProject(project: Project) {
+	function addProject(project: ProjectStat) {
 		const exists = req.projects.find((p) => p.id == project.id);
 		if (!exists) {
 			req.projects.push(project);
@@ -132,7 +117,7 @@
 		}
 	}
 
-	function removeProject(project: Project) {
+	function removeProject(project: ProjectStat) {
 		const exists = req.projects.find((p) => p.id == project.id);
 		if (exists) {
 			req.projects = req.projects.filter((p) => p.id != project.id);
@@ -151,8 +136,8 @@
 			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
 			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
 			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 
-			rounded"
+			fixed top-1/2 left-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded outline-hidden 
+			duration-250"
 		>
 			<div class="text-right">
 				<Dialog.Close
@@ -175,8 +160,8 @@
 								type="text"
 								id="firstName"
 								bind:value={req.firstName}
-								class="outline-hidden w-full rounded border border-neutral-200 bg-neutral-100
-								p-2 dark:border-neutral-800 dark:bg-neutral-900"
+								class="w-full rounded border border-neutral-200 bg-neutral-100 p-2
+								outline-hidden dark:border-neutral-800 dark:bg-neutral-900"
 							/>
 						</div>
 						<div class="space-y-1 text-sm *:block">
@@ -185,8 +170,8 @@
 								type="text"
 								id="lastName"
 								bind:value={req.lastName}
-								class="outline-hidden w-full rounded border border-neutral-200 bg-neutral-100
-                        		p-2 dark:border-neutral-800 dark:bg-neutral-900"
+								class="w-full rounded border border-neutral-200 bg-neutral-100 p-2
+                        		outline-hidden dark:border-neutral-800 dark:bg-neutral-900"
 							/>
 						</div>
 						<div class="space-y-1 text-sm *:block">
@@ -195,8 +180,8 @@
 								type="text"
 								id="title"
 								bind:value={req.title}
-								class="outline-hidden w-full rounded border border-neutral-200 bg-neutral-100
-                        		p-2 dark:border-neutral-800 dark:bg-neutral-900"
+								class="w-full rounded border border-neutral-200 bg-neutral-100 p-2
+                        		outline-hidden dark:border-neutral-800 dark:bg-neutral-900"
 							/>
 						</div>
 					</div>
@@ -206,8 +191,8 @@
 							type="email"
 							id="email"
 							bind:value={req.email}
-							class="outline-hidden w-full rounded border border-neutral-200 bg-neutral-100
-                            p-2 dark:border-neutral-800 dark:bg-neutral-900"
+							class="w-full rounded border border-neutral-200 bg-neutral-100 p-2
+                            outline-hidden dark:border-neutral-800 dark:bg-neutral-900"
 						/>
 					</div>
 					<div class="grid grid-cols-2 gap-2">
@@ -231,9 +216,9 @@
                                         data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
                                         data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
                                         data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-                                        data-[side=top]:slide-in-from-bottom-2 outline-hidden z-50 
-                                        max-h-[var(--bits-select-content-available-height)] w-fit min-w-[var(--bits-select-anchor-width)] 
-                                        select-none rounded-xl border px-1 py-3 data-[side=bottom]:translate-y-1 
+                                        data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--bits-select-content-available-height) 
+                                        w-fit min-w-(--bits-select-anchor-width) rounded-xl 
+                                        border px-1 py-3 outline-hidden select-none data-[side=bottom]:translate-y-1 
                                         data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1"
 										sideOffset={10}
 									>
@@ -243,10 +228,10 @@
 										<Select.Viewport class="p-1">
 											{#each roles as role, i (i + role.value)}
 												<Select.Item
-													class="data-highlighted:bg-muted outline-hidden 
-                                                        data-disabled:opacity-50 flex h-fit 
-                                                        w-full select-none items-center gap-1 rounded 
-                                                        px-4 py-2 text-xs capitalize"
+													class="data-highlighted:bg-muted flex 
+                                                        h-fit w-full items-center 
+                                                        gap-1 rounded px-4 py-2 text-xs 
+                                                        capitalize outline-hidden select-none data-disabled:opacity-50"
 													value={role.value}
 													label={role.label}
 												>
@@ -293,9 +278,9 @@
                                         data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
                                         data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
                                         data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-                                        data-[side=top]:slide-in-from-bottom-2 outline-hidden z-50 
-                                        max-h-[var(--bits-select-content-available-height)] w-fit min-w-[var(--bits-select-anchor-width)] 
-                                        select-none rounded-xl border px-1 py-3 data-[side=bottom]:translate-y-1 
+                                        data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--bits-select-content-available-height) 
+                                        w-fit min-w-(--bits-select-anchor-width) rounded-xl 
+                                        border px-1 py-3 outline-hidden select-none data-[side=bottom]:translate-y-1 
                                         data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1"
 										sideOffset={10}
 									>
@@ -305,10 +290,10 @@
 										<Select.Viewport class="p-1">
 											{#each statuses as status, i (i + status.value)}
 												<Select.Item
-													class="data-highlighted:bg-muted outline-hidden 
-                                                        data-disabled:opacity-50 flex h-fit 
-                                                        w-full select-none items-center gap-1 rounded 
-                                                        px-4 py-2 text-xs capitalize"
+													class="data-highlighted:bg-muted flex 
+                                                        h-fit w-full items-center 
+                                                        gap-1 rounded px-4 py-2 text-xs 
+                                                        capitalize outline-hidden select-none data-disabled:opacity-50"
 													value={status.value}
 													label={status.label}
 												>

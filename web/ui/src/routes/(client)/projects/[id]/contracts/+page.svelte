@@ -9,13 +9,8 @@
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import { formatDate } from '$lib/utils/formatDate';
 	import Pagination from '$lib/components/Pagination.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import { getProjectDetails, type ProjectDetails } from '$lib/api/projects';
+
+	import { getProject, type Project } from '$lib/api/projects';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
@@ -23,23 +18,28 @@
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 	import { goto } from '$app/navigation';
-	import { getContractsByProject, type Contract } from '$lib/api/contracts';
+	import { getContractOverviewsByProject, type Contract } from '$lib/api/contracts';
+	import { resolve } from '$app/paths';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { ApiError } from '$lib/api/client';
+	import { CONTRACT_STATUS } from '$lib/constants/contract';
 
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
 	const DEFAULT_LIMIT = 30;
 	const DEFAULT_PAGE_NUMBER = 1;
 
-	const params = new URLSearchParams(page.url.searchParams.toString());
+	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
 
-	let id = Number(page.params.id);
+	let id = page.params.id || '';
 
 	let q = $state(params.get('q') || '');
-	let status = $state(params.get('status') || '');
+	let status = $state(CONTRACT_STATUS.find((c) => c === params.get('status')) || '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
 	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
-	let projectPromise: Promise<ProjectDetails> | null = $state(null);
+	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
 	function loadProject() {
 		if (projectAbort) {
@@ -48,7 +48,7 @@
 
 		projectAbort = new AbortController();
 
-		projectPromise = getProjectDetails(id, projectAbort.signal).then((d) => {
+		projectPromise = getProject(id, projectAbort.signal).then((d) => {
 			document.title = 'Contracts - ' + d.name;
 			return d;
 		});
@@ -63,7 +63,11 @@
 
 		contractsAbort = new AbortController();
 
-		contractsPromise = getContractsByProject(id, q, status, pageNum, limit, contractsAbort.signal);
+		contractsPromise = getContractOverviewsByProject(
+			id,
+			{ q, status, page: pageNum, limit },
+			contractsAbort.signal
+		);
 	}
 
 	function updateUrlParam() {
@@ -82,6 +86,7 @@
 			params.delete('status');
 		}
 
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		goto(`?${params.toString()}`, { replaceState: true, keepFocus: true });
 	}
 
@@ -109,7 +114,7 @@
 			{#await projectPromise}
 				<p class="">...</p>
 			{:then res}
-				<a href={`/projects/${res?.id}`} class="underline">{res?.name}</a>
+				<a href={resolve(`/projects/${res?.id}`)} class="underline">{res?.name}</a>
 			{/await}
 
 			<ChevronRight size={18} />
@@ -147,25 +152,24 @@
 	{#await contractsPromise}
 		<Spinner />
 	{:then res}
-		{#if res && res.data}
+		{#if res && res.items}
 			<div class="mx-auto gap-4 overflow-y-auto lg:container">
-				{#if res.data.length == 0}
+				{#if res.items.length == 0}
 					<ErrorMessage variant="info" text="Invoices/Quotes Not Found" />
 				{/if}
 				<div class="overflow-y-auto">
-					{#if res.data.length > 0}
+					{#if res.items.length > 0}
 						<Table.Root class="container mx-auto">
 							<Table.Header>
 								<Table.Row>
 									<Table.Head class="font-bold">Name</Table.Head>
 									<Table.Head class="font-bold">Status</Table.Head>
-									<Table.Head class="font-bold">Revisions</Table.Head>
 									<Table.Head class="font-bold">Created Date</Table.Head>
 									<Table.Head class="font-bold">Actions</Table.Head>
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as contract (contract)}
+								{#each res.items as contract (contract.id)}
 									<Table.Row>
 										<Table.Cell>{contract.name}</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
@@ -174,9 +178,7 @@
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
 										</Table.Cell>
-										<Table.Cell>
-											{contract.acceptedRevisions} / {contract.numOfRevisions} Accepted
-										</Table.Cell>
+
 										<Table.Cell>{formatDate(contract.createdAt)}</Table.Cell>
 										<Table.Cell>
 											<div
@@ -185,7 +187,7 @@
 												*:dark:hover:text-neutral-50"
 											>
 												<a
-													href={`/contracts/${contract.id}`}
+													href={resolve(`/contracts/${contract.id}`)}
 													title="View Contract"
 													class="inline-block"
 												>
@@ -204,27 +206,17 @@
 					{/if}
 				</div>
 			</div>
-			{#if res.data.length > 0}
+			{#if res.items.length > 0}
 				<div class="container mx-auto flex justify-end">
-					<Pagination bind:page={pageNum} count={res.count} perPage={limit} />
+					<Pagination bind:page={pageNum} count={res.totalCount} perPage={limit} />
 				</div>
 			{/if}
 		{/if}
 	{:catch err}
-		{#if err instanceof APIBadRequestError}
-			<ErrorMessage variant="warn" text="Invalid Request" retry={loadContracts} />
-		{:else if err instanceof APIForbiddenError}
-			<ErrorMessage
-				variant="warn"
-				text="You Don't Have Permission To View These Invoices/Quotes"
-				retry={loadContracts}
-			/>
-		{:else if err instanceof APINotFoundError}
-			<ErrorMessage variant="info" text="Not Found" retry={loadContracts} />
-		{:else if err instanceof APIServerError}
-			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadContracts} />
+		{#if err instanceof ApiError}
+			<ErrorMessage variant="warn" text={err.message} retry={loadContracts} />
 		{:else}
-			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadContracts} />
+			<ErrorMessage variant="warn" text="An Error Occurred" retry={loadContracts} />
 		{/if}
 	{/await}
 </div>

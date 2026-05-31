@@ -1,18 +1,11 @@
 <script lang="ts">
+	import { ApiError } from '$lib/api/client';
 	import {
-		APIBadRequestError,
-		APIConflictError,
-		APIError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError,
-		NetworkError
-	} from '$lib/api/errors';
-	import {
-		markProjectCancelled,
-		markProjectCompleted,
-		markProjectPaused,
-		markProjectStarted
+		cancelProject,
+		completeProject,
+		pauseProject,
+		startProject,
+		type ProjectStatus
 	} from '$lib/api/projects';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { Dialog } from 'bits-ui';
@@ -22,9 +15,9 @@
 
 	interface Props {
 		open: boolean;
-		projectId: number;
-		status: 'started' | 'paused' | 'cancelled' | 'completed';
-		onSuccess?: () => any;
+		projectId: string;
+		status: ProjectStatus;
+		onSuccess?: () => unknown;
 	}
 
 	let { open = $bindable(), projectId, status, onSuccess }: Props = $props();
@@ -40,39 +33,29 @@
 		try {
 			switch (status) {
 				case 'started':
-					await markProjectStarted(projectId, changeAbort.signal);
+					await startProject(projectId, changeAbort.signal);
 					break;
 				case 'paused':
-					await markProjectPaused(projectId, changeAbort.signal);
+					await pauseProject(projectId, changeAbort.signal);
 					break;
 				case 'cancelled':
-					await markProjectCancelled(projectId, changeAbort.signal);
+					await cancelProject(projectId, changeAbort.signal);
 					break;
 				case 'completed':
-					await markProjectCompleted(projectId, changeAbort.signal);
+					await completeProject(projectId, changeAbort.signal);
 					break;
 				default:
 					break;
 			}
 
 			toast.success(`Successfully ${toTitleCase(status)}`);
-			onSuccess && onSuccess();
+			onSuccess?.();
 			open = false;
 		} catch (error) {
-			if (error instanceof APIBadRequestError) {
-				toast.error('Invalid Request');
-			} else if (error instanceof APIForbiddenError) {
-				toast.error('Not Authorized');
-			} else if (error instanceof APINotFoundError) {
-				toast.error('Not Found');
-			} else if (error instanceof APIServerError) {
-				toast.error('Server Error');
-			} else if (error instanceof APIConflictError) {
-				toast.error(`Already ${toTitleCase(status)}`);
-			} else if (error instanceof APIError) {
-				toast.error('Unexpected Error, Try Again');
-			} else if (error instanceof NetworkError) {
-				toast.error('Request Failed, Try Again');
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('An Error Occurred');
 			}
 		}
 	}
@@ -89,8 +72,8 @@
 			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
 			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
 			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 
-			rounded"
+			fixed top-1/2 left-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded outline-hidden 
+			duration-250"
 		>
 			<div class="text-right">
 				<Dialog.Close

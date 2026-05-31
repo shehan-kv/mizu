@@ -1,37 +1,30 @@
 <script lang="ts">
-	import { getInvoiceDetails, type InvoiceDetails, type InvoiceStatus } from '$lib/api/invoices';
+	import { getInvoice, type Invoice, type InvoiceStatus } from '$lib/api/invoices';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/dialogs';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
-	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Note from 'phosphor-svelte/lib/Note';
-	import ClockCounterClockwise from 'phosphor-svelte/lib/ClockCounterClockwise';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
+
 	import Spinner from './Spinner.svelte';
-	import UserCard from './UserCard.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { onMount } from 'svelte';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import type { UserRole } from '$lib/api/users';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		invoiceId: number;
+		invoiceId: string;
 		role?: UserRole;
-		onLoad?: (invoice: InvoiceDetails) => any;
+		onLoad?: (invoice: Invoice) => unknown;
 	}
 
 	let { invoiceId, role = 'client', onLoad }: Props = $props();
 
-	let invoicePromise: Promise<InvoiceDetails> | null = $state(null);
+	let invoicePromise: Promise<Invoice> | null = $state(null);
 	let abortController: AbortController | null = null;
 
 	function loadInvoice() {
@@ -40,8 +33,8 @@
 		}
 		abortController = new AbortController();
 
-		invoicePromise = getInvoiceDetails(invoiceId, abortController.signal).then((res) => {
-			onLoad && onLoad(res);
+		invoicePromise = getInvoice(invoiceId, abortController.signal).then((res) => {
+			onLoad?.(res);
 			return res;
 		});
 	}
@@ -80,11 +73,11 @@
 						<p>{toTitleCase(invoice.status)}</p>
 					</div>
 					<div>
-						<p class="text-xs text-neutral-500">Issued On</p>
-						<p>{formatDate(invoice.issuedAt)}</p>
+						<p class="text-xs text-neutral-500">Issued At</p>
+						<p>{formatDate(invoice.createdAt)}</p>
 					</div>
 					<div>
-						<p class="text-xs text-neutral-500">Due On</p>
+						<p class="text-xs text-neutral-500">Due At</p>
 						<p>{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}</p>
 					</div>
 				</div>
@@ -95,15 +88,15 @@
 					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Discount</p>
-						<p>{currencyFormatter(invoice.currencyCode, invoice.discount)}</p>
+						<p>{currencyFormatter(invoice.currencyCode, invoice.totalDiscount)}</p>
 					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Tax</p>
-						<p>{currencyFormatter(invoice.currencyCode, invoice.tax)}</p>
+						<p>{currencyFormatter(invoice.currencyCode, invoice.totalTax)}</p>
 					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Total</p>
-						<p>{currencyFormatter(invoice.currencyCode, invoice.total)}</p>
+						<p>{currencyFormatter(invoice.currencyCode, invoice.subTotal)}</p>
 					</div>
 				</div>
 			</div>
@@ -175,45 +168,45 @@
 							</Table.Cell>
 							<Table.Cell>
 								{#if item.discountType == 'percentage'}
-									{item.unitDiscount}%
+									{item.discountRate}%
 								{:else}
-									{currencyFormatter(invoice.currencyCode, item.unitDiscount)}
+									{currencyFormatter(invoice.currencyCode, item.discountRate)}
 								{/if}
 							</Table.Cell>
 							<Table.Cell>
 								{#if item.taxType == 'percentage'}
-									{item.unitTax}%
+									{item.taxRate}%
 								{:else}
-									{currencyFormatter(invoice.currencyCode, item.unitTax)}
+									{currencyFormatter(invoice.currencyCode, item.taxRate)}
 								{/if}
 							</Table.Cell>
 							<Table.Cell>
-								{currencyFormatter(invoice.currencyCode, item.totalDiscount)}
+								{currencyFormatter(invoice.currencyCode, item.lineDiscount)}
 							</Table.Cell>
 							<Table.Cell>
-								{currencyFormatter(invoice.currencyCode, item.totalTax)}
+								{currencyFormatter(invoice.currencyCode, item.lineTax)}
 							</Table.Cell>
 							<Table.Cell align="right">
-								{currencyFormatter(invoice.currencyCode, item.total)}
+								{currencyFormatter(invoice.currencyCode, item.lineTotal)}
 							</Table.Cell>
 						</Table.Row>
 					{/each}
 					<Table.Row>
 						<Table.Cell colspan={7} align="right" class="border-r">Total Discount</Table.Cell>
 						<Table.Cell align="right">
-							{currencyFormatter(invoice.currencyCode, invoice.discount)}
+							{currencyFormatter(invoice.currencyCode, invoice.totalDiscount)}
 						</Table.Cell>
 					</Table.Row>
 					<Table.Row>
 						<Table.Cell colspan={7} align="right" class="border-r">Total Tax</Table.Cell>
 						<Table.Cell align="right">
-							{currencyFormatter(invoice.currencyCode, invoice.tax)}
+							{currencyFormatter(invoice.currencyCode, invoice.totalTax)}
 						</Table.Cell>
 					</Table.Row>
 					<Table.Row class="bg-neutral-100 dark:bg-neutral-900">
 						<Table.Cell colspan={7} align="right" class="border-r">Invoice Total</Table.Cell>
 						<Table.Cell align="right">
-							{currencyFormatter(invoice.currencyCode, invoice.total)}
+							{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
 						</Table.Cell>
 					</Table.Row>
 				</Table.Body>
@@ -224,77 +217,14 @@
 			<p class="inline-flex items-center gap-1"><Note size={20} /> Note</p>
 			<p class="max-w-xl whitespace-break-spaces">{invoice.note || 'N/A'}</p>
 		</div>
-
-		<div class="mt-8">
-			<p class="inline-flex items-center gap-1">
-				<ClockCounterClockwise size={20} /> History
-			</p>
-			<div
-				class="before:content-[' '] dark:before:-z-1 relative mt-2
-								space-y-10 before:absolute before:left-[6px] before:top-1
-								before:z-auto before:min-h-full before:w-1 before:border-l-[1px]
-								before:border-dashed before:border-neutral-600"
-			>
-				{#each invoice.history as entry (entry)}
-					<div class="flex items-start gap-3">
-						<div
-							class="z-1 mt-1.5 size-3 shrink-0 rounded-full border border-2
-											border-emerald-500 bg-neutral-50 dark:z-auto dark:border-emerald-700
-											dark:bg-neutral-950"
-						></div>
-						<div>
-							<p class="text-sm">
-								{#if entry.event == 'converted'}
-									Converted to
-									{entry.isInvoice ? 'Invoice' : 'Quote'}
-								{:else}
-									{entry.isInvoice ? 'Invoice' : 'Quote'}
-									{toTitleCase(entry.event)}
-								{/if}
-							</p>
-							<p class=" text-xs">
-								On {formatDate(entry.recoredAt)}
-							</p>
-							{#if entry.lastStatus && entry.newStatus}
-								<p
-									class="inline-flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-500"
-								>
-									{toTitleCase(entry.lastStatus)}
-									<ArrowRight class="text-emerald-500" />
-									{toTitleCase(entry.newStatus)}
-								</p>
-							{/if}
-							<div class="mt-2">
-								<UserCard
-									image={entry.user.image}
-									name={`${entry.user.firstName} ${entry.user.lastName}`}
-									role={entry.user.role}
-									title={entry.user.title}
-								/>
-							</div>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
 	{:else}
 		<ErrorMessage variant="info" text="Invoice/Quote Not Found" />
 	{/if}
 {:catch err}
-	{#if err instanceof APIBadRequestError}
+	{#if err instanceof ApiError}
 		<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoice} />
-	{:else if err instanceof APIForbiddenError}
-		<ErrorMessage
-			variant="warn"
-			text="You Don't Have Permission To View This Invoice/Quote"
-			retry={loadInvoice}
-		/>
-	{:else if err instanceof APINotFoundError}
-		<ErrorMessage variant="info" text="Not Found" retry={loadInvoice} />
-	{:else if err instanceof APIServerError}
-		<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoice} />
 	{:else}
-		<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoice} />
+		<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoice} />
 	{/if}
 {/await}
 

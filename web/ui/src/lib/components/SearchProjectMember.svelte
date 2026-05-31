@@ -7,15 +7,15 @@
 	import { getProjectMembers, type ProjectMember } from '$lib/api/projects';
 
 	interface Props {
-		projectId: number;
-		onSelect: (member: ProjectMember) => any;
+		projectId: string;
+		onSelect: (member: ProjectMember) => unknown;
 	}
 
 	let { projectId, onSelect }: Props = $props();
 
 	let searchTerm = $state('');
 
-	let membersPromise: Promise<PaginatedResponse<ProjectMember>> | null = $state(null);
+	let membersPromise: Promise<ProjectMember[]> | null = $state(null);
 	let abort: AbortController | null = null;
 	function searchMembers() {
 		if (!searchTerm) {
@@ -36,11 +36,7 @@
 
 		// Paginate this API endpoint
 		// Change all calling functions to it
-		membersPromise = getProjectMembers(
-			projectId,
-			{ q: searchTerm.trim(), page: 1, limit: 50 },
-			abort.signal
-		);
+		membersPromise = getProjectMembers(projectId, abort.signal);
 	}
 
 	const memberSearchDebounced = debounce(() => {
@@ -57,13 +53,13 @@
 		bind:value={searchTerm}
 		oninput={memberSearchDebounced}
 		type="text"
-		class="outline-hidden peer grow p-2 text-sm placeholder:text-xs placeholder:italic"
+		class="peer grow p-2 text-sm outline-hidden placeholder:text-xs placeholder:italic"
 		placeholder="Search For Project Members..."
 	/>
 	<MagnifyingGlass size={16} class="mx-2" />
 
 	<div
-		class="max-h-50 absolute left-0 top-10 hidden min-h-10 w-full overflow-scroll
+		class="absolute top-10 left-0 hidden max-h-50 min-h-10 w-full overflow-scroll
 									rounded bg-neutral-900 px-2 py-3 ring-0 transition"
 	>
 		{#if !searchTerm && !membersPromise}
@@ -73,9 +69,9 @@
 		{#await membersPromise}
 			<Spinner size={16} />
 		{:then res}
-			{#if res && res.data.length > 0}
+			{#if res && res.length > 0}
 				<div>
-					{#each res.data as member (member)}
+					{#each res as member (member.id)}
 						<div
 							class="cursor-pointer rounded p-2 hover:bg-neutral-950"
 							onmousedown={() => {

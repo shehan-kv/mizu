@@ -11,17 +11,12 @@
 	import { createDialogState } from './createDialogState.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import ChannelViewContract from './ChannelViewContract.svelte';
-	import { getContractsByProject, type Contract } from '$lib/api/contracts';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { Channel } from '$lib/api/messages';
+	import { getContractOverviewsByProject, type ContractOverview } from '$lib/api/contracts';
+	import type { PaginatedResponse } from '$lib/api/page';
 
 	interface Props {
 		open: boolean;
@@ -36,10 +31,10 @@
 	let page = $state(1);
 	let limit = $state(30);
 
-	let selectedContract: Contract | null = $state(null);
+	let selectedContract: ContractOverview | null = $state(null);
 	let contractViewDialog = createDialogState();
 
-	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
+	let contractsPromise: Promise<PaginatedResponse<ContractOverview>> | null = $state(null);
 
 	let abortController: AbortController | null = null;
 	function loadContracts() {
@@ -53,18 +48,15 @@
 
 		abortController = new AbortController();
 
-		contractsPromise = getContractsByProject(
+		contractsPromise = getContractOverviewsByProject(
 			channel.projectId,
-			q,
-			status,
-			page,
-			limit,
+			{ q, status, page, limit },
 			abortController.signal
 		);
 	}
 
 	function handleSearch() {
-		// $effect automatically runs the loadFiles function when
+		// $effect automatically runs the loadContracts function when
 		// q changes. This function is used as a workaround to
 		// set page to 1 when a user searches for a file.
 		page = 1;
@@ -94,24 +86,23 @@
 			{#await contractsPromise}
 				<Spinner />
 			{:then res}
-				{#if res && res.data}
+				{#if res && res.items}
 					<div class="overflow-y-auto">
-						{#if res.data.length == 0}
+						{#if res.items.length == 0}
 							<ErrorMessage variant="info" text="Contracts Not Found" />
 						{/if}
-						{#if res.data.length > 0}
+						{#if res.items.length > 0}
 							<Table.Root class="container mx-auto">
 								<Table.Header>
 									<Table.Row>
 										<Table.Head class="font-bold">Name</Table.Head>
 										<Table.Head class="font-bold">Status</Table.Head>
-										<Table.Head class="font-bold">Revisions</Table.Head>
 										<Table.Head class="font-bold">Created Date</Table.Head>
 										<Table.Head class="font-bold">Actions</Table.Head>
 									</Table.Row>
 								</Table.Header>
 								<Table.Body>
-									{#each res.data as contract (contract)}
+									{#each res.items as contract (contract.id)}
 										<Table.Row>
 											<Table.Cell>{contract.name}</Table.Cell>
 											<Table.Cell class="flex items-center gap-1">
@@ -119,9 +110,6 @@
 												{#if contract.status == 'signed'}
 													<Checks size={18} class="text-emerald-500" />
 												{/if}
-											</Table.Cell>
-											<Table.Cell>
-												{contract.acceptedRevisions} / {contract.numOfRevisions} Accepted
 											</Table.Cell>
 											<Table.Cell>{formatDate(contract.createdAt)}</Table.Cell>
 											<Table.Cell>
@@ -149,28 +137,14 @@
 							</Table.Root>
 						{/if}
 					</div>
-					{#if res.data.length > 0}
+					{#if res.items.length > 0}
 						<div class="container mx-auto flex justify-end">
-							<Pagination bind:page count={res.count} perPage={res.limit} />
+							<Pagination bind:page count={res.totalCount} perPage={res.limit} />
 						</div>
 					{/if}
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadContracts} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View These Contracts"
-						retry={loadContracts}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadContracts} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadContracts} />
-				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadContracts} />
-				{/if}
+				<ErrorMessage variant="warn" text={err} retry={loadContracts} />
 			{/await}
 		{/if}
 	</div>

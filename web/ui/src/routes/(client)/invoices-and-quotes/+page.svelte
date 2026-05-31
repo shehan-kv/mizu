@@ -8,35 +8,35 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { onMount } from 'svelte';
-	import { getInvoices, type InvoiceSummary } from '$lib/api/invoices';
+	import { getInvoices, type InvoiceOverview } from '$lib/api/invoices';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import FilterInput from '$lib/components/FilterInput.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
+
 	import { formatDate } from '$lib/utils/formatDate';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import { resolve } from '$app/paths';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { ApiError } from '$lib/api/client';
+	import { INVOICE_STATUS, INVOICE_TYPE } from '$lib/constants/invoice';
 
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
 	const DEFAULT_LIMIT = 30;
 	const DEFAULT_PAGE_NUMBER = 1;
 
-	const params = new URLSearchParams(page.url.searchParams.toString());
+	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
 
 	let q = $state(params.get('q') || '');
-	let status = $state(params.get('status') || '');
-	let type = $state(params.get('type') || '');
+	let status = $state(INVOICE_STATUS.find((s) => s === params.get('status')) ?? '');
+	let type = $state(INVOICE_TYPE.find((t) => t === params.get('type')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
 	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
-	let invoicesPromise: Promise<PaginatedResponse<InvoiceSummary>> | null = $state(null);
+	let invoicesPromise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
 
 	let abortController: AbortController | null = null;
 	function loadInvoices() {
@@ -143,13 +143,13 @@
 	{#await invoicesPromise}
 		<Spinner />
 	{:then res}
-		{#if res && res.data}
+		{#if res && res.items}
 			<div class="mx-auto gap-4 overflow-y-auto lg:container">
-				{#if res.data.length == 0}
+				{#if res.items.length == 0}
 					<ErrorMessage variant="info" text="Invoices/Quotes Not Found" />
 				{/if}
 				<div class="overflow-y-auto">
-					{#if res.data.length > 0}
+					{#if res.items.length > 0}
 						<Table.Root class="container mx-auto">
 							<Table.Header>
 								<Table.Row>
@@ -164,13 +164,13 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as invoice (invoice)}
+								{#each res.items as invoice (invoice.id)}
 									<Table.Row>
 										<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
 										<Table.Cell>#{invoice.id}</Table.Cell>
 										<Table.Cell>{invoice.projectName}</Table.Cell>
 										<Table.Cell>
-											{currencyFormatter(invoice.currencyCode, invoice.total)}
+											{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
 											{toTitleCase(invoice.status)}
@@ -178,7 +178,7 @@
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
 										</Table.Cell>
-										<Table.Cell>{formatDate(invoice.issuedAt)}</Table.Cell>
+										<Table.Cell>{formatDate(invoice.createdAt)}</Table.Cell>
 										<Table.Cell>
 											{invoice.dueAt ? formatDate(invoice.dueAt) : 'N/A'}
 										</Table.Cell>
@@ -190,7 +190,7 @@
 												<a
 													title="View"
 													class="inline-block"
-													href={`/invoices-and-quotes/${invoice.id}`}
+													href={resolve(`/invoices-and-quotes/${invoice.id}`)}
 												>
 													<ArrowRight size={18} />
 												</a>
@@ -207,27 +207,17 @@
 					{/if}
 				</div>
 			</div>
-			{#if res.data.length > 0}
+			{#if res.items.length > 0}
 				<div class="container mx-auto flex justify-end">
-					<Pagination bind:page={pageNum} count={res.count} perPage={limit} />
+					<Pagination bind:page={pageNum} count={res.totalCount} perPage={limit} />
 				</div>
 			{/if}
 		{/if}
 	{:catch err}
-		{#if err instanceof APIBadRequestError}
-			<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
-		{:else if err instanceof APIForbiddenError}
-			<ErrorMessage
-				variant="warn"
-				text="You Don't Have Permission To View These Invoices/Quotes"
-				retry={loadInvoices}
-			/>
-		{:else if err instanceof APINotFoundError}
-			<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
-		{:else if err instanceof APIServerError}
-			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
+		{#if err instanceof ApiError}
+			<ErrorMessage variant="warn" text={err.message} retry={loadInvoices} />
 		{:else}
-			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
+			<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoices} />
 		{/if}
 	{/await}
 </div>

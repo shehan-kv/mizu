@@ -4,18 +4,17 @@
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import FullScreenDialog from './FullScreenDialog.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
-	import type { Channel } from '$lib/components/message/types';
 	import Spinner from '../Spinner.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
-	import { getFilesByChannel, type File } from '$lib/api/files';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { formatBytes } from '$lib/utils/formatBytes';
 	import { formatDate } from '$lib/utils/formatDate';
+	import {
+		downloadChannelFile,
+		getChannelFiles,
+		type Channel,
+		type ChannelFile
+	} from '$lib/api/messages';
+	import type { PaginatedResponse } from '$lib/api/page';
 
 	interface Props {
 		open: boolean;
@@ -29,7 +28,7 @@
 	let page = $state(1);
 	let limit = $state(30);
 
-	let filesPromise: Promise<PaginatedResponse<File>> | null = $state(null);
+	let filesPromise: Promise<PaginatedResponse<ChannelFile>> | null = $state(null);
 
 	let abortController: AbortController | null = null;
 	function loadFiles() {
@@ -39,7 +38,7 @@
 
 		abortController = new AbortController();
 
-		filesPromise = getFilesByChannel(channel.id, q, page, limit, abortController.signal);
+		filesPromise = getChannelFiles(channel.id, { q, page, limit }, abortController.signal);
 	}
 
 	function handleSearch() {
@@ -70,12 +69,12 @@
 		{#await filesPromise}
 			<Spinner />
 		{:then res}
-			{#if res && res.data}
+			{#if res && res.items}
 				<div class="overflow-y-auto">
-					{#if res.data.length == 0}
+					{#if res.items.length == 0}
 						<ErrorMessage variant="info" text="Files Not Found" />
 					{/if}
-					{#if res.data.length > 0}
+					{#if res.items.length > 0}
 						<Table.Root class="container mx-auto">
 							<Table.Header>
 								<Table.Row>
@@ -87,20 +86,20 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as file (file)}
+								{#each res.items as file (file.id)}
 									<Table.Row>
-										<Table.Cell>{file.originalName}</Table.Cell>
+										<Table.Cell>{file.name}</Table.Cell>
 										<Table.Cell>{formatBytes(file.size)}</Table.Cell>
 										<Table.Cell>{formatDate(file.uploadedAt)}</Table.Cell>
 										<Table.Cell>{file.user.firstName} {file.user.lastName}</Table.Cell>
 										<Table.Cell>
-											<a
-												href={file.url}
+											<button
+												onclick={() => downloadChannelFile(file.id)}
 												class="block w-fit cursor-pointer px-2 text-neutral-600
 										transition hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-neutral-50"
 											>
 												<DownloadSimple size={18} />
-											</a>
+											</button>
 										</Table.Cell>
 									</Table.Row>
 								{/each}
@@ -108,28 +107,14 @@
 						</Table.Root>
 					{/if}
 				</div>
-				{#if res.data.length > 0}
+				{#if res.items.length > 0}
 					<div class="container mx-auto flex justify-end">
-						<Pagination bind:page count={res.count} perPage={res.limit} />
+						<Pagination bind:page count={res.totalCount} perPage={res.limit} />
 					</div>
 				{/if}
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadFiles} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View These Files"
-					retry={loadFiles}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadFiles} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadFiles} />
-			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadFiles} />
-			{/if}
+			<ErrorMessage variant="warn" text={err} retry={loadFiles} />
 		{/await}
 	</div>
 </FullScreenDialog>

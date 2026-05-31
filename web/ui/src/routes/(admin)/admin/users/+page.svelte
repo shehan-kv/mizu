@@ -12,12 +12,6 @@
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import FilterInput from '$lib/components/FilterInput.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import { getUsers, type User } from '$lib/api/users';
@@ -25,13 +19,17 @@
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { USER_ACTIVE_STATES, USER_ROLES, USER_VERIFIED_STATES } from '$lib/constants/user';
+	import { resolve } from '$app/paths';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { ApiError } from '$lib/api/client';
 
 	const MAX_LIMIT = 100;
 	const MIN_LIMIT = 1;
 	const DEFAULT_LIMIT = 30;
 	const DEFAULT_PAGE_NUMBER = 1;
 
-	const params = new URLSearchParams(page.url.searchParams.toString());
+	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
 
 	let q = $state(params.get('q') || '');
 	let userRole = $state(USER_ROLES.find((r) => r === params.get('role')) ?? '');
@@ -188,13 +186,13 @@
 	{#await userPromise}
 		<Spinner />
 	{:then res}
-		{#if res && res.data}
+		{#if res && res.items}
 			<div class="mx-auto gap-4 overflow-y-auto lg:container">
-				{#if res.data.length == 0}
+				{#if res.items.length == 0}
 					<ErrorMessage variant="info" text="Change Requests Not Found" />
 				{/if}
 				<div class="overflow-y-auto">
-					{#if res.data.length > 0}
+					{#if res.items.length > 0}
 						<Table.Root class="container mx-auto">
 							<Table.Header>
 								<Table.Row>
@@ -209,7 +207,7 @@
 								</Table.Row>
 							</Table.Header>
 							<Table.Body>
-								{#each res.data as user (user)}
+								{#each res.items as user (user.id)}
 									<Table.Row>
 										<Table.Cell>{user.firstName} {user.lastName}</Table.Cell>
 										<Table.Cell>{user.title ? user.title : 'N/A'}</Table.Cell>
@@ -228,7 +226,7 @@
 										<Table.Cell>{user.lastLogin ? formatDate(user.lastLogin) : 'N/A'}</Table.Cell>
 										<Table.Cell>
 											<a
-												href={`/admin/users/${user.id}`}
+												href={resolve(`/admin/users/${user.id}`)}
 												class="inline-block cursor-pointer px-1.5 text-xs
 												text-neutral-500 hover:text-neutral-950 dark:text-neutral-400
 												dark:hover:text-neutral-50"
@@ -283,27 +281,17 @@
 					{/if}
 				</div>
 			</div>
-			{#if res.data.length > 0}
+			{#if res.items.length > 0}
 				<div class="container mx-auto flex justify-end">
-					<Pagination bind:page={pageNum} count={res.count} perPage={limit} />
+					<Pagination bind:page={pageNum} count={res.totalCount} perPage={limit} />
 				</div>
 			{/if}
 		{/if}
 	{:catch err}
-		{#if err instanceof APIBadRequestError}
-			<ErrorMessage variant="warn" text="Invalid Request" retry={loadUsers} />
-		{:else if err instanceof APIForbiddenError}
-			<ErrorMessage
-				variant="warn"
-				text="You Don't Have Permission To View These Change Requests"
-				retry={loadUsers}
-			/>
-		{:else if err instanceof APINotFoundError}
-			<ErrorMessage variant="info" text="Not Found" retry={loadUsers} />
-		{:else if err instanceof APIServerError}
-			<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadUsers} />
+		{#if err instanceof ApiError}
+			<ErrorMessage variant="warn" text={err.message} retry={loadUsers} />
 		{:else}
-			<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadUsers} />
+			<ErrorMessage variant="warn" text="An Error Occurred" retry={loadUsers} />
 		{/if}
 	{/await}
 </div>

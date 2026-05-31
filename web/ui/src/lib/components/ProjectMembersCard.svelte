@@ -1,23 +1,18 @@
 <script lang="ts">
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { getProjectMembers, type ProjectMember } from '$lib/api/projects';
 	import { onMount } from 'svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import Spinner from './Spinner.svelte';
 	import UserCard from './UserCard.svelte';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		projectId: number;
+		projectId: string;
 	}
 
 	let { projectId }: Props = $props();
 
-	let members: Promise<PaginatedResponse<ProjectMember>> | null = $state(null);
+	let members: Promise<ProjectMember[]> | null = $state(null);
 	let membersAbort: AbortController | null = null;
 	function loadMembers() {
 		if (membersAbort) {
@@ -25,7 +20,7 @@
 		}
 		membersAbort = new AbortController();
 
-		members = getProjectMembers(projectId, { page: 1, limit: 50 }, membersAbort.signal);
+		members = getProjectMembers(projectId, membersAbort.signal);
 	}
 
 	export function refresh() {
@@ -46,8 +41,8 @@
 		{#await members}
 			<Spinner />
 		{:then res}
-			{#if res?.data && res.data.length > 0}
-				{#each res.data as member (member)}
+			{#if res && res.length > 0}
+				{#each res as member (member.id)}
 					<UserCard
 						image={member.image}
 						role={member.role}
@@ -59,20 +54,10 @@
 				<ErrorMessage variant="warn" text="Members Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadMembers} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View Members"
-					retry={loadMembers}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadMembers} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadMembers} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadMembers} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadMembers} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadMembers} />
 			{/if}
 		{/await}
 	</div>

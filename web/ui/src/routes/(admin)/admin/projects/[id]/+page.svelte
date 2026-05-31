@@ -2,20 +2,13 @@
 	import { page } from '$app/state';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Dialog from '$lib/components/dialogs';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import { getProjectDetails, type ProjectDetails, type ProjectStatus } from '$lib/api/projects';
+	import { getProject, type Project, type ProjectStatus } from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { onMount } from 'svelte';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
-
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import { goto } from '$app/navigation';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
@@ -24,12 +17,13 @@
 	import ProjectTasksCompletedChartCard from '$lib/components/ProjectTasksCompletedChartCard.svelte';
 	import ProjectFilesListCard from '$lib/components/ProjectFilesListCard.svelte';
 	import ProjectContractsList from '$lib/components/ProjectContractsListCard.svelte';
-	import ProjectChangeRequestListCard from '$lib/components/ProjectChangeRequestListCard.svelte';
 	import ProjectKanbanCard from '$lib/components/ProjectKanbanCard.svelte';
+	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/client';
 
-	let id = Number(page.params.id);
+	let id = page.params.id || '';
 
-	let projectPromise: Promise<ProjectDetails> | null = $state(null);
+	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
 
 	function loadProject() {
@@ -38,7 +32,7 @@
 		}
 		projectAbort = new AbortController();
 
-		projectPromise = getProjectDetails(id, projectAbort.signal);
+		projectPromise = getProject(id, projectAbort.signal);
 	}
 
 	onMount(() => {
@@ -47,14 +41,13 @@
 
 	let projectMembersCard: ProjectMembersCard | null = $state(null);
 	function refreshMembers() {
-		projectMembersCard && projectMembersCard.refresh();
+		projectMembersCard?.refresh();
 	}
 
 	const projectStatusDialog = createDialogState();
 	const projectDeleteDialog = createDialogState();
 	const manageMembersDialog = createDialogState();
 	const newInvoiceDialog = createDialogState();
-	const newChReqDialog = createDialogState();
 	const newTaskDialog = createDialogState();
 	const newContractDialog = createDialogState();
 
@@ -73,9 +66,6 @@
 
 	// svelte-ignore non_reactive_update
 	let cntrList: ProjectContractsList;
-
-	// svelte-ignore non_reactive_update
-	let chReqList: ProjectChangeRequestListCard;
 </script>
 
 <svelte:head>
@@ -100,7 +90,6 @@
 						<DropdownMenu.Item onclick={newInvoiceDialog.open}>Invoice / Quote</DropdownMenu.Item>
 						<DropdownMenu.Item onclick={newTaskDialog.open}>Task</DropdownMenu.Item>
 						<DropdownMenu.Item onclick={newContractDialog.open}>Contract</DropdownMenu.Item>
-						<DropdownMenu.Item onclick={newChReqDialog.open}>Change Request</DropdownMenu.Item>
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
 				<button
@@ -208,13 +197,6 @@
 							{res.contractSignedCount} / {res.contractCount} Signed
 						</p>
 					</div>
-
-					<div>
-						<p class="text-xs text-neutral-500">Change Requests</p>
-						<p class="text-sm">
-							{res.changeReqClosedCount} / {res.changeReqCount} Closed
-						</p>
-					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Files</p>
 						<p class="text-sm">{res.fileCount}</p>
@@ -224,25 +206,15 @@
 				<ErrorMessage variant="warn" text="Project Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadProject} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View This Project"
-					retry={loadProject}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadProject} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProject} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadProject} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProject} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadProject} />
 			{/if}
 		{/await}
 	</div>
 
-	<div class="min-h-50 max-h-100">
+	<div class="max-h-100 min-h-50">
 		<ProjectMembersCard projectId={id} bind:this={projectMembersCard} />
 	</div>
 
@@ -250,28 +222,24 @@
 		<ProjectInvoicePaidChartCard projectId={id} />
 	</div>
 
-	<div class="h-84 col-span-4 grid grid-cols-4 gap-2 overflow-hidden">
+	<div class="col-span-4 grid h-84 grid-cols-4 gap-2 overflow-hidden">
 		<div class="col-span-2">
 			<ProjectTasksCompletedChartCard bind:this={completedTasks} projectId={id} />
 		</div>
 
 		<div class="col-span-2">
-			<ProjectFilesListCard projectId={id} role="admin" />
+			<ProjectFilesListCard projectId={id} role="administrator" />
 		</div>
 	</div>
 
-	<ProjectInvoiceListCard bind:this={invList} projectId={id} role="admin" />
+	<ProjectInvoiceListCard bind:this={invList} projectId={id} role="administrator" />
 
-	<div class="min-h-50 max-h-100 col-span-4">
-		<ProjectContractsList bind:this={cntrList} projectId={id} role="admin" />
+	<div class="col-span-4 max-h-100 min-h-50">
+		<ProjectContractsList bind:this={cntrList} projectId={id} role="administrator" />
 	</div>
 
-	<div class="min-h-50 max-h-100 col-span-4">
-		<ProjectChangeRequestListCard bind:this={chReqList} projectId={id} role="admin" />
-	</div>
-
-	<div class="max-h-100 col-span-4">
-		<ProjectKanbanCard projectId={id} role="admin" />
+	<div class="col-span-4 max-h-100">
+		<ProjectKanbanCard projectId={id} role="administrator" />
 	</div>
 </div>
 
@@ -287,7 +255,7 @@
 <Dialog.ProjectDeleteDialog
 	projectId={id}
 	bind:open={projectDeleteDialog.isOpen}
-	onSuccess={() => goto('/admin/projects')}
+	onSuccess={() => goto(resolve('/admin/projects'))}
 />
 
 {#if projectPromise}
@@ -302,12 +270,6 @@
 	projectId={id}
 	bind:open={newInvoiceDialog.isOpen}
 	onSuccess={invList && invList.refresh}
-/>
-
-<Dialog.NewChangeRequest
-	bind:open={newChReqDialog.isOpen}
-	projectId={id}
-	onSuccess={chReqList && chReqList.refresh}
 />
 
 <Dialog.NewTask

@@ -1,13 +1,5 @@
 <script lang="ts">
-	import {
-		APIBadRequestError,
-		APIConflictError,
-		APIError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError,
-		NetworkError
-	} from '$lib/api/errors';
+	import { ApiError } from '$lib/api/client';
 	import { activateUser, deactivateUser } from '$lib/api/users';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { Dialog } from 'bits-ui';
@@ -17,9 +9,9 @@
 
 	interface Props {
 		open: boolean;
-		userId: number;
+		userId: string;
 		status: 'activate' | 'deactivate';
-		onSuccess?: () => any;
+		onSuccess?: () => unknown;
 	}
 
 	let { open = $bindable(), userId, status, onSuccess }: Props = $props();
@@ -45,23 +37,13 @@
 			}
 
 			toast.success(`Successfully ${status == 'activate' ? 'Activated' : 'Deactivated'}`);
-			onSuccess && onSuccess();
+			onSuccess?.();
 			open = false;
 		} catch (error) {
-			if (error instanceof APIBadRequestError) {
-				toast.error('Invalid Request');
-			} else if (error instanceof APIForbiddenError) {
-				toast.error('Not Authorized');
-			} else if (error instanceof APINotFoundError) {
-				toast.error('Not Found');
-			} else if (error instanceof APIServerError) {
-				toast.error('Server Error');
-			} else if (error instanceof APIConflictError) {
-				toast.error(`Already ${status == 'activate' ? 'Activated' : 'Deactivated'}`);
-			} else if (error instanceof APIError) {
-				toast.error('Unexpected Error, Try Again');
-			} else if (error instanceof NetworkError) {
-				toast.error('Request Failed, Try Again');
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('An Error Occurred');
 			}
 		}
 	}
@@ -78,8 +60,8 @@
 			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
 			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
 			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl 
-			-translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded"
+			fixed top-1/2 left-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 
+			auto-rows-[min-content_1fr] gap-4 rounded outline-hidden duration-250"
 		>
 			<div class="text-right">
 				<Dialog.Close

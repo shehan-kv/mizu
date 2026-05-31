@@ -1,19 +1,14 @@
 <script lang="ts">
-	import { getTaskCompletedMetricsByProject, type TaskMetric } from '$lib/api/projects';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { BarChart } from 'layerchart';
 	import Spinner from './Spinner.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { onMount } from 'svelte';
+	import { getTaskCompleteCountByProject, type TaskMetric } from '$lib/api/task';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
-		projectId: number;
+		projectId: string;
 	}
 	let { projectId }: Props = $props();
 
@@ -25,7 +20,7 @@
 		}
 		abort = new AbortController();
 
-		metricsPromise = getTaskCompletedMetricsByProject(projectId, abort.signal);
+		metricsPromise = getTaskCompleteCountByProject(projectId, abort.signal);
 	}
 
 	export function refresh() {
@@ -86,20 +81,10 @@
 				<ErrorMessage variant="warn" text="Metrics Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadMetrics} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View Metrics"
-					retry={loadMetrics}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadMetrics} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadMetrics} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadMetrics} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadMetrics} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadMetrics} />
 			{/if}
 		{/await}
 	</div>

@@ -1,28 +1,23 @@
 <script lang="ts">
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Dialog from '$lib/components/dialogs';
-	import { getProjectTasks, type ProjectTask, type ProjectTaskStatus } from '$lib/api/projects';
 	import Square from 'phosphor-svelte/lib/Square';
 	import { onMount } from 'svelte';
 	import Spinner from './Spinner.svelte';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { formatMinutes } from '$lib/utils/formatMinutes';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { UserRole } from '$lib/api/users';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
+	import { getTasks, type Task, type TaskStatus } from '$lib/api/task';
+	import { resolve } from '$app/paths';
 
 	interface Props {
-		projectId: number;
-		status: ProjectTaskStatus;
+		projectId: string;
+		status: TaskStatus;
 		role?: UserRole;
 	}
 	let { projectId, status, role = 'client' }: Props = $props();
@@ -32,7 +27,7 @@
 	let page = $state(1);
 	let limit = $state(30);
 
-	let tasks: ProjectTask[] = $state([]);
+	let tasks: Task[] = $state([]);
 
 	let abort: AbortController | null = null;
 	let loadError: unknown | null = $state(null);
@@ -46,8 +41,8 @@
 		abort = new AbortController();
 
 		try {
-			const res = await getProjectTasks(projectId, { status, page, limit }, abort.signal);
-			tasks.push(...res.data);
+			const res = await getTasks(projectId, { status, page, limit }, abort.signal);
+			tasks.push(...res.items);
 			return res;
 		} catch (error) {
 			loadError = error;
@@ -76,7 +71,7 @@
 			// pages already loaded; for example, if the current
 			// page is 1, repeated scrolls will request page 2
 			// when the next fetch is performed.
-			if (!res || res.data.length == 0) page--;
+			if (!res || res.items.length == 0) page--;
 		}
 	}
 
@@ -86,41 +81,29 @@
 
 	let setStatusDialog = createDialogState();
 
-	type SelectedTask = ProjectTask & { action?: ProjectTaskStatus };
+	type SelectedTask = Task & { action?: TaskStatus };
 	let selectedTask: SelectedTask | null = $state(null);
-	function openStatusDialog(task: ProjectTask, action: ProjectTaskStatus) {
+	function openStatusDialog(task: Task, action: TaskStatus) {
 		selectedTask = { ...task, action };
 		setStatusDialog.open();
 	}
 
 	let assigneeDialog = createDialogState();
-	function openAssigneeDialog(task: ProjectTask) {
+	function openAssigneeDialog(task: Task) {
 		selectedTask = task;
 		assigneeDialog.open();
 	}
 
 	// svelte-ignore non_reactive_update
 	let linksPrefix = '';
-	if (role == 'admin') linksPrefix = '/admin';
+	if (role == 'administrator') linksPrefix = '/admin';
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div class="h-full space-y-2 overflow-y-auto" bind:this={container} onscroll={handleScroll}>
 	{#if loadError}
 		<div>
-			{#if loadError instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadTasks} />
-			{:else if loadError instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View These Project Tasks"
-					retry={loadTasks}
-				/>
-			{:else if loadError instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadTasks} />
-			{:else if loadError instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadTasks} />
-			{/if}
+			<ErrorMessage variant="warn" text="There was an error" retry={loadTasks} />
 		</div>
 	{/if}
 
@@ -150,7 +133,7 @@
 							{/if}
 						</div>
 
-						{#if role == 'admin'}
+						{#if role == 'administrator'}
 							<div class="flex items-center gap-1 text-right">
 								<DropdownMenu.Root>
 									<DropdownMenu.Trigger
@@ -183,7 +166,7 @@
 								</DropdownMenu.Root>
 
 								<a
-									href={`${linksPrefix}/projects/${projectId}/kanban/${task.id}`}
+									href={resolve(`${linksPrefix}/projects/${projectId}/kanban/${task.id}`)}
 									class="inline-block cursor-pointer rounded bg-neutral-200 px-2 py-1
 									transition hover:bg-neutral-300 dark:bg-neutral-800
 									dark:hover:bg-neutral-700"
@@ -198,7 +181,7 @@
 					<div class="mt-4 space-y-0.5 text-xs text-neutral-400">
 						<p>Added - {formatDate(task.createdAt)}</p>
 						<p class="text-neutral-400">
-							{formatMinutes(task.estTimeMinutes)} Estimated
+							{formatMinutes(task.estimatedMinutes)} Estimated
 						</p>
 					</div>
 

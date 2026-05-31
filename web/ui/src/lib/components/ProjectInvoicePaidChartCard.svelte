@@ -2,17 +2,12 @@
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { curveLinear } from 'd3-shape';
 	import { scalePoint } from 'd3-scale';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
 	import { getPaidInvoiceCountByProject, type InvoiceMetric } from '$lib/api/invoices';
 	import { onMount } from 'svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import Spinner from './Spinner.svelte';
 	import { LineChart } from 'layerchart';
+	import { ApiError } from '$lib/api/client';
 
 	let { projectId } = $props();
 
@@ -43,7 +38,7 @@
 	<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Invoices Paid</p>
 	</div>
-	<div class="h-70 relative px-6 py-2">
+	<div class="relative h-70 px-6 py-2">
 		{#await metricsPromise}
 			<Spinner />
 		{:then res}
@@ -84,20 +79,10 @@
 				<ErrorMessage variant="warn" text="Metrics Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadCount} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View Metrics"
-					retry={loadCount}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadCount} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadCount} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadCount} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadCount} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadCount} />
 			{/if}
 		{/await}
 	</div>

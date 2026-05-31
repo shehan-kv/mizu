@@ -3,30 +3,23 @@
 	import X from 'phosphor-svelte/lib/X';
 	import SearchUser from '../SearchUser.svelte';
 	import UserCard from '../UserCard.svelte';
-	import { getProjectMembers, setProjectMembers, type ProjectMember } from '$lib/api/projects';
+	import { getProjectMembers, replaceProjectMembers, type ProjectMember } from '$lib/api/projects';
 	import { toast } from 'svelte-sonner';
-	import {
-		APIBadRequestError,
-		APIError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError,
-		NetworkError
-	} from '$lib/api/errors';
 	import Spinner from '../Spinner.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
 		open: boolean;
-		projectId: number;
-		onSuccess?: () => any;
+		projectId: string;
+		onSuccess?: () => unknown;
 	}
 
 	let { open = $bindable(), projectId, onSuccess }: Props = $props();
 	let confirmMembers: ProjectMember[] = $state([]);
 
 	let memberLoading = $state(false);
-	let memberError: APIError | null = $state(null);
+	let memberError: ApiError | null = $state(null);
 	let membersAbort: AbortController | null = null;
 	async function loadMembers() {
 		if (membersAbort) {
@@ -36,11 +29,9 @@
 
 		try {
 			memberLoading = true;
-			confirmMembers = await getProjectMembers(projectId, undefined, membersAbort.signal).then(
-				(res) => res.data
-			);
+			confirmMembers = await getProjectMembers(projectId, membersAbort.signal);
 		} catch (error) {
-			memberError = error as APIError;
+			memberError = error as ApiError;
 			confirmMembers = [];
 		} finally {
 			memberLoading = false;
@@ -77,27 +68,19 @@
 		confirmAbort = new AbortController();
 
 		try {
-			await setProjectMembers(
+			await replaceProjectMembers(
 				projectId,
-				{ members: confirmMembers.map((m) => m.id) },
+				{ memberIds: confirmMembers.map((m) => m.id) },
 				confirmAbort.signal
 			);
 			toast.success('Assigned Members Successfully');
-			onSuccess && onSuccess();
+			onSuccess?.();
 			open = false;
 		} catch (error) {
-			if (error instanceof APIBadRequestError) {
-				toast.error('Invalid Request');
-			} else if (error instanceof APIForbiddenError) {
-				toast.error('Not Authorized');
-			} else if (error instanceof APINotFoundError) {
-				toast.error('Not Found');
-			} else if (error instanceof APIServerError) {
-				toast.error('Server Error');
-			} else if (error instanceof APIError) {
-				toast.error('Unexpected Error, Try Again');
-			} else if (error instanceof NetworkError) {
-				toast.error('Request Failed, Try Again');
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('An Error Occurred');
 			}
 		}
 	}
@@ -120,8 +103,8 @@
 			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
 			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
 			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			outline-hidden duration-250 fixed left-1/2 top-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 
-			rounded"
+			fixed top-1/2 left-1/2 z-50 grid w-full max-w-xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded outline-hidden 
+			duration-250"
 		>
 			<div class="text-right">
 				<Dialog.Close
@@ -143,25 +126,7 @@
 						{/if}
 
 						{#if memberError}
-							{#if memberError instanceof APIBadRequestError}
-								<ErrorMessage variant="warn" text="Invalid Request" retry={loadMembers} />
-							{:else if memberError instanceof APIForbiddenError}
-								<ErrorMessage
-									variant="warn"
-									text="You Don't Have Permission To View Members"
-									retry={loadMembers}
-								/>
-							{:else if memberError instanceof APINotFoundError}
-								<ErrorMessage variant="info" text="Not Found" retry={loadMembers} />
-							{:else if memberError instanceof APIServerError}
-								<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadMembers} />
-							{:else}
-								<ErrorMessage
-									variant="warn"
-									text="An Unexpected Error Occured"
-									retry={loadMembers}
-								/>
-							{/if}
+							<ErrorMessage variant="warn" text={memberError.message} retry={loadMembers} />
 						{/if}
 
 						{#if confirmMembers.length > 0}

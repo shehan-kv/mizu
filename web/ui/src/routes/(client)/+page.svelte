@@ -1,15 +1,9 @@
 <script lang="ts">
 	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import {
 		getProjectCreatedMetrics,
-		getProjects,
-		type Project,
-		type ProjectMetric
+		getProjectStats,
+		type ProjectMetric,
+		type ProjectStat
 	} from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
@@ -23,40 +17,40 @@
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { formatDate } from '$lib/utils/formatDate';
 	import Checks from 'phosphor-svelte/lib/Checks';
-	import { getContracts, type Contract } from '$lib/api/contracts';
+	import { getContractOverviews, type Contract } from '$lib/api/contracts';
 	import {
-		getInvoiceOverview,
 		getInvoices,
-		getPaidInvoiceMetrics,
-		type InvoiceMetric,
+		getInvoiceSummmary,
 		type InvoiceOverview,
-		type InvoiceOverviewMetric,
-		type InvoiceSummary
+		type InvoicesSummary,
+		type InvoicesSummaryMetric
 	} from '$lib/api/invoices';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { formatDecimalSuffix } from '$lib/utils/formatDecimalSuffix';
-	import { getChangeRequests, type ChangeRequest } from '$lib/api/changeRequest';
+	import type { PaginatedResponse } from '$lib/api/page';
+	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/client';
 
-	let projectsPromise: Promise<PaginatedResponse<Project>> | null = $state(null);
-	let projectAbort: AbortController | null = null;
-	function loadProjects() {
-		if (projectAbort) {
-			projectAbort.abort();
+	let projectStatsPromise: Promise<PaginatedResponse<ProjectStat>> | null = $state(null);
+	let projectStatsAbort: AbortController | null = null;
+	function loadProjectStats() {
+		if (projectStatsAbort) {
+			projectStatsAbort.abort();
 		}
-		projectAbort = new AbortController();
+		projectStatsAbort = new AbortController();
 
-		projectsPromise = getProjects('', 1, 20, '', projectAbort.signal);
+		projectStatsPromise = getProjectStats({ limit: 20, page: 1 }, projectStatsAbort.signal);
 	}
 
-	let projectMetricsPromise: Promise<ProjectMetric[]> | null = $state(null);
-	let projectMetricsAbort: AbortController | null = null;
-	function loadProjectCountMetrics() {
-		if (projectMetricsAbort) {
-			projectMetricsAbort.abort();
+	let projectCreatedMetricsPromise: Promise<ProjectMetric[]> | null = $state(null);
+	let projectCreatedMetricsAbort: AbortController | null = null;
+	function loadProjectCreatedMetrics() {
+		if (projectCreatedMetricsAbort) {
+			projectCreatedMetricsAbort.abort();
 		}
-		projectMetricsAbort = new AbortController();
+		projectCreatedMetricsAbort = new AbortController();
 
-		projectMetricsPromise = getProjectCreatedMetrics(projectMetricsAbort.signal);
+		projectCreatedMetricsPromise = getProjectCreatedMetrics(projectCreatedMetricsAbort.signal);
 	}
 
 	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
@@ -68,10 +62,10 @@
 
 		contractsAbort = new AbortController();
 
-		contractsPromise = getContracts('', '', 1, 20, contractsAbort.signal);
+		contractsPromise = getContractOverviews({ page: 1, limit: 2 }, contractsAbort.signal);
 	}
 
-	let invoicesPromise: Promise<PaginatedResponse<InvoiceSummary>> | null = $state(null);
+	let invoicesPromise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
 	let invoicesAbort: AbortController | null = null;
 	function loadInvoices() {
 		if (invoicesAbort) {
@@ -83,40 +77,28 @@
 		invoicesPromise = getInvoices({ page: 1, limit: 20 }, invoicesAbort.signal);
 	}
 
-	let invoiceMetricsPromise: Promise<InvoiceMetric[]> | null = $state(null);
-	let invoiceMetricsAbort: AbortController | null = null;
-	function loadInvoiceMetrics() {
-		if (invoiceMetricsAbort) {
-			invoiceMetricsAbort.abort();
+	// let invoiceMetricsPromise: Promise<InvoiceMetric[]> | null = $state(null);
+	// let invoiceMetricsAbort: AbortController | null = null;
+	// function loadInvoiceMetrics() {
+	// 	if (invoiceMetricsAbort) {
+	// 		invoiceMetricsAbort.abort();
+	// 	}
+
+	// 	invoiceMetricsAbort = new AbortController();
+
+	// 	invoiceMetricsPromise = getInvoiceSummmary(invoiceMetricsAbort.signal);
+	// }
+
+	let invoiceSummaryPromise: Promise<InvoicesSummary> | null = $state(null);
+	let invoiceSummaryAbort: AbortController | null = null;
+	function loadInvoicesSummary() {
+		if (invoiceSummaryAbort) {
+			invoiceSummaryAbort.abort();
 		}
 
-		invoiceMetricsAbort = new AbortController();
+		invoiceSummaryAbort = new AbortController();
 
-		invoiceMetricsPromise = getPaidInvoiceMetrics(invoiceMetricsAbort.signal);
-	}
-
-	let invoiceOverviewPromise: Promise<InvoiceOverview> | null = $state(null);
-	let invoiceOverviewAbort: AbortController | null = null;
-	function loadInvoiceOverview() {
-		if (invoiceOverviewAbort) {
-			invoiceOverviewAbort.abort();
-		}
-
-		invoiceOverviewAbort = new AbortController();
-
-		invoiceOverviewPromise = getInvoiceOverview(invoiceOverviewAbort.signal);
-	}
-
-	let chReqPromise: Promise<PaginatedResponse<ChangeRequest>> | null = $state(null);
-	let chReqAbort: AbortController | null = null;
-	function loadChReq() {
-		if (chReqAbort) {
-			chReqAbort.abort();
-		}
-
-		chReqAbort = new AbortController();
-
-		chReqPromise = getChangeRequests('', '', 1, 20, chReqAbort.signal);
+		invoiceSummaryPromise = getInvoiceSummmary(invoiceSummaryAbort.signal);
 	}
 
 	const invChartConfig = {
@@ -124,13 +106,12 @@
 	} satisfies Chart.ChartConfig;
 
 	onMount(() => {
-		loadProjectCountMetrics();
-		loadProjects();
+		loadProjectCreatedMetrics();
+		loadProjectStats();
 		loadContracts();
 		loadInvoices();
-		loadInvoiceMetrics();
-		loadInvoiceOverview();
-		loadChReq();
+		// loadInvoiceMetrics();
+		loadInvoicesSummary();
 	});
 </script>
 
@@ -147,7 +128,7 @@
 			<p class="text-sm">Projects Created</p>
 		</div>
 		<div class="relative px-6 py-2">
-			{#await projectMetricsPromise}
+			{#await projectCreatedMetricsPromise}
 				<Spinner />
 			{:then res}
 				{#if res}
@@ -187,28 +168,10 @@
 					<ErrorMessage variant="warn" text="Metrics Not Found" />
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadProjectCountMetrics} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Metrics"
-						retry={loadProjectCountMetrics}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadProjectCountMetrics} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage
-						variant="warn"
-						text="Server Ran Into An Error"
-						retry={loadProjectCountMetrics}
-					/>
+				{#if err instanceof ApiError}
+					<ErrorMessage variant="warn" text={err.message} retry={loadProjectCreatedMetrics} />
 				{:else}
-					<ErrorMessage
-						variant="warn"
-						text="An Unexpected Error Occured"
-						retry={loadProjectCountMetrics}
-					/>
+					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadProjectCreatedMetrics} />
 				{/if}
 			{/await}
 		</div>
@@ -221,13 +184,13 @@
 			<p class="text-sm">Recent Projects</p>
 		</div>
 		<div class="overflow-scroll px-6 py-2">
-			{#await projectsPromise}
+			{#await projectStatsPromise}
 				<Spinner />
 			{:then res}
-				{#if res && res.data.length > 0}
+				{#if res && res.items.length > 0}
 					<Table.Root>
 						<Table.Body>
-							{#each res.data as project}
+							{#each res.items as project (project.id)}
 								<Table.Row
 									class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 							dark:text-neutral-400 dark:hover:text-neutral-50"
@@ -249,7 +212,7 @@
 										{toTitleCase(project.status)}
 									</Table.Cell>
 									<Table.Cell class="pr-0" align="right">
-										<a href={`/projects/${project.id}`} title="View">
+										<a href={resolve(`/projects/${project.id}`)} title="View">
 											<ArrowRight size={18} />
 										</a>
 									</Table.Cell>
@@ -261,27 +224,17 @@
 					<ErrorMessage variant="warn" text="Projects Not Found" />
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadProjects} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Metrics"
-						retry={loadProjects}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadProjects} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProjects} />
+				{#if err instanceof ApiError}
+					<ErrorMessage variant="warn" text={err.message} retry={loadProjectStats} />
 				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProjects} />
+					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadProjectStats} />
 				{/if}
 			{/await}
 		</div>
 	</div>
 
 	<div
-		class="min-h-50 max-h-100 col-span-4 grid grid-rows-[min-content_1fr]
+		class="col-span-4 grid max-h-100 min-h-50 grid-rows-[min-content_1fr]
 		overflow-hidden rounded border"
 	>
 		<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
@@ -291,19 +244,16 @@
 			{#await contractsPromise}
 				<Spinner />
 			{:then res}
-				{#if res && res.data.length > 0}
+				{#if res && res.items.length > 0}
 					<Table.Root>
 						<Table.Body>
-							{#each res.data as contract}
+							{#each res.items as contract (contract.id)}
 								<Table.Row
 									class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 								dark:text-neutral-400 dark:hover:text-neutral-50"
 								>
 									<Table.Cell class="pl-0">
 										{contract.name}
-									</Table.Cell>
-									<Table.Cell>
-										{contract.projectName}
 									</Table.Cell>
 									<Table.Cell class="flex items-center gap-1">
 										{toTitleCase(contract.status)}
@@ -314,12 +264,8 @@
 									<Table.Cell>
 										Created On {formatDate(contract.createdAt)}
 									</Table.Cell>
-									<Table.Cell>
-										{contract.versions}
-										{contract.versions == 1 ? 'Version' : 'Versions'}
-									</Table.Cell>
 									<Table.Cell class="pr-0" align="right">
-										<a href={`/contracts/${contract.id}`} title="View">
+										<a href={resolve(`/contracts/${contract.id}`)} title="View">
 											<ArrowRight size={18} />
 										</a>
 									</Table.Cell>
@@ -331,20 +277,10 @@
 					<ErrorMessage variant="warn" text="Contracts Not Found" />
 				{/if}
 			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadContracts} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Contracts"
-						retry={loadContracts}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadContracts} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadContracts} />
+				{#if err instanceof ApiError}
+					<ErrorMessage variant="warn" text={err.message} retry={loadContracts} />
 				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadContracts} />
+					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadContracts} />
 				{/if}
 			{/await}
 		</div>
@@ -352,7 +288,7 @@
 
 	<div class="col-span-4 grid grid-cols-5 gap-2">
 		<div
-			class="min-h-50 col-span-2 grid max-h-80 grid-rows-[min-content_1fr]
+			class="col-span-2 grid max-h-80 min-h-50 grid-rows-[min-content_1fr]
 		overflow-hidden rounded border"
 		>
 			<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
@@ -362,10 +298,10 @@
 				{#await invoicesPromise}
 					<Spinner />
 				{:then res}
-					{#if res && res.data.length > 0}
+					{#if res && res.items.length > 0}
 						<Table.Root>
 							<Table.Body>
-								{#each res.data as invoice}
+								{#each res.items as invoice (invoice.id)}
 									<Table.Row
 										class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
 								dark:text-neutral-400 dark:hover:text-neutral-50"
@@ -374,7 +310,7 @@
 											{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}
 										</Table.Cell>
 										<Table.Cell align="right">
-											{currencyFormatter(invoice.currencyCode, invoice.total)} Total
+											{currencyFormatter(invoice.currencyCode, invoice.subTotal)} Total
 										</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
 											{toTitleCase(invoice.status)}
@@ -383,7 +319,7 @@
 											{/if}
 										</Table.Cell>
 										<Table.Cell class="pr-0" align="right">
-											<a href={`/invoices-and-quotes/${invoice.id}`} title="View">
+											<a href={resolve(`/invoices-and-quotes/${invoice.id}`)} title="View">
 												<ArrowRight size={18} />
 											</a>
 										</Table.Cell>
@@ -395,33 +331,23 @@
 						<ErrorMessage variant="warn" text="Invoices/Quotes Not Found" />
 					{/if}
 				{:catch err}
-					{#if err instanceof APIBadRequestError}
-						<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoices} />
-					{:else if err instanceof APIForbiddenError}
-						<ErrorMessage
-							variant="warn"
-							text="You Don't Have Permission To View Invoices/Quotes"
-							retry={loadInvoices}
-						/>
-					{:else if err instanceof APINotFoundError}
-						<ErrorMessage variant="info" text="Not Found" retry={loadInvoices} />
-					{:else if err instanceof APIServerError}
-						<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadInvoices} />
+					{#if err instanceof ApiError}
+						<ErrorMessage variant="warn" text={err.message} retry={loadInvoices} />
 					{:else}
-						<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadInvoices} />
+						<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoices} />
 					{/if}
 				{/await}
 			</div>
 		</div>
 		<div
-			class="min-h-50 grid max-h-80 grid-rows-[min-content_1fr]
+			class="grid max-h-80 min-h-50 grid-rows-[min-content_1fr]
 		overflow-hidden rounded border"
 		>
 			<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 				<p class="text-sm">Invoices Overview</p>
 			</div>
 			<div class="space-y-4 overflow-scroll px-6 py-2">
-				{#snippet overview(label: string, items: InvoiceOverviewMetric[], isInvoice?: boolean)}
+				{#snippet overview(label: string, items: InvoicesSummaryMetric[])}
 					<div>
 						<p class="border-b py-2 text-sm text-neutral-600 dark:text-neutral-400">
 							{label}
@@ -446,55 +372,38 @@
 					</div>
 				{/snippet}
 
-				{#await invoiceOverviewPromise}
+				{#await invoiceSummaryPromise}
 					<Spinner />
 				{:then res}
 					{#if res}
-						{@render overview('Invoices Paid', res.paid, true)}
-						{@render overview('Invoices Pending', res.pending, true)}
-						{@render overview('Invoices Accepted', res.accepted, true)}
-						{@render overview('Invoices Rejected', res.rejected, true)}
-						{@render overview('Invoices Cancelled', res.cancelled, true)}
+						{@render overview('Invoices Paid', res.paid)}
+						{@render overview('Invoices Pending', res.pending)}
+						{@render overview('Invoices Accepted', res.accepted)}
+						{@render overview('Invoices Rejected', res.rejected)}
+						{@render overview('Invoices Cancelled', res.cancelled)}
 						{@render overview('Quotes Pending', res.quotesPending)}
 						{@render overview('Quotes Rejected', res.quotesRejected)}
 					{:else}
 						<ErrorMessage variant="warn" text="Overview Not Found" />
 					{/if}
 				{:catch err}
-					{#if err instanceof APIBadRequestError}
-						<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoiceOverview} />
-					{:else if err instanceof APIForbiddenError}
-						<ErrorMessage
-							variant="warn"
-							text="You Don't Have Permission To View The Overview"
-							retry={loadInvoiceOverview}
-						/>
-					{:else if err instanceof APINotFoundError}
-						<ErrorMessage variant="info" text="Not Found" retry={loadInvoiceOverview} />
-					{:else if err instanceof APIServerError}
-						<ErrorMessage
-							variant="warn"
-							text="Server Ran Into An Error"
-							retry={loadInvoiceOverview}
-						/>
+					{#if err instanceof ApiError}
+						<ErrorMessage variant="warn" text={err.message} retry={loadInvoicesSummary} />
 					{:else}
-						<ErrorMessage
-							variant="warn"
-							text="An Unexpected Error Occured"
-							retry={loadInvoiceOverview}
-						/>
+						<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoicesSummary} />
 					{/if}
 				{/await}
 			</div>
 		</div>
-		<div
+
+		<!-- <div
 			class="col-span-2 grid grid-rows-[min-content_1fr]
 		overflow-hidden rounded border"
 		>
 			<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 				<p class="text-sm">Invoices Paid</p>
 			</div>
-			<div class="h-70 relative px-6 py-2">
+			<div class="relative h-70 px-6 py-2">
 				{#await invoiceMetricsPromise}
 					<Spinner />
 				{:then res}
@@ -535,101 +444,11 @@
 						<ErrorMessage variant="warn" text="Metrics Not Found" />
 					{/if}
 				{:catch err}
-					{#if err instanceof APIBadRequestError}
-						<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoiceMetrics} />
-					{:else if err instanceof APIForbiddenError}
-						<ErrorMessage
-							variant="warn"
-							text="You Don't Have Permission To View Metrics"
-							retry={loadInvoiceMetrics}
-						/>
-					{:else if err instanceof APINotFoundError}
-						<ErrorMessage variant="info" text="Not Found" retry={loadInvoiceMetrics} />
-					{:else if err instanceof APIServerError}
-						<ErrorMessage
-							variant="warn"
-							text="Server Ran Into An Error"
-							retry={loadInvoiceMetrics}
-						/>
-					{:else}
-						<ErrorMessage
-							variant="warn"
-							text="An Unexpected Error Occured"
-							retry={loadInvoiceMetrics}
-						/>
-					{/if}
+					
+						<ErrorMessage variant="warn" text={err} retry={loadInvoiceMetrics} />
+					
 				{/await}
 			</div>
-		</div>
-	</div>
-
-	<div
-		class="min-h-50 max-h-100 col-span-4 grid grid-rows-[min-content_1fr]
-		overflow-hidden rounded border"
-	>
-		<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
-			<p class="text-sm">Recent Change Requests</p>
-		</div>
-		<div class="overflow-scroll px-6 py-2">
-			{#await chReqPromise}
-				<Spinner />
-			{:then res}
-				{#if res && res.data.length > 0}
-					<Table.Root>
-						<Table.Body>
-							{#each res.data as req}
-								<Table.Row
-									class="text-neutral-600 hover:bg-transparent hover:text-neutral-950 
-								dark:text-neutral-400 dark:hover:text-neutral-50"
-								>
-									<Table.Cell class="pl-0">
-										{req.title}
-									</Table.Cell>
-									<Table.Cell>
-										{req.project.name}
-									</Table.Cell>
-									<Table.Cell class="flex items-center gap-1">
-										{toTitleCase(req.status)}
-										{#if req.status == 'closed'}
-											<Checks size={18} class="text-emerald-500" />
-										{/if}
-									</Table.Cell>
-									<Table.Cell>
-										Created On {formatDate(req.createdAt)}
-									</Table.Cell>
-									<Table.Cell>
-										Started By {req.requestedBy.firstName}
-										{req.requestedBy.lastName}
-									</Table.Cell>
-									<Table.Cell class="pr-0" align="right">
-										<a href={`/change-requests/${req.id}`} title="View">
-											<ArrowRight size={18} />
-										</a>
-									</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				{:else}
-					<ErrorMessage variant="warn" text="Change Requests Not Found" />
-				{/if}
-			{:catch err}
-				{#if err instanceof APIBadRequestError}
-					<ErrorMessage variant="warn" text="Invalid Request" retry={loadChReq} />
-				{:else if err instanceof APIForbiddenError}
-					<ErrorMessage
-						variant="warn"
-						text="You Don't Have Permission To View Change Requests"
-						retry={loadChReq}
-					/>
-				{:else if err instanceof APINotFoundError}
-					<ErrorMessage variant="info" text="Not Found" retry={loadChReq} />
-				{:else if err instanceof APIServerError}
-					<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadChReq} />
-				{:else}
-					<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadChReq} />
-				{/if}
-			{/await}
-		</div>
+		</div> -->
 	</div>
 </div>

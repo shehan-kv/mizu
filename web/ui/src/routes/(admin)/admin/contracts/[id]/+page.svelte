@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { getContractById, type Contract } from '$lib/api/contracts';
+	import { getContract, type Contract } from '$lib/api/contracts';
 	import ViewContract from '$lib/components/ViewContract.svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
-	let id = Number(page.params.id);
+	let id = page.params.id || '';
 
 	let contractStatPromise: Promise<Contract> | null = $state(null);
 	let abort: AbortController | null = null;
@@ -16,7 +17,7 @@
 
 		abort = new AbortController();
 
-		contractStatPromise = getContractById(id, abort.signal).then((c) => {
+		contractStatPromise = getContract(id, abort.signal).then((c) => {
 			document.title = 'Contract - ' + c.name;
 			return c;
 		});
@@ -33,7 +34,7 @@
 
 <div class="mx-auto grid h-full grid-rows-[min-content_1fr] gap-4 lg:container">
 	<div class="flex w-fit items-center gap-3 text-sm text-neutral-700 dark:text-neutral-400">
-		<a href="/admin/contracts" class="underline">Contracts</a>
+		<a href={resolve('/admin/contracts')} class="underline">Contracts</a>
 		<ChevronRight size={18} />
 		{#await contractStatPromise}
 			<p class="">...</p>

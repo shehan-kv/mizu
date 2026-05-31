@@ -14,34 +14,20 @@
 	import { toast } from 'svelte-sonner';
 	import Info from 'phosphor-svelte/lib/Info';
 	import { createDialogState } from './createDialogState.svelte';
-	import {
-		APIBadRequestError,
-		APIError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError,
-		NetworkError
-	} from '$lib/api/errors';
 	import { createInvoice } from '$lib/api/invoices';
 	import ConfirmDiscardData from './ConfirmDiscardData.svelte';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
 		open: boolean;
-		projectId: number;
-		onSuccess?: () => any;
+		projectId: string;
+		onSuccess?: () => unknown;
 	}
 
 	let { open = $bindable(), projectId, onSuccess }: Props = $props();
 
-	let statuses = [
-		{ value: 'pending', label: 'Pending' },
-		{ value: 'paid', label: 'Paid' },
-		{ value: 'cancelled', label: 'Cancelled' }
-	];
-
 	let req = $state<{
 		type: 'invoice' | 'quote';
-		status: 'pending' | 'paid' | 'cancelled';
 		currency: string;
 		note: string;
 		items: {
@@ -58,7 +44,6 @@
 		}[];
 	}>({
 		type: 'invoice',
-		status: 'pending',
 		currency: 'USD',
 		note: '',
 		items: []
@@ -66,7 +51,6 @@
 
 	function resetReq() {
 		req.type = 'invoice';
-		req.status = 'pending';
 		req.currency = 'USD';
 		req.note = '';
 		req.items = [];
@@ -223,13 +207,12 @@
 					isInvoice: req.type == 'invoice' ? true : false,
 					currencyCode: req.currency,
 					note: req.note,
-					status: req.status,
 					items: req.items.map((item) => ({
 						description: item.description,
 						qty: item.qty.toString(),
-						discount: item.unitDiscount.toString(),
+						discountRate: item.unitDiscount.toString(),
 						discountType: item.discountType,
-						tax: item.unitTax.toString(),
+						taxRate: item.unitTax.toString(),
 						taxType: item.taxType,
 						unitPrice: item.unitPrice.toString()
 					}))
@@ -239,21 +222,13 @@
 
 			toast.success('Successfully Created');
 			resetReq();
-			onSuccess && onSuccess();
+			onSuccess?.();
 			open = false;
 		} catch (error) {
-			if (error instanceof APIBadRequestError) {
-				toast.error('Invalid Request');
-			} else if (error instanceof APIForbiddenError) {
-				toast.error('Not Authorized');
-			} else if (error instanceof APINotFoundError) {
-				toast.error('Not Found');
-			} else if (error instanceof APIServerError) {
-				toast.error('Server Error');
-			} else if (error instanceof APIError) {
-				toast.error('Unexpected Error, Try Again');
-			} else if (error instanceof NetworkError) {
-				toast.error('Request Failed, Try Again');
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('An Error Occurred');
 			}
 		}
 	}
@@ -288,76 +263,25 @@
 
 		<div class="container mx-auto">
 			<RadioGroup.Root class="flex gap-6 text-sm font-medium" bind:value={req.type}>
-				<div class="text-foreground group flex select-none items-center transition-all">
+				<div class="text-foreground group flex items-center transition-all select-none">
 					<RadioGroup.Item
 						id="invoice"
 						value="invoice"
-						class="border-border-input bg-background hover:border-dark-40 data-[state=checked]:border-foreground data-[state=checked]:border-6 size-5 shrink-0 cursor-default rounded-full border transition-all duration-100 ease-in-out"
+						class="border-border-input bg-background hover:border-dark-40 data-[state=checked]:border-foreground size-5 shrink-0 cursor-default rounded-full border transition-all duration-100 ease-in-out data-[state=checked]:border-6"
 					/>
 					<Label.Root for="invoice" class="pl-3">Invoice</Label.Root>
 				</div>
-				<div class="text-foreground group flex select-none items-center transition-all">
+				<div class="text-foreground group flex items-center transition-all select-none">
 					<RadioGroup.Item
 						id="quote"
 						value="quote"
-						class="border-border-input bg-background hover:border-dark-40 data-[state=checked]:border-foreground data-[state=checked]:border-6 size-5 shrink-0 cursor-default rounded-full border transition-all duration-100 ease-in-out"
+						class="border-border-input bg-background hover:border-dark-40 data-[state=checked]:border-foreground size-5 shrink-0 cursor-default rounded-full border transition-all duration-100 ease-in-out data-[state=checked]:border-6"
 					/>
 					<Label.Root for="quote" class="pl-3">Quote</Label.Root>
 				</div>
 			</RadioGroup.Root>
 
 			<div class="mt-6 flex gap-4 *:space-y-1">
-				<div>
-					<p class="text-sm">Status</p>
-					<Select.Root type="single" bind:value={req.status} items={statuses} allowDeselect={false}>
-						<Select.Trigger
-							class="inline-flex w-32 items-center gap-2 rounded bg-white px-4 py-2.5 text-xs dark:bg-neutral-900"
-							aria-label="Select status"
-						>
-							{statuses.find((s) => s.value == req.status)?.label}
-							<CaretUpDown class="text-muted-foreground ml-auto size-3" />
-						</Select.Trigger>
-						<Select.Portal>
-							<Select.Content
-								class="focus-override border-muted bg-background shadow-popover data-[state=open]:animate-in 
-           							data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
-            						data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
-            						data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-            						data-[side=top]:slide-in-from-bottom-2 outline-hidden z-50 max-h-[var(--bits-select-content-available-height)] 
-            						w-fit min-w-[var(--bits-select-anchor-width)] select-none rounded-xl border px-1 py-3 
-            						data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 
-            						data-[side=top]:-translate-y-1"
-								sideOffset={10}
-							>
-								<Select.ScrollUpButton class="flex w-full items-center justify-center">
-									<CaretDoubleUp class="size-3" />
-								</Select.ScrollUpButton>
-								<Select.Viewport class="p-1">
-									{#each statuses as option, i (i + option.value)}
-										<Select.Item
-											class="data-highlighted:bg-muted outline-hidden data-disabled:opacity-50 flex h-fit 
-                        						w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
-											value={option.value}
-											label={option.label}
-										>
-											{#snippet children({ selected })}
-												{option.label}
-												{#if selected}
-													<div class="ml-auto">
-														<Check aria-label="check" />
-													</div>
-												{/if}
-											{/snippet}
-										</Select.Item>
-									{/each}
-								</Select.Viewport>
-								<Select.ScrollDownButton class="flex w-full items-center justify-center">
-									<CaretDoubleDown class="size-3" />
-								</Select.ScrollDownButton>
-							</Select.Content>
-						</Select.Portal>
-					</Select.Root>
-				</div>
 				<div>
 					<p class="text-sm">Currency</p>
 					<Select.Root
@@ -379,8 +303,8 @@
 									   data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
 									data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
 									data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-									data-[side=top]:slide-in-from-bottom-2 outline-hidden max-h-100 z-50
-									w-fit min-w-[var(--bits-select-anchor-width)] select-none rounded-xl border px-1 py-3 
+									data-[side=top]:slide-in-from-bottom-2 z-50 max-h-100 w-fit
+									min-w-(--bits-select-anchor-width) rounded-xl border px-1 py-3 outline-hidden select-none 
 									data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 
 									data-[side=top]:-translate-y-1"
 								sideOffset={10}
@@ -391,8 +315,8 @@
 								<Select.Viewport class="p-1">
 									{#each currencyList as option, i (i + option.value)}
 										<Select.Item
-											class="data-highlighted:bg-muted outline-hidden data-disabled:opacity-50 flex h-fit 
-												w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
+											class="data-highlighted:bg-muted flex h-fit w-full items-center 
+												gap-1 rounded px-4 py-2 text-xs capitalize outline-hidden select-none data-disabled:opacity-50"
 											value={option.value}
 											label={option.label}
 										>
@@ -434,7 +358,7 @@
 					</Table.Header>
 					<Table.Body>
 						{#if req.items.length > 0}
-							{#each req.items as item, i}
+							{#each req.items as item, i (i)}
 								<Table.Row>
 									<Table.Cell class="flex max-w-xs items-center gap-1">
 										<button
@@ -443,7 +367,7 @@
 										>
 											<X />
 										</button>
-										<p class="overflow-hidden text-ellipsis text-wrap">
+										<p class="overflow-hidden text-wrap text-ellipsis">
 											{item.description}
 										</p>
 									</Table.Cell>
@@ -560,8 +484,8 @@
 									   				data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
 													data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
 													data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-													data-[side=top]:slide-in-from-bottom-2 outline-hidden max-h-100 z-50
-													w-fit min-w-[var(--bits-select-anchor-width)] select-none rounded-xl border px-1 py-3 
+													data-[side=top]:slide-in-from-bottom-2 z-50 max-h-100 w-fit
+													min-w-(--bits-select-anchor-width) rounded-xl border px-1 py-3 outline-hidden select-none 
 													data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 
 													data-[side=top]:-translate-y-1"
 												sideOffset={10}
@@ -569,8 +493,8 @@
 												<Select.Viewport class="p-1">
 													{#each discountTypes as option, i (i + option.value)}
 														<Select.Item
-															class="data-highlighted:bg-muted outline-hidden data-disabled:opacity-50 flex h-fit 
-																w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
+															class="data-highlighted:bg-muted flex h-fit w-full items-center 
+																gap-1 rounded px-4 py-2 text-xs capitalize outline-hidden select-none data-disabled:opacity-50"
 															value={option.value}
 															label={option.label}
 														>
@@ -630,8 +554,8 @@
 									   				data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 
 													data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 
 													data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 
-													data-[side=top]:slide-in-from-bottom-2 outline-hidden max-h-100 z-50
-													w-fit min-w-[var(--bits-select-anchor-width)] select-none rounded-xl border px-1 py-3 
+													data-[side=top]:slide-in-from-bottom-2 z-50 max-h-100 w-fit
+													min-w-(--bits-select-anchor-width) rounded-xl border px-1 py-3 outline-hidden select-none 
 													data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 
 													data-[side=top]:-translate-y-1"
 												sideOffset={10}
@@ -639,8 +563,8 @@
 												<Select.Viewport class="p-1">
 													{#each taxTypes as option, i (i + option.value)}
 														<Select.Item
-															class="data-highlighted:bg-muted outline-hidden data-disabled:opacity-50 flex h-fit 
-																w-full select-none items-center gap-1 rounded px-4 py-2 text-xs capitalize"
+															class="data-highlighted:bg-muted flex h-fit w-full items-center 
+																gap-1 rounded px-4 py-2 text-xs capitalize outline-hidden select-none data-disabled:opacity-50"
 															value={option.value}
 															label={option.label}
 														>

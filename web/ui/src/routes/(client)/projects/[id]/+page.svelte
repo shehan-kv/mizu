@@ -1,32 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getChangeRequestsByProject, type ChangeRequest } from '$lib/api/changeRequest';
-	import {
-		APIBadRequestError,
-		APIForbiddenError,
-		APINotFoundError,
-		APIServerError
-	} from '$lib/api/errors';
-	import { getProjectDetails, type ProjectDetails } from '$lib/api/projects';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { toTitleCase } from '$lib/utils/toTitleCase';
 	import { onMount } from 'svelte';
-	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
-	import KanbanTaskList from '$lib/components/KanbanTaskList.svelte';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
 	import InvoiceListCard from '$lib/components/ProjectInvoiceListCard.svelte';
 	import ProjectInvoicePaidChartCard from '$lib/components/ProjectInvoicePaidChartCard.svelte';
 	import ProjectTasksCompletedChartCard from '$lib/components/ProjectTasksCompletedChartCard.svelte';
 	import ProjectFilesListCard from '$lib/components/ProjectFilesListCard.svelte';
 	import ProjectContractsListCard from '$lib/components/ProjectContractsListCard.svelte';
-	import ProjectChangeRequestListCard from '$lib/components/ProjectChangeRequestListCard.svelte';
 	import ProjectKanbanCard from '$lib/components/ProjectKanbanCard.svelte';
+	import { getProject, type Project } from '$lib/api/projects';
+	import { ApiError } from '$lib/api/client';
 
-	let id = Number(page.params.id);
+	let id = page.params.id || '';
 
-	let projectPromise: Promise<ProjectDetails> | null = $state(null);
+	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
 
 	function loadProject() {
@@ -35,23 +26,11 @@
 		}
 		projectAbort = new AbortController();
 
-		projectPromise = getProjectDetails(id, projectAbort.signal);
-	}
-
-	let chReqPromise: Promise<PaginatedResponse<ChangeRequest>> | null = $state(null);
-	let chReqAbort: AbortController | null = null;
-	function loadChReqs() {
-		if (chReqAbort) {
-			chReqAbort.abort();
-		}
-		chReqAbort = new AbortController();
-
-		chReqPromise = getChangeRequestsByProject(id, { page: 1, limit: 20 }, chReqAbort.signal);
+		projectPromise = getProject(id, projectAbort.signal);
 	}
 
 	onMount(() => {
 		loadProject();
-		loadChReqs();
 	});
 </script>
 
@@ -115,13 +94,6 @@
 							{res.contractSignedCount} / {res.contractCount} Signed
 						</p>
 					</div>
-
-					<div>
-						<p class="text-xs text-neutral-500">Change Requests</p>
-						<p class="text-sm">
-							{res.changeReqClosedCount} / {res.changeReqCount} Closed
-						</p>
-					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Files</p>
 						<p class="text-sm">{res.fileCount}</p>
@@ -131,25 +103,15 @@
 				<ErrorMessage variant="warn" text="Project Not Found" />
 			{/if}
 		{:catch err}
-			{#if err instanceof APIBadRequestError}
-				<ErrorMessage variant="warn" text="Invalid Request" retry={loadProject} />
-			{:else if err instanceof APIForbiddenError}
-				<ErrorMessage
-					variant="warn"
-					text="You Don't Have Permission To View This Project"
-					retry={loadProject}
-				/>
-			{:else if err instanceof APINotFoundError}
-				<ErrorMessage variant="info" text="Not Found" retry={loadProject} />
-			{:else if err instanceof APIServerError}
-				<ErrorMessage variant="warn" text="Server Ran Into An Error" retry={loadProject} />
+			{#if err instanceof ApiError}
+				<ErrorMessage variant="warn" text={err.message} retry={loadProject} />
 			{:else}
-				<ErrorMessage variant="warn" text="An Unexpected Error Occured" retry={loadProject} />
+				<ErrorMessage variant="warn" text="An Error Occurred" retry={loadProject} />
 			{/if}
 		{/await}
 	</div>
 
-	<div class="min-h-50 max-h-100">
+	<div class="max-h-100 min-h-50">
 		<ProjectMembersCard projectId={id} />
 	</div>
 
@@ -157,7 +119,7 @@
 		<ProjectInvoicePaidChartCard projectId={id} />
 	</div>
 
-	<div class="h-84 col-span-4 grid grid-cols-4 gap-2 overflow-hidden">
+	<div class="col-span-4 grid h-84 grid-cols-4 gap-2 overflow-hidden">
 		<div class="col-span-2">
 			<ProjectTasksCompletedChartCard projectId={id} />
 		</div>
@@ -169,15 +131,11 @@
 
 	<InvoiceListCard projectId={id} role="client" />
 
-	<div class="min-h-50 max-h-100 col-span-4">
+	<div class="col-span-4 max-h-100 min-h-50">
 		<ProjectContractsListCard projectId={id} role="client" />
 	</div>
 
-	<div class="min-h-50 max-h-100 col-span-4">
-		<ProjectChangeRequestListCard projectId={id} role="client" />
-	</div>
-
-	<div class="max-h-100 col-span-4">
+	<div class="col-span-4 max-h-100">
 		<ProjectKanbanCard projectId={id} role="client" />
 	</div>
 </div>

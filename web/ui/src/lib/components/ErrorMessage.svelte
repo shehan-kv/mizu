@@ -4,6 +4,7 @@
 	import User from 'phosphor-svelte/lib/User';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import Info from 'phosphor-svelte/lib/Info';
+	import { toTitleCase } from '$lib/utils/toTitleCase';
 
 	interface Props {
 		variant: 'user' | 'channel' | 'message' | 'info' | 'warn';
@@ -29,7 +30,7 @@ justify-center gap-2 py-4 text-xs text-neutral-500"
 	{:else if variant == 'warn'}
 		<WarningCircle size={18} />
 	{/if}
-	<p>{text}</p>
+	<p>{toTitleCase(text)}</p>
 
 	{#if retry}
 		<button
