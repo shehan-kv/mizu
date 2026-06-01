@@ -43,15 +43,15 @@
 		projectsPromise = getProjectStats({ page: 1, limit: 20 }, projectAbort.signal);
 	}
 
-	let projectMetricsPromise: Promise<ProjectMetric[]> | null = $state(null);
-	let projectMetricsAbort: AbortController | null = null;
-	function loadProjectCountMetrics() {
-		if (projectMetricsAbort) {
-			projectMetricsAbort.abort();
+	let projectCreatedMetricsPromise: Promise<ProjectMetric[]> | null = $state(null);
+	let projectCreatedMetricsAbort: AbortController | null = null;
+	function loadProjectCreatedMetrics() {
+		if (projectCreatedMetricsAbort) {
+			projectCreatedMetricsAbort.abort();
 		}
-		projectMetricsAbort = new AbortController();
+		projectCreatedMetricsAbort = new AbortController();
 
-		projectMetricsPromise = getProjectCreatedMetrics(projectMetricsAbort.signal);
+		projectCreatedMetricsPromise = getProjectCreatedMetrics(projectCreatedMetricsAbort.signal);
 	}
 
 	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
@@ -78,16 +78,16 @@
 		invoicesPromise = getInvoices({ page: 1, limit: 20 }, invoicesAbort.signal);
 	}
 
-	let invoiceMetricsPromise: Promise<InvoiceMetric[]> | null = $state(null);
-	let invoiceMetricsAbort: AbortController | null = null;
-	function loadInvoiceMetrics() {
-		if (invoiceMetricsAbort) {
-			invoiceMetricsAbort.abort();
+	let invoicePaidMetricsPromise: Promise<InvoiceMetric[]> | null = $state(null);
+	let invoicePaidMetricsAbort: AbortController | null = null;
+	function loadInvoicePaidMetrics() {
+		if (invoicePaidMetricsAbort) {
+			invoicePaidMetricsAbort.abort();
 		}
 
-		invoiceMetricsAbort = new AbortController();
+		invoicePaidMetricsAbort = new AbortController();
 
-		invoiceMetricsPromise = getPaidInvoiceCount(invoiceMetricsAbort.signal);
+		invoicePaidMetricsPromise = getPaidInvoiceCount(invoicePaidMetricsAbort.signal);
 	}
 
 	let invoiceOverviewPromise: Promise<InvoicesSummary> | null = $state(null);
@@ -107,11 +107,11 @@
 	} satisfies Chart.ChartConfig;
 
 	onMount(() => {
-		loadProjectCountMetrics();
+		loadProjectCreatedMetrics();
 		loadProjects();
 		loadContracts();
 		loadInvoices();
-		loadInvoiceMetrics();
+		loadInvoicePaidMetrics();
 		loadInvoiceOverview();
 	});
 </script>
@@ -123,7 +123,7 @@
 <div class="mx-auto grid grid-cols-4 gap-2 lg:container">
 	<DashboardCard title="Projects Created" class="col-span-2 min-h-80">
 		<div class="relative px-6 py-2">
-			{#await projectMetricsPromise}
+			{#await projectCreatedMetricsPromise}
 				<Spinner />
 			{:then res}
 				{#if res}
@@ -166,9 +166,9 @@
 				{/if}
 			{:catch err}
 				{#if err instanceof ApiError}
-					<ErrorMessage variant="warn" text={err.message} retry={loadProjectCountMetrics} />
+					<ErrorMessage variant="warn" text={err.message} retry={loadProjectCreatedMetrics} />
 				{:else}
-					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadProjectCountMetrics} />
+					<ErrorMessage variant="warn" text="An Error Occurred" retry={loadProjectCreatedMetrics} />
 				{/if}
 			{/await}
 		</div>
@@ -373,7 +373,7 @@
 
 		<DashboardCard title="Invoices Paid" class="col-span-2 max-h-80 min-h-50">
 			<div class="relative h-70 px-6 py-2">
-				{#await invoiceMetricsPromise}
+				{#await invoicePaidMetricsPromise}
 					<Spinner />
 				{:then res}
 					{#if res}
@@ -416,9 +416,9 @@
 					{/if}
 				{:catch err}
 					{#if err instanceof ApiError}
-						<ErrorMessage variant="warn" text={err.message} retry={loadInvoiceMetrics} />
+						<ErrorMessage variant="warn" text={err.message} retry={loadInvoicePaidMetrics} />
 					{:else}
-						<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoiceMetrics} />
+						<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoicePaidMetrics} />
 					{/if}
 				{/await}
 			</div>
