@@ -282,7 +282,7 @@ func (s Service) CreateUser(ctx context.Context, params CreateUserParams) error 
 	}
 
 	err = s.uow.Execute(ctx, func(ctx context.Context) error {
-		if err := s.iamRepo.Save(ctx, user); err != nil {
+		if err := s.iamRepo.Add(ctx, user); err != nil {
 			return err
 		}
 		if err := s.verificationRepo.Add(ctx, verificationReq); err != nil {
