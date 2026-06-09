@@ -1,6 +1,8 @@
 package sse
 
-import "sync"
+import (
+	"sync"
+)
 
 // Sender keeps track of connected clients.
 // Handles adding, removing and sending messages to
@@ -61,6 +63,11 @@ func (s *Sender) RemoveClient(id string, userId string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	client, ok := s.clients[id]
+	if ok {
+		close(client.SendQueue)
+	}
+
 	delete(s.clients, id)
 	delete(s.byClient[userId], id)
 }
@@ -101,12 +108,24 @@ func (s *Sender) SendAll(event string, msg []byte) {
 
 }
 
+func (s *Sender) Shutdown() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, c := range s.clients {
+		close(c.SendQueue)
+	}
+
+	s.clients = map[string]*Client{}
+	s.byClient = map[string]map[string]*Client{}
+}
+
 // buildMessage builds the server sent event message
 func buildMessage(event string, msg []byte) []byte {
 
 	bytesToAllocate := len("event: \n") + len(event) + len("data: \n\n") + len(msg)
 
-	buf := make([]byte, bytesToAllocate)
+	buf := make([]byte, 0, bytesToAllocate)
 
 	buf = append(buf, "event: "...)
 	buf = append(buf, event...)

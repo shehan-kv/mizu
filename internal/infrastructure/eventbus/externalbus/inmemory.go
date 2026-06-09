@@ -14,16 +14,16 @@ type InMemoryBus struct {
 	mu       sync.RWMutex
 	handlers map[eventbus.EventType][]eventbus.ExtEventHandler
 	ch       chan eventbus.Event
-	logger   logger.Logger
+	log      logger.Logger
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
 }
 
-func NewInMemoryBus(logger logger.Logger, buffer int) *InMemoryBus {
+func NewInMemoryBus(log logger.Logger, buffer int) *InMemoryBus {
 	return &InMemoryBus{
 		handlers: make(map[eventbus.EventType][]eventbus.ExtEventHandler),
 		ch:       make(chan eventbus.Event, buffer),
-		logger:   logger,
+		log:      log,
 	}
 }
 
@@ -40,7 +40,7 @@ func (b *InMemoryBus) Publish(ctx context.Context, event eventbus.Event) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
-		b.logger.Warn("external bus full, dropping event",
+		b.log.Warn("external bus full, dropping event",
 			"event_type", event.EventType(),
 		)
 		return nil
@@ -84,7 +84,7 @@ func (b *InMemoryBus) dispatch(ctx context.Context, event eventbus.Event) {
 	b.mu.RUnlock()
 	for _, h := range handlers {
 		if err := h(ctx, event); err != nil {
-			b.logger.Error("external bus handler error",
+			b.log.Error("external bus handler error",
 				"event_type", event.EventType(),
 				"err", err,
 			)
