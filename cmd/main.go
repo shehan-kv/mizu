@@ -61,6 +61,7 @@ import (
 	"mizu/internal/presentation/http/rest/response"
 	taskHandler "mizu/internal/presentation/http/rest/task"
 	"mizu/internal/presentation/http/sse"
+	sseEvtHdl "mizu/internal/presentation/http/sse/eventhandler"
 
 	ui "mizu/web"
 
@@ -75,6 +76,7 @@ func main() {
 	pwHasher := auth.NewDefaultPasswordHasher()
 	idgen := uuid.NewUUIDGenerator()
 	authCookie := cookie.NewAuthCookie()
+	sseSender := sse.NewSender()
 
 	// Environment
 	// ----------------------------------------------------------------------------
@@ -317,6 +319,9 @@ func main() {
 		log.Fatal("unsupported message queue driver", "driver", messageQueueDriver)
 	}
 
+	sseMessageBroadcastHdl := sseEvtHdl.NewMessageBroadcastHandler(sseSender, log)
+	extBus.Subscribe(messageIntgEvt.EventMessageBroadcast, sseMessageBroadcastHdl.Handle)
+
 	// Internal event bus
 	// ----------------------------------------------------------------------------
 
@@ -425,10 +430,9 @@ func main() {
 		authzAppService,
 		messageService,
 		fileStore,
+		uow,
 		log,
 	)
-
-	sseSender := sse.NewSender()
 
 	// Handlers
 	// ----------------------------------------------------------------------------
@@ -438,7 +442,7 @@ func main() {
 	billingHdl := billingHandler.NewBillingHandler(billingAppService, log)
 	messageHdl := messageHandler.NewMessageHandler(messageAppService, log, maxUploadSizeMB)
 	taskHdl := taskHandler.NewTaskHandler(taskAppService, log)
-	sseHdl := sse.NewHandler(sseSender)
+	sseHdl := sse.NewHandler(sseSender, log)
 
 	authMiddleware := middleware.Authenticated(sessionStore, authCookie)
 
@@ -513,7 +517,7 @@ func main() {
 		Addr:         serverAddr,
 		Handler:      mainMux,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 0,
 		IdleTimeout:  60 * time.Second,
 	}
 
@@ -545,25 +549,29 @@ func main() {
 	select {
 	case sig := <-quit:
 		log.Info("shutdown signal received", "signal", sig)
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+		sseSender.Shutdown()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Error("server shutdown did not complete cleanly", "err", err)
+		}
+
+		cancel()
+		stopIfAble(mlr)
+		stopIfAble(fileStore)
+		stopIfAble(sessionStore)
+		stopIfAble(intBus)
+		stopIfAble(extBus)
+
+		log.Info("shutdown complete")
+		defer shutdownCancel()
+
 	case err := <-serverErr:
 		log.Error("server encountered a fatal error", "err", err)
 	}
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer shutdownCancel()
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Error("server shutdown did not complete cleanly", "err", err)
-	}
-
-	cancel()
-	stopIfAble(mlr)
-	stopIfAble(fileStore)
-	stopIfAble(sessionStore)
-	stopIfAble(intBus)
-	stopIfAble(extBus)
-
-	log.Info("shutdown complete")
 }
 
 // env reads an environment variable, trims whitespace, and lowercases the result.
