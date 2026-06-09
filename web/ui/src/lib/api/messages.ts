@@ -51,17 +51,37 @@ export interface MessageSender {
 export interface Message {
 	id: string;
 	channelId: string;
-	isSystem: boolean;
+	sender: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		image?: string;
+		title?: string;
+		role?: string;
+	};
+	isSystem: string;
 	content: string;
-	sender?: MessageSender;
 	createdAt: Date;
 }
 
-export async function getChannelMessages(channelId: string, signal?: AbortSignal) {
-	return apiFetch<PaginatedResponse<Message>>(`messages/channels/${channelId}`, {
-		method: 'GET',
-		signal
-	});
+export async function getChannelMessages(
+	channelId: string,
+	page: number,
+	limit: number,
+	signal?: AbortSignal
+) {
+	const params = new URLSearchParams();
+
+	params.set('page', page.toString());
+	params.set('limit', limit.toString());
+
+	return apiFetch<PaginatedResponse<Message>>(
+		`messages/channels/${channelId}?${params.toString()}`,
+		{
+			method: 'GET',
+			signal
+		}
+	);
 }
 
 export interface ChannelFile {
@@ -92,7 +112,7 @@ export function downloadChannelFile(fileId: string) {
 }
 
 export interface CreateChannelParams {
-	projectId: string;
+	projectId?: string;
 	name: string;
 	memberIds: string[];
 }
@@ -108,7 +128,7 @@ export function createChannel(req: CreateChannelParams, signal?: AbortSignal) {
 export interface CreateMessageParams {
 	content: string;
 }
-export function createMessage(channelId: string, req: CreateChannelParams, signal?: AbortSignal) {
+export function createMessage(channelId: string, req: CreateMessageParams, signal?: AbortSignal) {
 	return apiFetch<void>(`messages/${channelId}`, {
 		method: 'POST',
 		body: JSON.stringify(req),
@@ -124,6 +144,22 @@ export async function uploadMessageFile(channelId: string, file: File, signal?: 
 	return apiFetch<void>(`/messages/channels/${channelId}/files`, {
 		method: 'POST',
 		body: formData,
+		signal
+	});
+}
+
+export interface ChannelMemberReplaceRequest {
+	memberIds: string[];
+}
+
+export async function replaceChannelMembers(
+	channelId: string,
+	req: ChannelMemberReplaceRequest,
+	signal: AbortSignal
+) {
+	return apiFetch<void>(`messages/channels/${channelId}/members`, {
+		method: 'PUT',
+		body: JSON.stringify(req),
 		signal
 	});
 }

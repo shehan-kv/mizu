@@ -216,13 +216,13 @@ export interface InvoicesSummaryMetric {
 }
 
 export interface InvoicesSummary {
-	paid: InvoicesSummaryMetric[];
-	pending: InvoicesSummaryMetric[];
-	accepted: InvoicesSummaryMetric[];
-	rejected: InvoicesSummaryMetric[];
-	cancelled: InvoicesSummaryMetric[];
-	quotesRejected: InvoicesSummaryMetric[];
+	invoicesPaid: InvoicesSummaryMetric[];
+	invoicesPending: InvoicesSummaryMetric[];
+	invoicesAccepted: InvoicesSummaryMetric[];
+	invoicesRejected: InvoicesSummaryMetric[];
+	invoicesCancelled: InvoicesSummaryMetric[];
 	quotesPending: InvoicesSummaryMetric[];
+	quotesRejected: InvoicesSummaryMetric[];
 }
 
 export async function getInvoiceSummmaryByMember(memberId: string, signal?: AbortSignal) {
@@ -232,7 +232,7 @@ export async function getInvoiceSummmaryByMember(memberId: string, signal?: Abor
 	});
 }
 
-export async function getInvoiceSummmary(signal?: AbortSignal) {
+export async function getInvoicesSummmary(signal?: AbortSignal) {
 	return apiFetch<InvoicesSummary>(`invoices/summary`, {
 		method: 'GET',
 		signal
