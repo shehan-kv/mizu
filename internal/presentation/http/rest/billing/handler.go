@@ -27,7 +27,7 @@ func NewBillingHandler(billingSrv *billing.Service, log logger.Logger) *BillingH
 func (h *BillingHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /invoices", authMiddleware(http.HandlerFunc(h.ListInvoices)))
+	mux.Handle("GET /invoices", authMiddleware(http.HandlerFunc(h.ListInvoices)))
 	mux.Handle("POST /invoices/project/{projectID}", authMiddleware(http.HandlerFunc(h.CreateInvoice)))
 	mux.Handle("GET /invoices/project/{projectID}", authMiddleware(http.HandlerFunc(h.ListInvoicesByProject)))
 	mux.Handle("GET /invoices/{invoiceID}", authMiddleware(http.HandlerFunc(h.GetInvoice)))
