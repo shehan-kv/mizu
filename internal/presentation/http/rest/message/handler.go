@@ -35,11 +35,33 @@ func (h *MessageHandler) NewMux(authMiddleware func(http.Handler) http.Handler) 
 	mux.Handle("GET /messages/channels", authMiddleware(http.HandlerFunc(h.ListChannels)))
 	mux.Handle("GET /messages/members/{memberID}/channels", authMiddleware(http.HandlerFunc(h.ListChannelsByMember)))
 	mux.Handle("GET /messages/channels/{channelID}/members", authMiddleware(http.HandlerFunc(h.ListChannelMembers)))
+	mux.Handle("PUT /messages/channels/{channelID}/members", authMiddleware(http.HandlerFunc(h.ReplaceChannelMembers)))
 	mux.Handle("GET /messages/channels/{channelID}", authMiddleware(http.HandlerFunc(h.ListChannelMessages)))
 	mux.Handle("POST /messages/channels/{channelID}/files", authMiddleware(http.HandlerFunc(h.UploadFile)))
 	mux.Handle("GET /messages/channels/{channelID}/files", authMiddleware(http.HandlerFunc(h.ListChannelFiles)))
 
 	return mux
+}
+
+func (h *MessageHandler) ReplaceChannelMembers(w http.ResponseWriter, r *http.Request) {
+	var req ReplaceChannelMembersRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	actorID := middleware.ActorIDFromContext(r.Context())
+
+	if err := h.msgSrv.ReplaceChannelMembers(
+		r.Context(),
+		r.PathValue("channelID"),
+		req.MemberIDs, actorID,
+	); err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *MessageHandler) CreateChannel(w http.ResponseWriter, r *http.Request) {

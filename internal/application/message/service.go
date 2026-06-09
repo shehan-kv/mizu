@@ -8,6 +8,7 @@ import (
 	"mizu/internal/application/logger"
 	"mizu/internal/application/message/integration"
 	"mizu/internal/application/shared"
+	"mizu/internal/application/uow"
 	"mizu/internal/domain/common"
 	"mizu/internal/domain/iam"
 	"mizu/internal/domain/message"
@@ -33,6 +34,8 @@ type Service struct {
 
 	fileStore filestore.Store
 
+	uow uow.UnitOfWork
+
 	log logger.Logger
 }
 
@@ -48,6 +51,7 @@ func NewService(
 	authzSrv *authz.Service,
 	messageSrv *message.Service,
 	fileStore filestore.Store,
+	uow uow.UnitOfWork,
 	log logger.Logger,
 ) *Service {
 
@@ -63,8 +67,64 @@ func NewService(
 		authzSrv:    authzSrv,
 		messageSrv:  messageSrv,
 		fileStore:   fileStore,
+		uow:         uow,
 		log:         log,
 	}
+}
+
+func (s *Service) ReplaceChannelMembers(ctx context.Context, channelID string, memberIDs []string, actorID string) error {
+	now := time.Now()
+
+	cID, err := message.NewChannelID(channelID)
+	if err != nil {
+		return err
+	}
+
+	actor, err := iam.NewUserID(actorID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.authzSrv.RequireAdministrator(ctx, actor); err != nil {
+		return err
+	}
+
+	c, err := s.channelRepo.Get(ctx, cID)
+	if err != nil {
+		return err
+	}
+
+	if !c.HasMember(actor) {
+		return message.ErrNotChannelMember
+	}
+
+	ids := make([]iam.UserID, len(memberIDs))
+	for i := range memberIDs {
+		id, err := iam.NewUserID(memberIDs[i])
+		if err != nil {
+			return err
+		}
+
+		ids[i] = id
+	}
+
+	if !slices.Contains(ids, actor) {
+		ids = append(ids, actor)
+	}
+
+	allExist, err := s.iamRepo.ExistsAll(ctx, ids)
+	if err != nil {
+		return err
+	}
+	if !allExist {
+		return iam.ErrUserNotFound
+	}
+
+	c.ReplaceMembers(ids, now)
+
+	return s.uow.Execute(ctx, func(ctx context.Context) error {
+		return s.channelRepo.Save(ctx, c)
+	})
 }
 
 func (s *Service) CreateChannel(ctx context.Context, params CreateChannelParams) error {
