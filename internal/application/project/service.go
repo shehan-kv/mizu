@@ -516,6 +516,10 @@ func (s *Service) ReplaceMembers(ctx context.Context, projectID string, memberID
 		return err
 	}
 
+	if !p.HasMember(actor) {
+		return project.ErrNotProjectMember
+	}
+
 	ids := make([]iam.UserID, len(memberIDs))
 	for i := range memberIDs {
 		id, err := iam.NewUserID(memberIDs[i])
