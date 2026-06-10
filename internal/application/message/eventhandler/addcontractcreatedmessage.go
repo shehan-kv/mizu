@@ -29,9 +29,9 @@ func (h *AddContractCreatedMessage) Handle(ctx context.Context, event common.Eve
 
 	type payload struct {
 		Type       string `json:"type"`
-		ContractID string `json:"contract_id"`
+		ContractID string `json:"contractId"`
 		Name       string `json:"name"`
-		OccurredAt string `json:"occurred_at"`
+		OccurredAt string `json:"occurredAt"`
 	}
 
 	p := payload{
