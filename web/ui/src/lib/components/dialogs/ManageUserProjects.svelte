@@ -10,7 +10,7 @@
 	import Spinner from '../Spinner.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import SearchProject from '../SearchProject.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { ApiError } from '$lib/api/client';
 
 	interface Props {
@@ -135,7 +135,7 @@
 								<div class="grid grid-cols-[1fr_min-content] items-center">
 									<div>
 										<p class="text-sm">{project.name}</p>
-										<p class="text-xs text-neutral-400">{toTitleCase(project.status)}</p>
+										<p class="text-xs text-neutral-400">{toTitleCaseDashed(project.status)}</p>
 									</div>
 
 									<button

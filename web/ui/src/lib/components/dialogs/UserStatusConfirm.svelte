@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ApiError } from '$lib/api/client';
 	import { activateUser, deactivateUser } from '$lib/api/users';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { Dialog } from 'bits-ui';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import X from 'phosphor-svelte/lib/X';
@@ -77,7 +77,7 @@
 			<div class="px-6 pb-6">
 				<p class="inline-flex items-center gap-1 font-bold">
 					<WarningCircle weight="fill" size={18} class="text-red-400 dark:text-red-500" />
-					{toTitleCase(status)} User
+					{toTitleCaseDashed(status)} User
 				</p>
 				<p class="mt-2 text-sm">
 					{#if status == 'activate'}

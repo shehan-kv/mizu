@@ -7,7 +7,7 @@
 		rejectInvoice,
 		type InvoiceStatus
 	} from '$lib/api/invoices';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { Dialog } from 'bits-ui';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import X from 'phosphor-svelte/lib/X';
@@ -48,7 +48,7 @@
 					break;
 			}
 
-			toast.success(`Successfully Marked As ${toTitleCase(status)}`);
+			toast.success(`Successfully Marked As ${toTitleCaseDashed(status)}`);
 			onSuccess?.();
 			open = false;
 		} catch (error) {
@@ -89,7 +89,7 @@
 			<div class="px-6 pb-6">
 				<p class="inline-flex items-center gap-1 font-bold">
 					<WarningCircle weight="fill" size={18} class="text-red-400 dark:text-red-500" />
-					Mark #{invoiceId} As {toTitleCase(status)}
+					Mark #{invoiceId} As {toTitleCaseDashed(status)}
 				</p>
 				<p class="mt-2 text-sm">
 					Please ensure you have reviewed the invoice carefully before proceeding. This action

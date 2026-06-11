@@ -2,7 +2,7 @@
 	import { ApiError } from '$lib/api/client';
 	import { completeProject, pauseProject, startProject } from '$lib/api/projects';
 	import type { TaskStatus } from '$lib/api/task';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { Dialog } from 'bits-ui';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import X from 'phosphor-svelte/lib/X';
@@ -40,7 +40,7 @@
 					break;
 			}
 
-			toast.success(`Successfully ${toTitleCase(status)}`);
+			toast.success(`Successfully ${toTitleCaseDashed(status)}`);
 			onSuccess?.();
 			open = false;
 		} catch (error) {
@@ -81,7 +81,7 @@
 			<div class="px-6 pb-6">
 				<p class="inline-flex items-center gap-1 font-bold">
 					<WarningCircle weight="fill" size={18} class="text-red-400 dark:text-red-500" />
-					Move To {toTitleCase(status)}
+					Move To {toTitleCaseDashed(status)}
 				</p>
 				<p class="mt-2 text-sm">
 					Please ensure you have reviewed the task carefully before proceeding.
