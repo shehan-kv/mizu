@@ -4,7 +4,7 @@
 	import Square from 'phosphor-svelte/lib/Square';
 	import { onMount } from 'svelte';
 	import Spinner from './Spinner.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { formatMinutes } from '$lib/utils/formatMinutes';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
@@ -13,7 +13,6 @@
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import { getTasks, type Task, type TaskStatus } from '$lib/api/task';
-	import { resolve } from '$app/paths';
 
 	interface Props {
 		projectId: string;
@@ -129,7 +128,7 @@
 									Low Priority
 								</p>
 							{:else}
-								<p>{toTitleCase(task.priority)}</p>
+								<p>{toTitleCaseDashed(task.priority)}</p>
 							{/if}
 						</div>
 
@@ -166,7 +165,7 @@
 								</DropdownMenu.Root>
 
 								<a
-									href={resolve(`${linksPrefix}/projects/${projectId}/kanban/${task.id}`)}
+									href={`${linksPrefix}/projects/${projectId}/kanban/${task.id}`}
 									class="inline-block cursor-pointer rounded bg-neutral-200 px-2 py-1
 									transition hover:bg-neutral-300 dark:bg-neutral-800
 									dark:hover:bg-neutral-700"

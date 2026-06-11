@@ -4,7 +4,7 @@
 	import Spinner from './Spinner.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { getProjectStats, type ProjectStat } from '$lib/api/projects';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import type { PaginatedResponse } from '$lib/api/page';
 
 	interface Props {
@@ -85,7 +85,7 @@
 							}}
 						>
 							<p class="text-sm">{project.name}</p>
-							<p class="text-xs text-neutral-400">{toTitleCase(project.status)}</p>
+							<p class="text-xs text-neutral-400">{toTitleCaseDashed(project.status)}</p>
 						</div>
 					{/each}
 				</div>

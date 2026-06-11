@@ -4,7 +4,7 @@
 	import * as Dialog from '$lib/components/dialogs';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { formatDate } from '$lib/utils/formatDate';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Note from 'phosphor-svelte/lib/Note';
 
 	import Spinner from './Spinner.svelte';
@@ -62,7 +62,12 @@
 				<div class="space-y-2">
 					<div>
 						<p class="text-xs text-neutral-500">Id</p>
-						<p>{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}</p>
+						<p>
+							{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id
+								.replaceAll('-', '')
+								.slice(-8)
+								.toUpperCase()}
+						</p>
 					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Project</p>
@@ -70,7 +75,7 @@
 					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Status</p>
-						<p>{toTitleCase(invoice.status)}</p>
+						<p>{toTitleCaseDashed(invoice.status)}</p>
 					</div>
 					<div>
 						<p class="text-xs text-neutral-500">Issued At</p>

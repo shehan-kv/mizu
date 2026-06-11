@@ -4,7 +4,7 @@
 	import * as Dialog from '$lib/components/dialogs';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Spinner from './Spinner.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { formatDate } from '$lib/utils/formatDate';
@@ -73,7 +73,7 @@
 	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
 		<p class="text-sm">Invoices / Quotes</p>
 		<a
-			href={resolve(`${linksPrefix}/projects/${projectId}/invoices`)}
+			href={`${linksPrefix}/projects/${projectId}/invoices`}
 			class="flex items-center gap-1 text-sm"
 		>
 			<span>View All</span>
@@ -96,7 +96,7 @@
 									{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}
 								</Table.Cell>
 								<Table.Cell class="flex items-center gap-1">
-									{toTitleCase(invoice.status)}
+									{toTitleCaseDashed(invoice.status)}
 									{#if invoice.status == 'accepted'}
 										<Checks size={18} class="text-emerald-500" />
 									{/if}
@@ -147,7 +147,7 @@
 														</DropdownMenu.Group>
 													{:else}
 														<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-															<Checks /> Already {toTitleCase(invoice.status)}
+															<Checks /> Already {toTitleCaseDashed(invoice.status)}
 														</div>
 													{/if}
 
@@ -167,7 +167,7 @@
 													</DropdownMenu.Item>
 												{:else}
 													<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-														<Checks /> Already {toTitleCase(invoice.status)}
+														<Checks /> Already {toTitleCaseDashed(invoice.status)}
 													</div>
 												{/if}
 											</DropdownMenu.Content>
