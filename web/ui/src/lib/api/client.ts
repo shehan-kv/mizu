@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 
-const BASE_URL = '/api/v1/';
+export const BASE_URL = '/api/v1/';
 
 export class ApiError extends Error {
 	status: number;

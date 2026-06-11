@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, BASE_URL } from './client';
 import type { PaginatedResponse } from './page';
 
 export interface Channel {
@@ -101,14 +101,35 @@ export interface FileQuery {
 }
 
 export async function getChannelFiles(channelId: string, query: FileQuery, signal?: AbortSignal) {
-	return apiFetch<PaginatedResponse<ChannelFile>>(`messages/channels/${channelId}/files`, {
-		method: 'GET',
-		signal
-	});
+	const params = new URLSearchParams();
+
+	if (query.q) {
+		params.set('q', query.q);
+	}
+
+	params.set('page', query.page.toString());
+	params.set('limit', query.limit.toString());
+
+	return apiFetch<PaginatedResponse<ChannelFile>>(
+		`messages/channels/${channelId}/files?${params.toString()}`,
+		{
+			method: 'GET',
+			signal
+		}
+	);
 }
 
 export function downloadChannelFile(fileId: string) {
-	window.location.href = `/messages/files/${fileId}`;
+	window.location.href = `${BASE_URL}/messages/files/${fileId}`;
+}
+
+export async function openFileInNewTab(fileId: string) {
+	const response = await fetch(`${BASE_URL}messages/files/${fileId}`);
+
+	const blob = await response.blob();
+	const url = URL.createObjectURL(blob);
+
+	window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 export interface CreateChannelParams {
@@ -136,15 +157,59 @@ export function createMessage(channelId: string, req: CreateMessageParams, signa
 	});
 }
 
-export async function uploadMessageFile(channelId: string, file: File, signal?: AbortSignal) {
-	const formData = new FormData();
+export function uploadMessageFile(
+	channelId: string,
+	file: File,
+	options?: {
+		signal?: AbortSignal;
+		onProgress?: (percent: number) => void;
+	}
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const formData = new FormData();
+		formData.append('file', file);
 
-	formData.append('file', file);
+		const xhr = new XMLHttpRequest();
 
-	return apiFetch<void>(`/messages/channels/${channelId}/files`, {
-		method: 'POST',
-		body: formData,
-		signal
+		// Progress
+		xhr.upload.onprogress = (e) => {
+			if (!e.lengthComputable) return;
+
+			options?.onProgress?.(Math.round((e.loaded / e.total) * 100));
+		};
+
+		// Success
+		xhr.onload = () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				resolve();
+			} else {
+				reject(new Error(`Upload failed (${xhr.status})`));
+			}
+		};
+
+		// Failure
+		xhr.onerror = () => {
+			reject(new Error('Network error'));
+		};
+
+		// Abort
+		xhr.onabort = () => {
+			reject(new DOMException('Aborted', 'AbortError'));
+		};
+
+		// Connect AbortSignal -> xhr.abort()
+		if (options?.signal) {
+			if (options.signal.aborted) {
+				xhr.abort();
+				return;
+			}
+
+			options.signal.addEventListener('abort', () => xhr.abort(), { once: true });
+		}
+
+		xhr.open('POST', `${BASE_URL}/messages/channels/${channelId}/files`);
+
+		xhr.send(formData);
 	});
 }
 
