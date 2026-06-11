@@ -11,7 +11,7 @@
 	import { createDialogState } from './createDialogState.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import Spinner from '../Spinner.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { Channel } from '$lib/api/messages';
 	import ChannelViewInvoice from './ChannelViewInvoice.svelte';
@@ -96,10 +96,12 @@
 									{#each res.items as invoice (invoice.id)}
 										<Table.Row>
 											<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
-											<Table.Cell>#{invoice.id}</Table.Cell>
+											<Table.Cell>
+												#{invoice.id.replaceAll('-', '').slice(-8).toUpperCase()}</Table.Cell
+											>
 											<Table.Cell>{currencyFormatter('USD', invoice.subTotal)}</Table.Cell>
 											<Table.Cell class="flex items-center gap-1">
-												{toTitleCase(invoice.status)}
+												{toTitleCaseDashed(invoice.status)}
 												{#if invoice.status == 'paid' || invoice.status == 'accepted'}
 													<Checks size={18} class="text-emerald-500" />
 												{/if}

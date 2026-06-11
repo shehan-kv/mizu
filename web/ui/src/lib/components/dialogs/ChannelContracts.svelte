@@ -11,7 +11,7 @@
 	import { createDialogState } from './createDialogState.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import ChannelViewContract from './ChannelViewContract.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { Channel } from '$lib/api/messages';
@@ -95,6 +95,7 @@
 							<Table.Root class="container mx-auto">
 								<Table.Header>
 									<Table.Row>
+										<Table.Head class="font-bold">ID</Table.Head>
 										<Table.Head class="font-bold">Name</Table.Head>
 										<Table.Head class="font-bold">Status</Table.Head>
 										<Table.Head class="font-bold">Created Date</Table.Head>
@@ -104,9 +105,12 @@
 								<Table.Body>
 									{#each res.items as contract (contract.id)}
 										<Table.Row>
+											<Table.Cell>
+												{contract.id.replaceAll('-', '').slice(-8).toUpperCase()}</Table.Cell
+											>
 											<Table.Cell>{contract.name}</Table.Cell>
 											<Table.Cell class="flex items-center gap-1">
-												{toTitleCase(contract.status)}
+												{toTitleCaseDashed(contract.status)}
 												{#if contract.status == 'signed'}
 													<Checks size={18} class="text-emerald-500" />
 												{/if}
