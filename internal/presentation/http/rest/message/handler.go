@@ -260,7 +260,7 @@ func (h *MessageHandler) ListChannelFiles(w http.ResponseWriter, r *http.Request
 
 	actorID := middleware.ActorIDFromContext(r.Context())
 
-	keyword := r.URL.Query().Get("keyword")
+	keyword := r.URL.Query().Get("q")
 	var kw *string
 	if keyword != "" {
 		kw = &keyword
