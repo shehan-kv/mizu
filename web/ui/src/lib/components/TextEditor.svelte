@@ -8,25 +8,32 @@
 		disabled?: boolean;
 		autoSuggest?: boolean;
 		placeholder?: string;
+		onSubmit?: () => void;
 	}
 	let {
 		value = $bindable(),
 		disabled = false,
 		autoSuggest = false,
-		placeholder = 'Write your message here'
+		placeholder = 'Write your message here',
+		onSubmit
 	}: Props = $props();
 
+	// Ghost text currently shown after the caret.
+	// Only stores the missing portion of the suggestion.
 	let suggestion = $state('');
 
 	let textInput: HTMLDivElement | null = null;
 	let suggestionSpan: HTMLSpanElement | null = null;
 	let emptySpan: HTMLElement | null = null;
 
+	// Suggestions are rendered as temporary DOM nodes.
+	// Rebuild them instead of trying to keep them in sync.
 	function removeSuggestionSpan() {
 		suggestionSpan?.remove();
 		emptySpan?.remove();
 	}
 
+	// Inserts accepted autocomplete text without moving the caret.
 	function insertTextAtCaret(text: string) {
 		const textNode = document.createTextNode(text);
 		let selection = window.getSelection();
@@ -59,6 +66,8 @@
 		selection?.addRange(newRange);
 	}
 
+	// Autocomplete only considers the current sentence fragment,
+	// not the entire editor contents.
 	function getTextBeforeCursor() {
 		const selection = window.getSelection();
 		if (!selection || !selection.anchorNode) return;
@@ -93,11 +102,17 @@
 		}
 	}
 
+	// Delay suggestion rendering to avoid fighting the caret
+	// on every keystroke.
 	const suggest = debounce(() => {
 		fetchSuggestion();
 		showSuggestionSpan();
 	}, 250);
 
+	// Convert the contenteditable DOM into plain text.
+	//
+	// This is the source of truth used by consumers.
+	// Keep suggestion nodes out of the final value.
 	function setValue() {
 		let text = '';
 
@@ -126,6 +141,16 @@
 		value = text;
 	}
 
+	function clearEditor() {
+		value = '';
+		suggestion = '';
+
+		if (textInput) {
+			// eslint-disable-next-line svelte/no-dom-manipulating
+			textInput.replaceChildren();
+		}
+	}
+
 	function handleKeyDown(e: KeyboardEvent) {
 		if (!textInput) return;
 
@@ -134,6 +159,21 @@
 			suggestion = '';
 		}
 		if (e.key == 'Enter') {
+			// Handle line breaks ourselves so browser-specific
+			// contenteditable markup doesn't leak into the editor.
+
+			if (onSubmit && !e.shiftKey) {
+				e.preventDefault();
+
+				removeSuggestionSpan();
+				setValue();
+
+				onSubmit();
+
+				clearEditor();
+				return;
+			}
+
 			e.preventDefault();
 
 			const br = document.createElement('br');
@@ -152,6 +192,8 @@
 
 			let placeholder;
 
+			// Trailing <br> nodes often need a placeholder text node
+			// so the caret has somewhere valid to sit.
 			if (isAtEnd) {
 				placeholder = document.createTextNode('\u200B');
 				br.parentNode?.insertBefore(placeholder, br.nextSibling);
@@ -174,6 +216,8 @@
 
 		if ((e.key == 'Backspace' || e.key == 'Escape') && suggestion) {
 			suggestion = '';
+
+			// Accept the current suggestion.
 		} else if (e.key == 'Tab' && suggestion) {
 			e.preventDefault();
 			insertTextAtCaret(suggestion);
@@ -184,6 +228,8 @@
 		setValue();
 	}
 
+	// Remove temporary zero-width placeholders that exist
+	// purely to keep caret positioning working after Enter.
 	function normalizeText() {
 		const sel = window.getSelection();
 		if (!sel || !sel.rangeCount) return;
@@ -223,6 +269,8 @@
 		}
 	}
 
+	// Default contenteditable paste brings HTML with it.
+	// Force plain text so the editor DOM stays predictable.
 	function handlePaste(e: ClipboardEvent) {
 		if (!textInput) return;
 
@@ -252,6 +300,8 @@
 	}
 
 	onMount(() => {
+		// Reused ghost-text node shown for autocomplete.
+
 		suggestionSpan = document.createElement('span');
 		suggestionSpan.setAttribute('contentEditable', 'false');
 		suggestionSpan.classList.add('text-neutral-500');
