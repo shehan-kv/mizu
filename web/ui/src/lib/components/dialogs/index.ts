@@ -7,7 +7,7 @@ import NewProject from './NewProject.svelte';
 import ProjectStatusConfirm from './ProjectStatusConfirm.svelte';
 import InvoiceStatusConfirm from './InvoiceStatusConfirm.svelte';
 import ProjectDeleteDialog from './ProjectDeleteDialog.svelte';
-import ManageMembers from './ManageMembers.svelte';
+import ManageProjectMembers from './ManageProjectMembers.svelte';
 import NewInvoice from './NewInvoice.svelte';
 import NewTask from './NewTask.svelte';
 import NewContract from './NewContract.svelte';
@@ -20,6 +20,8 @@ import UserStatusConfirm from './UserStatusConfirm.svelte';
 import UserDeleteConfirm from './UserDeleteConfirm.svelte';
 import ResendVerifyEmailConfirm from './ResendVerifyEmailConfirm.svelte';
 import ManageUserProjects from './ManageUserProjects.svelte';
+import NewChannel from './NewChannel.svelte';
+import ManageChannelMembers from './ManageChannelMembers.svelte';
 
 export {
 	ChannelFiles,
@@ -31,7 +33,7 @@ export {
 	ProjectStatusConfirm,
 	InvoiceStatusConfirm,
 	ProjectDeleteDialog,
-	ManageMembers,
+	ManageProjectMembers,
 	NewInvoice,
 	NewTask,
 	NewContract,
@@ -43,5 +45,7 @@ export {
 	UserStatusConfirm,
 	UserDeleteConfirm,
 	ResendVerifyEmailConfirm,
-	ManageUserProjects
+	ManageUserProjects,
+	NewChannel,
+	ManageChannelMembers
 };
