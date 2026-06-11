@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 
 	interface Props {
 		image?: string;
@@ -28,7 +28,7 @@
 		<p class="text-xs text-neutral-500 dark:text-neutral-400">
 			{#if title || role}
 				{title ? title : ''}
-				{role ? `${title ? ' - ' : ''}${toTitleCase(role)}` : ''}
+				{role ? `${title ? ' - ' : ''}${toTitleCaseDashed(role)}` : ''}
 			{:else}
 				N/A
 			{/if}
