@@ -49,10 +49,7 @@
 	}
 
 	function removeMember(member: ProjectMember) {
-		const exists = confirmMembers.find((m) => m.id == member.id);
-		if (exists) {
-			confirmMembers = confirmMembers.filter((m) => m.id != member.id);
-		}
+		confirmMembers = confirmMembers.filter((m) => m.id != member.id);
 	}
 
 	let confirmAbort: AbortController | null = null;
@@ -130,7 +127,7 @@
 						{/if}
 
 						{#if confirmMembers.length > 0}
-							{#each confirmMembers as member (member)}
+							{#each confirmMembers as member (member.id)}
 								<div class="grid grid-cols-[1fr_min-content] items-center">
 									<UserCard
 										image={member.image}
