@@ -78,6 +78,7 @@
 						<Table.Root class="container mx-auto">
 							<Table.Header>
 								<Table.Row>
+									<Table.Head class="font-bold">ID</Table.Head>
 									<Table.Head class="font-bold">File Name</Table.Head>
 									<Table.Head class="font-bold">Size</Table.Head>
 									<Table.Head class="font-bold">Uploaded Date</Table.Head>
@@ -88,6 +89,7 @@
 							<Table.Body>
 								{#each res.items as file (file.id)}
 									<Table.Row>
+										<Table.Cell>#{file.id.replaceAll('-', '').slice(-8).toUpperCase()}</Table.Cell>
 										<Table.Cell>{file.name}</Table.Cell>
 										<Table.Cell>{formatBytes(file.size)}</Table.Cell>
 										<Table.Cell>{formatDate(file.uploadedAt)}</Table.Cell>
