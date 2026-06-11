@@ -3,153 +3,197 @@
 	import FileText from 'phosphor-svelte/lib/FileText';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
 	import Kanban from 'phosphor-svelte/lib/Kanban';
-	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
 
 	import * as Message from '$lib/components/message';
 	import * as Dialog from '$lib/components/dialogs';
 
-	import type { ChannelMessage, Member, UserMessage } from '$lib/components/message/types';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import { onMount } from 'svelte';
-	import { memebersData, messageData } from '$lib/components/message/mockData';
+	import { onMount, tick } from 'svelte';
 	import TextEditor from '$lib/components/TextEditor.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import SendButton from '$lib/components/SendButton.svelte';
 	import AiSuggestionsButton from '$lib/components/AiSuggestionsButton.svelte';
 	import {
+		createMessage,
 		getChannelMembers,
+		getChannelMessages,
 		getChannels,
 		type Channel,
 		type ChannelMember
 	} from '$lib/api/messages';
+	import { messageStore } from '$lib/messages/messageStore.svelte';
+	import { channelStore } from '$lib/messages/channelStore.svelte';
+	import { toast } from 'svelte-sonner';
+	import { ApiError } from '$lib/api/client';
+	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import FileUploadButton from '$lib/components/FileUploadButton.svelte';
 
-	// svelte-ignore non_reactive_update
-	let editor: TextEditor | null = null;
-	// svelte-ignore non_reactive_update
-	let chatWindow: HTMLDivElement | null = null;
+	let chatWindow: HTMLDivElement | null = $state(null);
 
 	let isAiEnabled = $state(false);
 	let loading = $state({
-		channels: true,
-		members: true,
-		messages: true
+		channels: false,
+		members: false,
+		messages: false
+	});
+
+	let errors = $state<{
+		channels: string | null;
+		members: string | null;
+		messages: string | null;
+	}>({
+		channels: null,
+		members: null,
+		messages: null
 	});
 
 	let selectedChannel: Channel | null = $state(null);
-	let channelMembers: Member[] = $state([]);
-	let channelMessages: ChannelMessage[] = $state([]);
+	let channelMembers: ChannelMember[] = $state([]);
 
-	$effect(() => {
-		if (!selectedChannel) return;
-
-		loading.members = true;
-		channelMembers = [];
-		setTimeout(() => {
-			channelMembers = memebersData;
-			loading.members = false;
-		}, 1000);
-	});
-
-	$effect(() => {
-		if (!selectedChannel) return;
-
-		loading.messages = true;
-		channelMessages = [];
-		setTimeout(() => {
-			channelMessages = messageData;
-			loading.messages = false;
-		}, 1000);
-	});
-
-	$effect(() => {
-		if (channelMessages.length > 0) {
-			scrollToBottom();
-		}
-	});
-
-	let membersPromise: Promise<ChannelMember[]> | null = $state(null);
-	let memberAbortController: AbortController | null = null;
-
+	let membersAbort: AbortController | null = null;
 	async function loadMembers() {
-		if (!selectedChannel) return;
+		if (!messageStore.state.activeChannelId) return;
 
-		if (memberAbortController) {
-			memberAbortController.abort();
+		errors.members = null;
+
+		if (membersAbort) {
+			membersAbort.abort();
 		}
+		membersAbort = new AbortController();
 
-		memberAbortController = new AbortController();
-
-		membersPromise = getChannelMembers(selectedChannel?.id, memberAbortController.signal);
+		try {
+			loading.members = true;
+			channelMembers = await getChannelMembers(
+				messageStore.state.activeChannelId,
+				membersAbort.signal
+			);
+		} catch (err) {
+			if (err instanceof ApiError) {
+				errors.members = err.message;
+			} else {
+				errors.members = 'Failed to load members';
+			}
+		} finally {
+			loading.members = false;
+		}
 	}
 
-	let channelsPromise: Promise<Channel[]> | null = $state(null);
-	let channelAbortController: AbortController | null = null;
-
+	let channelAbort: AbortController | null = null;
 	async function loadChannels() {
-		if (channelAbortController) {
-			channelAbortController.abort();
+		errors.channels = null;
+
+		if (channelAbort) {
+			channelAbort.abort();
 		}
+		channelAbort = new AbortController();
 
-		channelAbortController = new AbortController();
+		try {
+			loading.channels = true;
+			const channels = await getChannels(channelAbort.signal);
 
-		channelsPromise = getChannels(channelAbortController.signal).then((channels) => {
-			if (channels.length > 0) selectedChannel = channels[0];
-			loadMembers();
-			return channels;
-		});
+			channelStore.setChannels(channels);
+		} catch (err) {
+			if (err instanceof ApiError) {
+				errors.channels = err.message;
+			} else {
+				errors.channels = 'Failed to load channels';
+			}
+		} finally {
+			loading.channels = false;
+		}
+	}
+
+	let messageAbort: AbortController | null = null;
+	async function loadMessages(channelId: string) {
+		errors.messages = null;
+
+		if (!channelId) return;
+
+		if (messageAbort) {
+			messageAbort.abort();
+		}
+		messageAbort = new AbortController();
+
+		try {
+			loading.messages = true;
+
+			const messages = await getChannelMessages(channelId, 1, 100, messageAbort.signal);
+			messageStore.replaceMessages(messages.items);
+			messageStore.resetPagination(100);
+		} catch (err) {
+			if (err instanceof ApiError) {
+				errors.messages = err.message;
+			} else {
+				errors.messages = 'Failed to load messages';
+			}
+		} finally {
+			loading.messages = false;
+			await tick();
+			scrollToBottom(true);
+		}
+	}
+
+	async function switchChannel(channel: Channel) {
+		selectedChannel = channel;
+
+		messageStore.setActiveChannel(channel.id);
+
+		await Promise.all([loadMembers(), loadMessages(channel.id)]);
 	}
 
 	onMount(() => {
 		loadChannels();
 	});
 
-	function switchChannel(channel: Channel) {
-		selectedChannel = channel;
-		loadMembers();
-	}
-
 	let fileDialog = createDialogState();
 	let contractDialog = createDialogState();
 	let invoiceDialog = createDialogState();
 	let kanbanDialog = createDialogState();
+	let newChannelDialog = createDialogState();
+	let manageMembersDialog = createDialogState();
 
-	let messageToSend = $state('');
+	function scrollToBottom(force = false) {
+		const messages = messageStore.state.messages;
 
-	function appendMessage() {
-		let id = channelMessages.slice(-1)[0].id || 0;
-		id++;
-		let newMessage: UserMessage = {
-			id: id,
-			date: new Date().toLocaleString(),
-			name: 'Shehan',
-			message: messageToSend,
-			title: 'Founder - Mizu',
-			image: '',
-			type: 'USER'
-		};
+		if (!chatWindow || messages.length === 0) return;
 
-		channelMessages.push(newMessage);
-		messageToSend = '';
-	}
+		const threshold = 150;
 
-	function scrollToBottom() {
-		if (chatWindow) {
-			const threshold = 150;
-			const position = chatWindow.scrollTop + chatWindow.clientHeight;
-			const height = chatWindow.scrollHeight;
+		const position = chatWindow.scrollTop + chatWindow.clientHeight;
+		const height = chatWindow.scrollHeight;
+		const isNearBottom = height - position <= threshold;
 
-			let isUserNearBottom = height - position <= threshold;
-
-			if (isUserNearBottom) {
-				chatWindow.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-			}
+		if (force || isNearBottom) {
+			chatWindow.scrollTo({
+				top: chatWindow.scrollHeight,
+				behavior: 'smooth'
+			});
 		}
 	}
-	function sendMessage(message: string) {
-		if (!message) return;
-		messageToSend = message;
-		appendMessage();
+
+	$effect(() => {
+		const count = messageStore.state.messages.length;
+		if (count > 0 && chatWindow) {
+			tick().then(() => {
+				scrollToBottom();
+			});
+		}
+	});
+
+	let messageToSend = $state('');
+	async function sendMessage() {
+		if (!messageToSend || !messageStore.state.activeChannelId) return;
+
+		try {
+			await createMessage(messageStore.state.activeChannelId, { content: messageToSend });
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast(toTitleCase(error.message));
+			} else {
+				toast('An Error Occured');
+			}
+		}
 	}
 </script>
 
@@ -157,67 +201,66 @@
 	<title>Messages</title>
 </svelte:head>
 
-<div class="grid h-full grid-cols-[20rem_1fr] overflow-y-auto rounded border">
-	<div
-		class="grid h-full auto-rows-[1fr_1fr_min-content] overflow-hidden bg-neutral-100 dark:bg-neutral-900"
-	>
+<div
+	class="grid h-full grid-cols-[20rem_1fr] overflow-y-auto rounded bg-neutral-50 dark:bg-neutral-950"
+>
+	<div class="grid h-full auto-rows-[1fr_1fr_min-content] overflow-hidden border-r">
 		<div class="grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto p-4">
-			<p class="bg-neutral-100 text-xs text-neutral-400 dark:bg-neutral-900 dark:text-neutral-500">
+			<p class="bg-neutral-50 text-xs text-neutral-500 dark:bg-neutral-950 dark:text-neutral-500">
 				CHANNELS
 			</p>
-			{#await channelsPromise}
+			{#if loading.channels}
 				<Spinner />
-			{:then channels}
-				{#if channels}
-					{#if channels.length == 0}
-						<ErrorMessage variant="channel" text="No Channels Found" retry={loadChannels} />
-					{:else}
-						<div
-							class="text-sm text-neutral-700 *:block *:cursor-pointer *:border-l *:px-2 *:py-0.5 *:transition
-							*:hover:text-neutral-950 *:hover:underline dark:text-neutral-300 *:dark:hover:text-neutral-50"
+			{:else if channelStore.channels.length == 0}
+				<ErrorMessage variant="channel" text="No Channels Found" retry={loadChannels} />
+			{:else}
+				<div>
+					{#each channelStore.channels as channel (channel.id)}
+						<button
+							class="block w-full cursor-pointer border-l px-2 py-0.5
+									text-left text-sm text-neutral-700 transition
+									hover:text-neutral-950 hover:underline dark:text-neutral-300 dark:hover:text-neutral-50"
+							class:border-sky-500={selectedChannel?.id == channel.id}
+							class:border-red-500={messageStore.state.unreadCounts[channel.id] > 0}
+							onclick={() => switchChannel(channel)}
 						>
-							{#each channels as channel (channel)}
-								<button
-									class:border-sky-500={selectedChannel?.id == channel.id}
-									onclick={() => switchChannel(channel)}>#{channel.name}</button
-								>
-							{/each}
-						</div>
-					{/if}
-				{/if}
-			{:catch err}
-				<ErrorMessage variant="warn" text={err} retry={loadChannels} />
-			{/await}
+							#{channel.name}
+						</button>
+					{/each}
+				</div>
+			{/if}
+
+			{#if !loading.channels && errors.channels}
+				<ErrorMessage variant="warn" text={errors.channels} retry={loadChannels} />
+			{/if}
 		</div>
 
 		<div class="grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto border-t p-4">
-			{#await membersPromise}
+			<p class="bg-neutral-50 text-xs text-neutral-500 dark:bg-neutral-950 dark:text-neutral-500">
+				MEMBERS
+			</p>
+			{#if loading.members}
 				<Spinner />
-			{:then members}
-				{#if members}
-					<p
-						class="bg-neutral-100 text-xs text-neutral-400 dark:bg-neutral-900 dark:text-neutral-500"
-					>
-						MEMBERS ({members.length})
-					</p>
-					{#if members.length > 0}
-						<div class=" space-y-2.5">
-							{#each members as member (member)}
-								<Message.Member
-									image={member.image}
-									name={`${member.firstName} ${member.lastName}`}
-									title={member.title}
-									role={member.role}
-								/>
-							{/each}
-						</div>
-					{:else}
-						<ErrorMessage variant="user" text="No Members Found" />
-					{/if}
-				{/if}
-			{:catch err}
-				<ErrorMessage variant="warn" text={err} retry={loadMembers} />
-			{/await}
+			{:else if !selectedChannel}
+				<ErrorMessage variant="warn" text="Select A Channel To See Members" />
+			{:else if channelMembers.length == 0}
+				<ErrorMessage variant="user" text="No Members Found" />
+			{:else}
+				<div class=" space-y-2.5">
+					{#each channelMembers as member (member.id)}
+						<Message.Member
+							image={member.image}
+							name={`${member.firstName} ${member.lastName}`}
+							title={member.title}
+							role={member.role}
+						/>
+					{/each}
+				</div>
+			{/if}
+
+			{#if !loading.members && errors.members}
+				<ErrorMessage variant="warn" text={errors.members} retry={loadChannels} />
+			{/if}
 		</div>
 
 		{#if selectedChannel}
@@ -241,67 +284,83 @@
 			</div>
 		{:else}
 			<div class="border-t p-4">
-				<ErrorMessage variant="warn" text="Select Channel To See Options" />
+				<ErrorMessage variant="warn" text="Select A Channel To See Options" />
 			</div>
 		{/if}
 	</div>
 
-	{#if loading.messages}
-		<Spinner />
-	{:else if !loading.messages && selectedChannel}
-		<div class="grid auto-rows-[1fr_min-content] overflow-y-auto p-4">
-			{#if channelMessages.length > 0}
-				<div class="grow overflow-y-auto pb-8 whitespace-pre-line" bind:this={chatWindow}>
-					{#each channelMessages as message (message.id)}
-						{#if message.type == 'USER'}
-							<Message.User
-								name={message.name}
-								title={message.title}
-								date={message.date}
-								image={message.image}
-								message={message.message}
-							/>
-						{:else if message.type == 'QUOTE'}
-							<Message.System variant="invoice" message={message.message} date={message.date} />
-						{:else if message.type == 'INVOICE'}
-							<Message.System variant="invoice" message={message.message} date={message.date} />
-						{:else if message.type == 'FILE_UPLOAD'}
-							<Message.System
-								variant="file"
-								message={message.message}
-								download={message.link}
-								date={message.date}
-							/>
-						{/if}
-					{/each}
-				</div>
-			{:else}
-				<ErrorMessage variant="message" text="No Messages Yet" />
-			{/if}
+	<div class="grid auto-rows-[min-content_1fr] overflow-hidden">
+		<div class="space-x-1 border-b p-2 text-right text-xs">
+			<button
+				onclick={newChannelDialog.open}
+				class="cursor-pointer rounded px-4 py-2 text-neutral-700
+				transition hover:bg-neutral-200 dark:text-neutral-300
+				hover:dark:bg-neutral-800"
+			>
+				New Channel
+			</button>
+			<button
+				disabled={!selectedChannel}
+				onclick={manageMembersDialog.open}
+				class="hover:bg-netural-200 cursor-pointer rounded px-4
+				py-2 text-neutral-700 transition hover:bg-neutral-200 disabled:cursor-not-allowed
+				dark:text-neutral-300 hover:dark:bg-neutral-800"
+			>
+				Manage Members
+			</button>
+		</div>
 
-			<div class="space-y-1">
-				<div class="space-y-2 rounded-sm bg-neutral-100 p-3 text-sm dark:bg-neutral-900">
-					<div
-						class="flex justify-end space-x-1 text-right text-xs *:cursor-pointer *:rounded
-					*:p-2 *:hover:bg-neutral-200 *:dark:hover:bg-neutral-800"
-					>
-						<AiSuggestionsButton onclick={() => (isAiEnabled = !isAiEnabled)} {isAiEnabled} />
-						<button class="inline-flex items-center gap-1.5">
-							<UploadSimple />Upload File
-						</button>
+		{#if loading.messages}
+			<Spinner />
+		{:else if !loading.messages && selectedChannel}
+			<div class="grid auto-rows-[1fr_min-content] overflow-y-auto px-4 pb-4">
+				{#if messageStore.state.messages.length > 0}
+					<div class="grow overflow-y-auto pb-8 whitespace-pre-line" bind:this={chatWindow}>
+						{#each messageStore.state.messages as message (message.id)}
+							{#if !message.isSystem}
+								<Message.User
+									name={message.sender.firstName + ' ' + message.sender.lastName}
+									title={message.sender.title}
+									date={message.createdAt}
+									image={message.sender.image}
+									message={message.content}
+								/>
+							{:else}
+								<Message.System date={message.createdAt} message={message.content} />
+							{/if}
+						{/each}
 					</div>
-					<div class="grid grid-cols-[1fr_min-content]">
-						<div class="max-h-15 overflow-y-auto border-b">
-							<TextEditor bind:this={editor} autoSuggest={isAiEnabled} onSubmit={sendMessage} />
+				{:else}
+					<ErrorMessage variant="message" text="No Messages Yet" />
+				{/if}
+
+				<div class="space-y-1">
+					<div class="space-y-2 rounded-sm bg-neutral-100 p-3 text-sm dark:bg-neutral-900">
+						<div class="flex justify-end space-x-1 text-right text-xs">
+							<AiSuggestionsButton
+								class="cursor-pointer rounded p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+								onclick={() => (isAiEnabled = !isAiEnabled)}
+								{isAiEnabled}
+							/>
+							<FileUploadButton channelId={selectedChannel.id} />
 						</div>
-						<SendButton onclick={() => editor?.submit()} />
+						<div class="grid grid-cols-[1fr_min-content]">
+							<div class="max-h-15 overflow-y-auto border-b">
+								<TextEditor
+									bind:value={messageToSend}
+									autoSuggest={isAiEnabled}
+									onSubmit={sendMessage}
+								/>
+							</div>
+							<SendButton onclick={sendMessage} />
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-	{:else}
-		<div><ErrorMessage variant="warn" text="Select Channel To Send Messages" /></div>
-	{/if}
+		{:else}
+			<div><ErrorMessage variant="warn" text="Select A Channel To Send Messages" /></div>
+		{/if}
+	</div>
 </div>
 
 {#if selectedChannel}
@@ -309,4 +368,11 @@
 	<Dialog.ChannelContracts bind:open={contractDialog.isOpen} channel={selectedChannel} />
 	<Dialog.ChannelInvoices bind:open={invoiceDialog.isOpen} channel={selectedChannel} />
 	<Dialog.ChannelKanban bind:open={kanbanDialog.isOpen} channel={selectedChannel} />
+	<Dialog.ManageChannelMembers
+		bind:open={manageMembersDialog.isOpen}
+		channelId={selectedChannel.id}
+		onSuccess={loadMembers}
+	/>
 {/if}
+
+<Dialog.NewChannel bind:open={newChannelDialog.isOpen} />
