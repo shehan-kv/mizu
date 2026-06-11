@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { formatDate } from '$lib/utils/formatDate';
+
 	interface Props {
 		image?: string;
 		name: string;
-		title: string;
+		title?: string;
 		message: string;
-		date: string;
+		date: Date;
 	}
 	let { image, name, title, message, date }: Props = $props();
 </script>
@@ -22,10 +24,13 @@
 	<div class="space-y-1">
 		<div>
 			<p class="flex gap-2 text-sm text-neutral-700 dark:text-neutral-400">
-				{name} <span>|</span>
-				{title}
+				{name}
+				{#if title}
+					<span>|</span>
+					{title}
+				{/if}
 			</p>
-			<p class="text-xs text-neutral-500">{date}</p>
+			<p class="text-xs text-neutral-500">{formatDate(date)}</p>
 		</div>
 
 		<p class="max-w-2xl">
