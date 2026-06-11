@@ -331,7 +331,7 @@ func main() {
 	verifiedEmailEvtHdl := iamEvtHdl.NewSendVerifiedEmail(mlr, iamRepo)
 	contractCreatedEvtHdl := messageEvtHdl.NewAddContractCreatedMessage(systemMsgPub)
 	contractStatusEvtHdl := messageEvtHdl.NewAddContractStatusChangedMessage(iamRepo, systemMsgPub)
-	fileUploadEvtHdl := messageEvtHdl.NewAddFileUploadedMessage(messageRepo, iamRepo, extBus, idgen)
+	fileUploadEvtHdl := messageEvtHdl.NewAddFileUploadedMessage(messageRepo, channelRepo, iamRepo, extBus, idgen)
 	invoiceConvertedEvtHdl := messageEvtHdl.NewAddInvoiceConvertedMessage(systemMsgPub)
 	invoiceCreatedEvtHdl := messageEvtHdl.NewAddInvoiceCreatedMessage(systemMsgPub)
 	invoiceStatusEvtHdl := messageEvtHdl.NewAddInvoiceStatusChangedMessage(systemMsgPub)

@@ -22,6 +22,7 @@ type AddFileUploadedMessage struct {
 
 func NewAddFileUploadedMessage(
 	messageRepo message.MessageRepository,
+	channelRepo message.ChannelRepository,
 	iamRepo iam.Repository,
 	externalBus eventbus.ExternalBus,
 	idGen common.IDGenerator,
@@ -29,6 +30,7 @@ func NewAddFileUploadedMessage(
 
 	return &AddFileUploadedMessage{
 		messageRepo: messageRepo,
+		channelRepo: channelRepo,
 		iamRepo:     iamRepo,
 		externalBus: externalBus,
 		idGen:       idGen,
