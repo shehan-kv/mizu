@@ -30,7 +30,7 @@
 			onchange();
 		}}
 		items={options}
-		allowDeselect={true}
+		allowDeselect={false}
 	>
 		<Select.Trigger
 			class="inline-flex w-32 items-center gap-2 rounded bg-white px-2 py-1 text-xs dark:bg-neutral-950"
