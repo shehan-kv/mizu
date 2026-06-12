@@ -1,14 +1,26 @@
 import { apiFetch } from './client';
 import type { PaginatedResponse } from './page';
 
+export interface Signatory {
+	id: string;
+	firstName: string;
+	lastName: string;
+	role: string;
+	status: string;
+	title?: string;
+	image?: string;
+	updatedAt: Date;
+}
+
 export interface ContractOverview {
 	id: string;
 	projectId: string;
 	name: string;
 	status: string;
+	memberSignatoryStatus: string;
+	signatories: Signatory[];
 	createdAt: Date;
 	updatedAt: Date;
-	signatories: Signatory[];
 }
 
 export interface ContractQuery {
@@ -36,22 +48,12 @@ export async function getContractOverviews(query: ContractQuery, signal?: AbortS
 	});
 }
 
-export interface Signatory {
-	id: string;
-	firstName: string;
-	lastName: string;
-	role: string;
-	status: string;
-	title?: string;
-	image?: string;
-	updatedAt: Date;
-}
-
 export interface Contract {
 	id: string;
 	projectId: string;
 	name: string;
 	status: string;
+	memberSignatoryStatus: string;
 	signatories: Signatory[];
 	createdAt: Date;
 	updatedAt: Date;

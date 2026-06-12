@@ -354,11 +354,17 @@ func (s *Service) ListOverviewByProject(ctx context.Context, params ListByProjec
 		sg := contracts[i].Signatories()
 		signatories := make([]SignatoryDTO, 0, len(sg))
 
+		var memberSignatoryStatus string
+
 		for j := range sg {
 
 			u, ok := userMap[sg[j].UserID()]
 			if !ok {
 				return nil, contract.ErrContractSignatoryNotFound
+			}
+
+			if sg[j].UserID() == actor {
+				memberSignatoryStatus = sg[j].Status().String()
 			}
 
 			signatories = append(signatories, SignatoryDTO{
@@ -374,13 +380,14 @@ func (s *Service) ListOverviewByProject(ctx context.Context, params ListByProjec
 		}
 
 		items = append(items, ContractOverviewDTO{
-			ID:          contracts[i].ID().String(),
-			ProjectID:   contracts[i].ProjectID().String(),
-			Name:        contracts[i].Name().String(),
-			Status:      contracts[i].Status().String(),
-			Signatories: signatories,
-			CreatedAt:   contracts[i].CreatedAt(),
-			UpdatedAt:   contracts[i].UpdatedAt(),
+			ID:                    contracts[i].ID().String(),
+			ProjectID:             contracts[i].ProjectID().String(),
+			Name:                  contracts[i].Name().String(),
+			Status:                contracts[i].Status().String(),
+			MemberSignatoryStatus: memberSignatoryStatus,
+			Signatories:           signatories,
+			CreatedAt:             contracts[i].CreatedAt(),
+			UpdatedAt:             contracts[i].UpdatedAt(),
 		})
 	}
 
@@ -396,6 +403,7 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 	if err != nil {
 		return nil, err
 	}
+
 	memID, err := iam.NewUserID(params.MemberID)
 	if err != nil {
 		return nil, err
@@ -409,13 +417,8 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 		return nil, err
 	}
 
-	userID, err := iam.NewUserID(params.MemberID)
-	if err != nil {
-		return nil, err
-	}
-
 	filter := contract.FilterBySignatory{
-		SignatoryID: userID,
+		SignatoryID: memID,
 		Keyword:     params.Keyword,
 	}
 
@@ -470,11 +473,17 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 		sg := contracts[i].Signatories()
 		signatories := make([]SignatoryDTO, 0, len(sg))
 
+		var memberSignatoryStatus string
+
 		for j := range sg {
 
 			u, ok := userMap[sg[j].UserID()]
 			if !ok {
 				return nil, contract.ErrContractSignatoryNotFound
+			}
+
+			if sg[j].UserID() == memID {
+				memberSignatoryStatus = sg[j].Status().String()
 			}
 
 			signatories = append(signatories, SignatoryDTO{
@@ -490,13 +499,14 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 		}
 
 		items = append(items, ContractOverviewDTO{
-			ID:          contracts[i].ID().String(),
-			ProjectID:   contracts[i].ProjectID().String(),
-			Name:        contracts[i].Name().String(),
-			Status:      contracts[i].Status().String(),
-			Signatories: signatories,
-			CreatedAt:   contracts[i].CreatedAt(),
-			UpdatedAt:   contracts[i].UpdatedAt(),
+			ID:                    contracts[i].ID().String(),
+			ProjectID:             contracts[i].ProjectID().String(),
+			Name:                  contracts[i].Name().String(),
+			Status:                contracts[i].Status().String(),
+			MemberSignatoryStatus: memberSignatoryStatus,
+			Signatories:           signatories,
+			CreatedAt:             contracts[i].CreatedAt(),
+			UpdatedAt:             contracts[i].UpdatedAt(),
 		})
 	}
 

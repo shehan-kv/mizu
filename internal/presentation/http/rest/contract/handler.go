@@ -317,12 +317,13 @@ func toContractOverviewResponse(c *contract.ContractOverviewDTO) ContractOvervie
 		signatories[i] = toSignatoryResponse(s)
 	}
 	return ContractOverviewResponse{
-		ID:          c.ID,
-		ProjectID:   c.ProjectID,
-		Name:        c.Name,
-		Status:      c.Status,
-		Signatories: signatories,
-		CreatedAt:   c.CreatedAt,
-		UpdatedAt:   c.UpdatedAt,
+		ID:                    c.ID,
+		ProjectID:             c.ProjectID,
+		Name:                  c.Name,
+		Status:                c.Status,
+		MemberSignatoryStatus: c.MemberSignatoryStatus,
+		Signatories:           signatories,
+		CreatedAt:             c.CreatedAt,
+		UpdatedAt:             c.UpdatedAt,
 	}
 }
