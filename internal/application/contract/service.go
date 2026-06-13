@@ -96,7 +96,7 @@ func (s *Service) CreateContract(ctx context.Context, params CreateContractParam
 		signIDs[i] = id
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, signIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, signIDs, iam.UserFilter{})
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (s *Service) GetContract(ctx context.Context, actorID string, contractID st
 		signIDs = append(signIDs, signs[i].UserID())
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, signIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, signIDs, iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func (s *Service) ListOverviewByProject(ctx context.Context, params ListByProjec
 		userIDs = append(userIDs, id)
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, userIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -456,7 +456,7 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 		userIDs = append(userIDs, id)
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, userIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +557,7 @@ func (s *Service) ReplaceSignatories(ctx context.Context, params ReplaceSignator
 		signIDs[i] = uID
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, signIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, signIDs, iam.UserFilter{})
 	if err != nil {
 		return err
 	}

@@ -393,7 +393,7 @@ func (s *Service) GetProjectOverview(ctx context.Context, projectID string, acto
 		return ProjectOverviewDTO{}, err
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, p.Members())
+	users, err := s.iamRepo.ListByIDs(ctx, p.Members(), iam.UserFilter{})
 	if err != nil {
 		return ProjectOverviewDTO{}, err
 	}
@@ -450,14 +450,14 @@ func (s *Service) GetCreatedCount(ctx context.Context, actorID string) ([]Metric
 	return dto, nil
 }
 
-func (s *Service) GetMembers(ctx context.Context, projectID string, actorID string) ([]MemberDTO, error) {
+func (s *Service) ListMembers(ctx context.Context, params ListMembersParams) ([]MemberDTO, error) {
 
-	pID, err := project.NewProjectID(projectID)
+	pID, err := project.NewProjectID(params.ProjectID)
 	if err != nil {
 		return nil, err
 	}
 
-	actor, err := iam.NewUserID(actorID)
+	actor, err := iam.NewUserID(params.ActorID)
 	if err != nil {
 		return nil, err
 	}
@@ -471,22 +471,24 @@ func (s *Service) GetMembers(ctx context.Context, projectID string, actorID stri
 		return nil, project.ErrNotProjectMember
 	}
 
-	members, err := s.iamRepo.ListByIDs(ctx, p.Members())
+	members, err := s.iamRepo.ListByIDs(ctx, p.Members(), iam.UserFilter{
+		Keyword: params.Keyword,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	dto := make([]MemberDTO, len(members))
+	dto := make([]MemberDTO, 0, len(members))
 
 	for i := range members {
-		dto[i] = MemberDTO{
+		dto = append(dto, MemberDTO{
 			ID:        members[i].ID().String(),
 			FirstName: members[i].FirstName(),
 			LastName:  members[i].LastName(),
 			Title:     members[i].Title(),
 			Image:     members[i].Image(),
 			Role:      members[i].Role().String(),
-		}
+		})
 	}
 
 	return dto, nil

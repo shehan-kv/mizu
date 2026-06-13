@@ -446,31 +446,31 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 	return users, nil
 }
 
-func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID) ([]*iam.User, error) {
+func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.UserFilter) ([]*iam.User, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 
 	var sb strings.Builder
-	args := make([]any, 0, len(ids))
+	args := make([]any, 0, len(ids)+3)
 
 	sb.WriteString(`
-    SELECT
-        id,
-        first_name,
-        last_name,
-        role,
-        title,
-        email,
-        image,
-        is_active,
-        is_verified,
-        last_signin_at,
-        version,
-        created_at,
-        updated_at
-    FROM users
-    WHERE id IN (`)
+		SELECT
+			id,
+			first_name,
+			last_name,
+			role,
+			title,
+			email,
+			image,
+			is_active,
+			is_verified,
+			last_signin_at,
+			version,
+			created_at,
+			updated_at
+		FROM users
+		WHERE id IN (`)
 
 	for i, id := range ids {
 		if i > 0 {
@@ -479,16 +479,41 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID) ([]*iam
 		sb.WriteString("?")
 		args = append(args, id.String())
 	}
+
 	sb.WriteString(")")
+
+	if f.Keyword != nil && strings.TrimSpace(*f.Keyword) != "" {
+		keyword := "%" + strings.TrimSpace(*f.Keyword) + "%"
+
+		sb.WriteString(`
+			AND (
+				first_name LIKE ?
+				OR last_name LIKE ?
+				OR title LIKE ?
+				OR (first_name || ' ' || last_name) LIKE ?
+			)`)
+
+		args = append(args, keyword, keyword, keyword, keyword)
+	}
+
+	if f.Role != nil {
+		sb.WriteString(` AND role = ?`)
+		args = append(args, f.Role.String())
+	}
+
+	if f.IsActive != nil {
+		sb.WriteString(` AND is_active = ?`)
+		args = append(args, *f.IsActive)
+	}
 
 	rows, err := r.db.QueryContext(ctx, sb.String(), args...)
 	if err != nil {
 		return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
 	}
-
 	defer rows.Close()
 
-	users := make([]*iam.User, 0, len(ids))
+	users := make([]*iam.User, 0)
+
 	for rows.Next() {
 		var (
 			rawID        string
@@ -545,7 +570,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID) ([]*iam
 			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
 		}
 
-		user := iam.RestoreUser(
+		users = append(users, iam.RestoreUser(
 			userID,
 			name,
 			emailVO,
@@ -558,16 +583,11 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID) ([]*iam
 			version,
 			createdAt,
 			updatedAt,
-		)
-		users = append(users, user)
+		))
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
-	}
-
-	if len(users) != len(ids) {
-		return nil, iam.ErrUserNotFound
 	}
 
 	return users, nil

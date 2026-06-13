@@ -32,7 +32,7 @@ func (h *ProjectHandler) NewMux(authMiddleware func(http.Handler) http.Handler) 
 	mux.Handle("GET /projects/stats/members/{memberID}/all", authMiddleware(http.HandlerFunc(h.ListAllStatsByMember)))
 	mux.Handle("GET /projects/stats/created-count", authMiddleware(http.HandlerFunc(h.GetCreatedCount)))
 	mux.Handle("GET /projects/{projectID}", authMiddleware(http.HandlerFunc(h.GetProjectOverview)))
-	mux.Handle("GET /projects/{projectID}/members", authMiddleware(http.HandlerFunc(h.GetMembers)))
+	mux.Handle("GET /projects/{projectID}/members", authMiddleware(http.HandlerFunc(h.ListMembers)))
 	mux.Handle("PUT /projects/{projectID}/members", authMiddleware(http.HandlerFunc(h.ReplaceMembers)))
 	mux.Handle("PUT /projects/{projectID}/start", authMiddleware(http.HandlerFunc(h.StartProject)))
 	mux.Handle("PUT /projects/{projectID}/pause", authMiddleware(http.HandlerFunc(h.PauseProject)))
@@ -205,10 +205,15 @@ func (h *ProjectHandler) GetCreatedCount(w http.ResponseWriter, r *http.Request)
 	response.WriteJSON(w, http.StatusOK, metrics)
 }
 
-func (h *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	actorID := middleware.ActorIDFromContext(r.Context())
 
-	result, err := h.projectSrv.GetMembers(r.Context(), r.PathValue("projectID"), actorID)
+	result, err := h.projectSrv.ListMembers(r.Context(), project.ListMembersParams{
+		ActorID:   actorID,
+		ProjectID: r.PathValue("projectID"),
+		Keyword:   query.ExtractString(r, "q"),
+	})
+
 	if err != nil {
 		h.writeServiceError(w, r.Method, r.URL.Path, err)
 		return

@@ -185,7 +185,7 @@ func (s *Service) CreateChannel(ctx context.Context, params CreateChannelParams)
 	}
 
 	if params.ProjectID == nil {
-		users, err := s.iamRepo.ListByIDs(ctx, memberIDs)
+		users, err := s.iamRepo.ListByIDs(ctx, memberIDs, iam.UserFilter{})
 		if err != nil {
 			return err
 		}
@@ -281,7 +281,7 @@ func (s *Service) ListChannelMembers(ctx context.Context, actorID string, channe
 		return nil, project.ErrNotProjectMember
 	}
 
-	m, err := s.iamRepo.ListByIDs(ctx, c.Members())
+	m, err := s.iamRepo.ListByIDs(ctx, c.Members(), iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +429,7 @@ func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMes
 		}
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, senderIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, senderIDs, iam.UserFilter{})
 	if err != nil {
 		return shared.Collection[MessageDTO]{}, err
 	}
@@ -623,7 +623,7 @@ func (s *Service) ListChannelFiles(ctx context.Context, params ListChannelFilesP
 		}
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, userIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
 	if err != nil {
 		return shared.Collection[FileDTO]{}, err
 	}

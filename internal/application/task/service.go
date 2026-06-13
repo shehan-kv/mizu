@@ -331,7 +331,7 @@ func (s *Service) ListTasks(ctx context.Context, params ListTaskParams) (*shared
 		assigneeIDs = append(assigneeIDs, id)
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, assigneeIDs)
+	users, err := s.iamRepo.ListByIDs(ctx, assigneeIDs, iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +450,7 @@ func (s *Service) ListAssignees(ctx context.Context, taskID string, actorID stri
 		return nil, project.ErrNotProjectMember
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, t.Assignees())
+	users, err := s.iamRepo.ListByIDs(ctx, t.Assignees(), iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
