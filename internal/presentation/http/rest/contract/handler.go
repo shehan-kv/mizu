@@ -300,14 +300,15 @@ func toContractResponse(c *contract.ContractDTO) ContractResponse {
 		signatories[i] = toSignatoryResponse(s)
 	}
 	return ContractResponse{
-		ID:          c.ID,
-		ProjectID:   c.ProjectID,
-		Name:        c.Name,
-		Status:      c.Status,
-		Terms:       c.Terms,
-		Signatories: signatories,
-		CreatedAt:   c.CreatedAt,
-		UpdatedAt:   c.UpdatedAt,
+		ID:                    c.ID,
+		ProjectID:             c.ProjectID,
+		Name:                  c.Name,
+		Status:                c.Status,
+		Terms:                 c.Terms,
+		MemberSignatoryStatus: c.MemberSignatoryStatus,
+		Signatories:           signatories,
+		CreatedAt:             c.CreatedAt,
+		UpdatedAt:             c.UpdatedAt,
 	}
 }
 

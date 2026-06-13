@@ -243,10 +243,16 @@ func (s *Service) GetContract(ctx context.Context, actorID string, contractID st
 
 	signDTO := make([]SignatoryDTO, 0, len(signs))
 
+	var memberSignatoryStatus string
+
 	for i := range signs {
 		u, ok := userMap[signs[i].UserID()]
 		if !ok {
 			return nil, contract.ErrContractSignatoryNotFound
+		}
+
+		if signs[i].UserID() == actor {
+			memberSignatoryStatus = signs[i].Status().String()
 		}
 
 		signDTO = append(signDTO, SignatoryDTO{
@@ -262,14 +268,15 @@ func (s *Service) GetContract(ctx context.Context, actorID string, contractID st
 	}
 
 	return &ContractDTO{
-		ID:          c.ID().String(),
-		ProjectID:   c.ProjectID().String(),
-		Name:        c.Name().String(),
-		Status:      c.Status().String(),
-		Terms:       c.Terms().String(),
-		Signatories: signDTO,
-		CreatedAt:   c.CreatedAt(),
-		UpdatedAt:   c.UpdatedAt(),
+		ID:                    c.ID().String(),
+		ProjectID:             c.ProjectID().String(),
+		Name:                  c.Name().String(),
+		Status:                c.Status().String(),
+		Terms:                 c.Terms().String(),
+		MemberSignatoryStatus: memberSignatoryStatus,
+		Signatories:           signDTO,
+		CreatedAt:             c.CreatedAt(),
+		UpdatedAt:             c.UpdatedAt(),
 	}, nil
 }
 
