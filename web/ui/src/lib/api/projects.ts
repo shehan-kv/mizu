@@ -105,8 +105,11 @@ export async function getProject(projectId: string, signal?: AbortSignal) {
 	});
 }
 
-export async function getProjectMembers(projectId: string, signal?: AbortSignal) {
-	return apiFetch<ProjectMember[]>(`projects/${projectId}/members`, {
+export async function getProjectMembers(projectId: string, q: string, signal?: AbortSignal) {
+	const params = new URLSearchParams();
+	if (q) params.set('q', q);
+
+	return apiFetch<ProjectMember[]>(`projects/${projectId}/members?${params.toString()}`, {
 		method: 'GET',
 		signal
 	});

@@ -9,6 +9,11 @@
 	import { createDialogState } from './createDialogState.svelte';
 	import ConfirmDiscardData from './ConfirmDiscardData.svelte';
 	import { ApiError } from '$lib/api/client';
+	import UserCard from '../UserCard.svelte';
+	import ErrorMessage from '../ErrorMessage.svelte';
+	import type { ProjectMember } from '$lib/api/projects';
+	import SearchProjectMember from '../SearchProjectMember.svelte';
+	import Info from 'phosphor-svelte/lib/Info';
 
 	interface Props {
 		open: boolean;
@@ -17,21 +22,39 @@
 	}
 	let { open = $bindable(), projectId, onSuccess }: Props = $props();
 
-	let req = $state({
+	let req = $state<{
+		name: string;
+		terms: string;
+		signatories: ProjectMember[];
+	}>({
 		name: '',
 		terms: '',
-		signatoryIds: []
+		signatories: []
 	});
 
 	function validateReq() {
 		return (
-			req.name.trim().length != 0 && req.terms.trim().length != 0 && req.signatoryIds.length != 0
+			req.name.trim().length != 0 && req.terms.trim().length != 0 && req.signatories.length != 0
 		);
 	}
 	function resetReq() {
 		req.name = '';
 		req.terms = '';
-		req.signatoryIds = [];
+		req.signatories = [];
+	}
+
+	function addSignatory(member: ProjectMember) {
+		const exists = req.signatories.find((m) => m.id == member.id);
+		if (!exists) {
+			req.signatories.push(member);
+			req.signatories = [...req.signatories];
+		} else {
+			toast.info('Already Added');
+		}
+	}
+
+	function removeSignatory(member: ProjectMember) {
+		req.signatories = req.signatories.filter((m) => m.id != member.id);
 	}
 
 	let isAiEnabled = $state(false);
@@ -49,7 +72,15 @@
 		createAbort = new AbortController();
 
 		try {
-			await createContract(projectId, req, createAbort.signal);
+			await createContract(
+				projectId,
+				{
+					name: req.name,
+					terms: req.terms,
+					signatoryIds: req.signatories.map((s) => s.id)
+				},
+				createAbort.signal
+			);
 			toast.success('Successfully Created');
 			resetReq();
 			onSuccess?.();
@@ -75,7 +106,7 @@
 <Dialog.Root
 	bind:open
 	onOpenChange={(state) => {
-		if (!state && (req.name.length > 0 || req.terms.length > 0 || req.signatoryIds.length > 0)) {
+		if (!state && (req.name.length > 0 || req.terms.length > 0 || req.signatories.length > 0)) {
 			open = true;
 			discardDialog.open();
 		} else {
@@ -130,7 +161,7 @@
 							Contract Terms <span class="text-xs text-red-600 dark:text-red-500">(Required)</span>
 						</p>
 						<div
-							class="grid h-60 grid-rows-[1fr_min-content] rounded bg-neutral-100 px-3 pt-3 pb-2 dark:bg-neutral-900"
+							class="grid h-50 grid-rows-[1fr_min-content] rounded bg-neutral-100 px-3 pt-3 pb-2 dark:bg-neutral-900"
 						>
 							<TextEditor
 								bind:value={req.terms}
@@ -145,6 +176,46 @@
 									dark:hover:bg-neutral-800"
 									onclick={() => (isAiEnabled = !isAiEnabled)}
 								/>
+							</div>
+						</div>
+					</div>
+
+					<div class="mt-4 space-y-1 text-sm">
+						<p>
+							Signatories
+							<span class="text-xs text-red-600 dark:text-red-500"> (Required) </span>
+						</p>
+
+						<div class="my-4 h-25 space-y-2 overflow-scroll">
+							{#if req.signatories.length > 0}
+								{#each req.signatories as signatory (signatory.id)}
+									<div class="flex items-center justify-between gap-2">
+										<UserCard
+											image={signatory.image}
+											name={`${signatory.firstName} ${signatory.lastName}`}
+											role={signatory.role}
+											title={signatory.title}
+										/>
+
+										<button
+											class="cursor-pointer rounded p-2 transition hover:bg-neutral-100
+											dark:hover:bg-neutral-900"
+											onclick={() => removeSignatory(signatory)}
+										>
+											<X size={18} />
+										</button>
+									</div>
+								{/each}
+							{:else}
+								<ErrorMessage text="No Signatories Yet" variant="info" />
+							{/if}
+						</div>
+
+						<div class="space-y-2">
+							<SearchProjectMember {projectId} onSelect={addSignatory} />
+							<div class="flex items-start gap-1 text-xs text-neutral-500">
+								<Info size={16} />
+								<p>At Least 1 Client and 1 Administrator/Staff Member Are Required</p>
 							</div>
 						</div>
 					</div>
