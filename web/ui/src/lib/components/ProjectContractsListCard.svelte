@@ -4,12 +4,12 @@
 	import * as Dialog from '$lib/components/dialogs';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Spinner from './Spinner.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
 	import ErrorMessage from './ErrorMessage.svelte';
 
-	import { getContractOverviewsByProject, type Contract } from '$lib/api/contracts';
+	import { getContractOverviewsByProject, type ContractOverview } from '$lib/api/contracts';
 	import { onMount } from 'svelte';
 	import type { UserRole } from '$lib/api/users';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
@@ -24,7 +24,7 @@
 	}
 	let { projectId, role = 'client' }: Props = $props();
 
-	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
+	let contractsPromise: Promise<PaginatedResponse<ContractOverview>> | null = $state(null);
 	let abort: AbortController | null = null;
 	function loadContracts() {
 		if (abort) {
@@ -52,10 +52,10 @@
 	let rejectDialog = createDialogState();
 
 	type ActionsAllowed = 'sign' | 'reject';
-	type SelectedContract = Contract & { action?: ActionsAllowed };
+	type SelectedContract = ContractOverview & { action?: ActionsAllowed };
 	let selectedContract: SelectedContract | null = $state(null);
 
-	function openStatusDialog(contract: Contract, action: ActionsAllowed) {
+	function openStatusDialog(contract: ContractOverview, action: ActionsAllowed) {
 		selectedContract = { ...contract, action };
 
 		if (action == 'sign') {
@@ -65,7 +65,7 @@
 		}
 	}
 
-	function openRevisionDialog(contract: Contract) {
+	function openRevisionDialog(contract: ContractOverview) {
 		selectedContract = contract;
 		revisionDialog.open();
 	}
@@ -76,11 +76,11 @@
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
-<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden rounded border">
-	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
+<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
+	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Contracts</p>
 		<a
-			href={resolve(`${linksPrefix}/projects/${projectId}/contracts`)}
+			href={`${linksPrefix}/projects/${projectId}/contracts`}
 			class="flex items-center gap-1 text-sm"
 		>
 			<span>View All</span>
@@ -105,7 +105,7 @@
 								</Table.Cell>
 								<Table.Cell>
 									<div class="flex items-center gap-1">
-										{toTitleCase(contract.status)}
+										{toTitleCaseDashed(contract.status)}
 										{#if contract.status == 'signed'}
 											<Checks size={18} class="text-emerald-500" />
 										{/if}
@@ -136,7 +136,7 @@
 											</DropdownMenu.Trigger>
 											<DropdownMenu.Content class="mr-4 *:text-xs">
 												{#if contract.status == 'pending'}
-													{#if contract.userSignature != 'signed' && contract.userSignature != 'rejected'}
+													{#if contract.memberSignatoryStatus != 'signed' && contract.memberSignatoryStatus != 'rejected'}
 														<DropdownMenu.Item
 															class="pl-4 text-xs"
 															onclick={() => openStatusDialog(contract, 'sign')}
@@ -152,11 +152,13 @@
 														</DropdownMenu.Item>
 													{:else}
 														<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-															<Checks /> You've Already {toTitleCase(contract.userSignature)}
+															<Checks /> You've Already {toTitleCaseDashed(
+																contract.memberSignatoryStatus
+															)}
 														</div>
 													{/if}
 
-													{#if role == 'client' && contract.userSignature != 'rejected' && contract.userSignature != 'signed'}
+													{#if role == 'client' && contract.memberSignatoryStatus != 'rejected' && contract.memberSignatoryStatus != 'signed'}
 														<DropdownMenu.Item
 															class="pl-4 text-xs"
 															onclick={() => openRevisionDialog(contract)}
@@ -166,7 +168,7 @@
 													{/if}
 												{:else}
 													<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-														<Checks /> Already {toTitleCase(contract.status)}
+														<Checks /> Already {toTitleCaseDashed(contract.status)}
 													</div>
 												{/if}
 											</DropdownMenu.Content>
