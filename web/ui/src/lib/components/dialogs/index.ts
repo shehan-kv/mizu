@@ -22,6 +22,7 @@ import ResendVerifyEmailConfirm from './ResendVerifyEmailConfirm.svelte';
 import ManageUserProjects from './ManageUserProjects.svelte';
 import NewChannel from './NewChannel.svelte';
 import ManageChannelMembers from './ManageChannelMembers.svelte';
+import ManageContractSignatories from './ManageContractSignatories.svelte';
 
 export {
 	ChannelFiles,
@@ -47,5 +48,6 @@ export {
 	ResendVerifyEmailConfirm,
 	ManageUserProjects,
 	NewChannel,
-	ManageChannelMembers
+	ManageChannelMembers,
+	ManageContractSignatories
 };
