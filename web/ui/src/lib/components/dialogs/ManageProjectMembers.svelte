@@ -29,7 +29,7 @@
 
 		try {
 			memberLoading = true;
-			confirmMembers = await getProjectMembers(projectId, membersAbort.signal);
+			confirmMembers = await getProjectMembers(projectId, '', membersAbort.signal);
 		} catch (error) {
 			memberError = error as ApiError;
 			confirmMembers = [];

@@ -34,9 +34,7 @@
 
 		abort = new AbortController();
 
-		// Paginate this API endpoint
-		// Change all calling functions to it
-		membersPromise = getProjectMembers(projectId, abort.signal);
+		membersPromise = getProjectMembers(projectId, searchTerm, abort.signal);
 	}
 
 	const memberSearchDebounced = debounce(() => {
