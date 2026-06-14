@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { getContractOverviews, type Contract } from '$lib/api/contracts';
+	import { getContractOverviews, type ContractOverview } from '$lib/api/contracts';
 	import type { PaginatedResponse } from '$lib/api/page';
 	import * as Table from '$lib/components/ui/table';
 	import DashboardCard from './DashboardCard.svelte';
@@ -8,14 +8,18 @@
 	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
-	import { resolve } from '$app/paths';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { ApiError } from '$lib/api/client';
+	import type { UserRole } from '$lib/api/users';
 
-	let { class: className = '' }: { class?: string } = $props();
+	interface Props {
+		class?: string;
+		role: UserRole;
+	}
+	let { class: className = '', role = 'client' }: Props = $props();
 
-	let promise: Promise<PaginatedResponse<Contract>> | null = $state(null);
+	let promise: Promise<PaginatedResponse<ContractOverview>> | null = $state(null);
 	let aborter: AbortController | null = null;
 
 	function reload() {
@@ -31,6 +35,11 @@
 	onDestroy(() => {
 		aborter?.abort();
 	});
+
+	// svelte-ignore non_reactive_update
+	let linksPrefix = '';
+	if (role == 'administrator') linksPrefix = '/admin';
+	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <DashboardCard title="Recent Contracts" class={className}>
@@ -49,17 +58,37 @@
 								<Table.Cell class="pl-0">
 									{contract.name}
 								</Table.Cell>
-								<Table.Cell class="flex items-center gap-1">
-									{toTitleCaseDashed(contract.status)}
-									{#if contract.status == 'signed'}
-										<Checks size={18} class="text-emerald-500" />
+								<Table.Cell>
+									<div class="flex items-center gap-1">
+										{toTitleCaseDashed(contract.status)}
+										{#if contract.status == 'signed'}
+											<Checks size={18} class="text-emerald-500" />
+										{/if}
+									</div>
+								</Table.Cell>
+								<Table.Cell>
+									{#if contract.signatories.length == 0}
+										<p>N/A</p>
+									{:else}
+										<p>
+											{contract.signatories
+												.map((s, idx) => idx <= 1 && `${s.firstName} ${s.lastName}`)
+												.filter(Boolean)
+												.join(', ')}
+										</p>
+										{#if contract.signatories.length > 2}
+											<span class="text-xs text-neutral-700 dark:text-neutral-300">
+												+{contract.signatories.length - 2} Others
+											</span>
+										{/if}
 									{/if}
 								</Table.Cell>
 								<Table.Cell>
 									Created On {formatDate(contract.createdAt)}
 								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
-									<a href={resolve(`/contracts/${contract.id}`)} title="View">
+									<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+									<a href={`${linksPrefix}/contracts/${contract.id}`} title="View">
 										<ArrowRight size={18} />
 									</a>
 								</Table.Cell>
