@@ -53,6 +53,7 @@ export interface Contract {
 	projectId: string;
 	name: string;
 	status: string;
+	terms: string;
 	memberSignatoryStatus: string;
 	signatories: Signatory[];
 	createdAt: Date;
@@ -83,7 +84,7 @@ export async function getContractOverviewsByProject(
 	params.set('limit', query.limit.toString());
 
 	return apiFetch<PaginatedResponse<ContractOverview>>(
-		`contracts/project/${projectId}?${params.toString()}`,
+		`contracts/overviews/project/${projectId}?${params.toString()}`,
 		{
 			method: 'GET',
 			signal
@@ -108,7 +109,7 @@ export async function getContractOverviewsByMember(
 	params.set('limit', query.limit.toString());
 
 	return apiFetch<PaginatedResponse<ContractOverview>>(
-		`contracts/members/${memberId}?${params.toString()}`,
+		`contracts/overviews/members/${memberId}?${params.toString()}`,
 		{
 			method: 'GET',
 			signal
@@ -152,13 +153,20 @@ export interface ContractSignatoriesReplaceParams {
 	signatories: string[];
 }
 
+export async function getContractSignatories(contractId: string, signal?: AbortSignal) {
+	return apiFetch<Signatory[]>(`contracts/${contractId}/signatories`, {
+		method: 'GET',
+		signal
+	});
+}
+
 export async function replaceContractSignatories(
 	contractId: string,
 	req: ContractSignatoriesReplaceParams,
 	signal?: AbortSignal
 ) {
 	return apiFetch<void>(`contracts/${contractId}/signatories`, {
-		method: 'POST',
+		method: 'PUT',
 		body: JSON.stringify(req),
 		signal
 	});
