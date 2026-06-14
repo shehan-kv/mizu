@@ -9,14 +9,13 @@
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { getInvoices, type InvoiceOverview, type InvoiceStatus } from '$lib/api/invoices';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
-	import FilterInput from '$lib/components/FilterInput.svelte';
 
 	import { formatDate } from '$lib/utils/formatDate';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
@@ -28,8 +27,7 @@
 	import { INVOICE_STATUS, INVOICE_TYPE } from '$lib/constants/invoice';
 
 	const MAX_LIMIT = 100;
-	const MIN_LIMIT = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 	const DEFAULT_PAGE_NUMBER = 1;
 
 	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
@@ -38,21 +36,27 @@
 	let status = $state(INVOICE_STATUS.find((s) => s === params.get('status')) ?? '');
 	let type = $state(INVOICE_TYPE.find((t) => t === params.get('type')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
-	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
-	let invoicesPromise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
+	const limitParam = Number(params.get('limit'));
+	let limit = $state(
+		Number.isFinite(limitParam)
+			? Math.min(Math.max(limitParam, DEFAULT_LIMIT), MAX_LIMIT).toString()
+			: DEFAULT_LIMIT.toString()
+	);
 
-	let abortController: AbortController | null = null;
+	let promise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
+
+	let abort: AbortController | null = null;
 	function loadInvoices() {
-		if (abortController) {
-			abortController.abort();
+		if (abort) {
+			abort.abort();
 		}
 
-		abortController = new AbortController();
+		abort = new AbortController();
 
-		invoicesPromise = getInvoices(
-			{ q, status: status || undefined, type, page: pageNum, limit },
-			abortController.signal
+		promise = getInvoices(
+			{ q, status: status || undefined, type, page: pageNum, limit: Number(limit) },
+			abort.signal
 		);
 	}
 
@@ -88,14 +92,16 @@
 
 	function handleFilter() {
 		pageNum = 1;
-		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
 		loadInvoices();
 	}
 
 	onMount(() => {
 		loadInvoices();
+	});
+
+	onDestroy(() => {
+		abort?.abort();
 	});
 
 	type ActionsAllowed = Exclude<InvoiceStatus, 'pending'>;
@@ -107,15 +113,15 @@
 		selectedInvoice = { ...invoice, action };
 		setStatusDialog.open();
 	}
-
-	const role = 'admin';
 </script>
 
 <svelte:head>
 	<title>Invoices and Quotes</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr_min-content] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr_min-content] gap-2 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="mx-auto flex gap-4 lg:container">
 		<div class="max-w-96">
 			<SearchBar bind:value={q} onchange={handleFilter} />
@@ -139,24 +145,26 @@
 				onchange={handleFilter}
 				name="Type"
 				options={[
-					{ value: '', label: 'All' },
+					...(status !== 'paid' ? [{ value: '', label: 'All' }] : []),
 					{ value: 'invoice', label: 'Invoice' },
 					...(status !== 'paid' ? [{ value: 'quote', label: 'Quote' }] : [])
 				]}
 			/>
-			<FilterInput
-				id="limit"
-				max={MAX_LIMIT}
-				min={MIN_LIMIT}
-				label="Limit"
-				type="number"
+			<FilterSelect
 				bind:value={limit}
 				onchange={handleFilter}
+				name="Limit"
+				options={[
+					{ value: '25', label: '25' },
+					{ value: '50', label: '50' },
+					{ value: '75', label: '75' },
+					{ value: '100', label: '100' }
+				]}
 			/>
 		</div>
 	</div>
 
-	{#await invoicesPromise}
+	{#await promise}
 		<Spinner />
 	{:then res}
 		{#if res && res.items}
@@ -189,7 +197,7 @@
 											{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
-											{toTitleCase(invoice.status)}
+											{toTitleCaseDashed(invoice.status)}
 											{#if invoice.status == 'paid' || invoice.status == 'accepted'}
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
@@ -222,46 +230,25 @@
 														<DotsThree size={18} />
 													</DropdownMenu.Trigger>
 													<DropdownMenu.Content class="mr-4 *:text-xs">
-														{#if role == 'admin' || role == 'staff'}
-															{#if invoice.status == 'pending' || invoice.status == 'accepted'}
-																<DropdownMenu.Group class="text-xs">
-																	<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
-																	<DropdownMenu.Item
-																		class="pl-4 text-xs"
-																		onclick={() => openStatusDialog(invoice, 'paid')}
-																	>
-																		Paid
-																	</DropdownMenu.Item>
-																	<DropdownMenu.Item
-																		class="pl-4 text-xs"
-																		onclick={() => openStatusDialog(invoice, 'cancelled')}
-																	>
-																		Cancelled
-																	</DropdownMenu.Item>
-																</DropdownMenu.Group>
-															{:else}
-																<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-																	<Checks /> Already {toTitleCase(invoice.status)}
-																</div>
-															{/if}
-
-															<!-- If the role is a client -->
-														{:else if invoice.status == 'pending'}
-															<DropdownMenu.Item
-																class="pl-4 text-xs"
-																onclick={() => openStatusDialog(invoice, 'accepted')}
-															>
-																Accept
-															</DropdownMenu.Item>
-															<DropdownMenu.Item
-																class="pl-4 text-xs"
-																onclick={() => openStatusDialog(invoice, 'rejected')}
-															>
-																Reject
-															</DropdownMenu.Item>
+														{#if invoice.status == 'pending' || invoice.status == 'accepted'}
+															<DropdownMenu.Group class="text-xs">
+																<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
+																<DropdownMenu.Item
+																	class="pl-4 text-xs"
+																	onclick={() => openStatusDialog(invoice, 'paid')}
+																>
+																	Paid
+																</DropdownMenu.Item>
+																<DropdownMenu.Item
+																	class="pl-4 text-xs"
+																	onclick={() => openStatusDialog(invoice, 'cancelled')}
+																>
+																	Cancelled
+																</DropdownMenu.Item>
+															</DropdownMenu.Group>
 														{:else}
 															<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-																<Checks /> Already {toTitleCase(invoice.status)}
+																<Checks /> Already {toTitleCaseDashed(invoice.status)}
 															</div>
 														{/if}
 													</DropdownMenu.Content>
