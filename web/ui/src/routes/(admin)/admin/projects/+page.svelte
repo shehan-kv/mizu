@@ -10,12 +10,11 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { getProjectStats, type ProjectStat, type ProjectStatus } from '$lib/api/projects';
 
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
-	import FilterInput from '$lib/components/FilterInput.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import ListChecks from 'phosphor-svelte/lib/ListChecks';
@@ -26,8 +25,7 @@
 	import { PROJECT_STATUS } from '$lib/constants/project';
 
 	const MAX_LIMIT = 100;
-	const MIN_LIMIT = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 	const DEFAULT_PAGE_NUMBER = 1;
 
 	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
@@ -35,21 +33,27 @@
 	let q = $state(params.get('q') || '');
 	let status = $state(PROJECT_STATUS.find((s) => s === params.get('status')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
-	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
-	let projectsPromise: Promise<PaginatedResponse<ProjectStat>> | null = $state(null);
+	const limitParam = Number(params.get('limit'));
+	let limit = $state(
+		Number.isFinite(limitParam)
+			? Math.min(Math.max(limitParam, DEFAULT_LIMIT), MAX_LIMIT).toString()
+			: DEFAULT_LIMIT.toString()
+	);
 
-	let abortController: AbortController | null = null;
+	let promise: Promise<PaginatedResponse<ProjectStat>> | null = $state(null);
+
+	let abort: AbortController | null = null;
 	function loadProjects() {
-		if (abortController) {
-			abortController.abort();
+		if (abort) {
+			abort.abort();
 		}
 
-		abortController = new AbortController();
+		abort = new AbortController();
 
-		projectsPromise = getProjectStats(
-			{ q, page: pageNum, limit, status: status },
-			abortController.signal
+		promise = getProjectStats(
+			{ q, page: pageNum, limit: Number(limit), status: status },
+			abort.signal
 		);
 	}
 
@@ -74,14 +78,16 @@
 
 	function handleFilter() {
 		pageNum = 1;
-		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
 		loadProjects();
 	}
 
 	onMount(() => {
 		loadProjects();
+	});
+
+	onDestroy(() => {
+		abort?.abort();
 	});
 
 	const newProjectDialog = createDialogState();
@@ -107,7 +113,9 @@
 	<title>Projects</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr_min-content] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr_min-content] gap-6 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="space-y-2">
 		<div>
 			<button
@@ -135,20 +143,22 @@
 						{ value: 'completed', label: 'Completed' }
 					]}
 				/>
-				<FilterInput
-					id="limit"
-					max={MAX_LIMIT}
-					min={MIN_LIMIT}
-					label="Limit"
-					type="number"
+				<FilterSelect
 					bind:value={limit}
 					onchange={handleFilter}
+					name="Limit"
+					options={[
+						{ value: '25', label: '25' },
+						{ value: '50', label: '50' },
+						{ value: '75', label: '75' },
+						{ value: '100', label: '100' }
+					]}
 				/>
 			</div>
 		</div>
 	</div>
 
-	{#await projectsPromise}
+	{#await promise}
 		<Spinner />
 	{:then res}
 		{#if res && res.items}
@@ -187,7 +197,7 @@
 													></span>
 												</span>
 											{/if}
-											{toTitleCase(project.status)}
+											{toTitleCaseDashed(project.status)}
 										</Table.Cell>
 										<Table.Cell>{project.tasksCompleted} Completed</Table.Cell>
 										<Table.Cell>{formatDate(project.createdAt)}</Table.Cell>
