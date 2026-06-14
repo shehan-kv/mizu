@@ -66,11 +66,8 @@
 	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
-<div
-	class="col-span-4 grid max-h-100 min-h-50 grid-rows-[min-content_1fr]
-		overflow-hidden rounded border"
->
-	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
+<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
+	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Invoices / Quotes</p>
 		<a
 			href={`${linksPrefix}/projects/${projectId}/invoices`}

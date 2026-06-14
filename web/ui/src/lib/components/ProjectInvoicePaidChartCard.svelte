@@ -1,12 +1,10 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart/index.js';
-	import { curveLinear } from 'd3-shape';
-	import { scalePoint } from 'd3-scale';
 	import { getPaidInvoiceCountByProject, type InvoiceMetric } from '$lib/api/invoices';
 	import { onMount } from 'svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import Spinner from './Spinner.svelte';
-	import { LineChart } from 'layerchart';
+	import { BarChart } from 'layerchart';
 	import { ApiError } from '$lib/api/client';
 
 	let { projectId } = $props();
@@ -31,11 +29,8 @@
 	} satisfies Chart.ChartConfig;
 </script>
 
-<div
-	class="grid h-full w-full grid-rows-[min-content_1fr]
-		overflow-hidden rounded border"
->
-	<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
+<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
+	<div class="border-b px-6 py-2">
 		<p class="text-sm">Invoices Paid</p>
 	</div>
 	<div class="relative h-70 px-6 py-2">
@@ -45,12 +40,12 @@
 			{#if res}
 				<div class="absolute inset-x-6 inset-y-2">
 					<Chart.Container config={chartConfig} class="h-full w-full">
-						<LineChart
+						<BarChart
 							data={res}
 							x="key"
-							xScale={scalePoint()}
-							yDomain={[0, Math.max(1, ...res.map((d) => d.value))]}
 							axis="x"
+							yDomain={[0, Math.max(1, ...res.map((d) => d.value))]}
+							seriesLayout="group"
 							series={[
 								{
 									key: 'value',
@@ -59,20 +54,21 @@
 								}
 							]}
 							props={{
-								spline: { curve: curveLinear, motion: 'none', strokeWidth: 2 },
 								xAxis: {
 									format: (v: string) =>
-										new Date(v + '-01').toLocaleString(undefined, {
+										new Date(v).toLocaleString(undefined, {
 											month: 'short'
 										})
 								},
-								highlight: { points: { r: 4 } }
+								bars: {
+									stroke: 'transparent'
+								}
 							}}
 						>
 							{#snippet tooltip()}
 								<Chart.Tooltip hideLabel />
 							{/snippet}
-						</LineChart>
+						</BarChart>
 					</Chart.Container>
 				</div>
 			{:else}

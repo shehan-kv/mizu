@@ -36,8 +36,8 @@
 	} satisfies Chart.ChartConfig;
 </script>
 
-<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden rounded border">
-	<div class="bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
+<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
+	<div class="border-b px-6 py-2">
 		<p class="text-sm">Tasks Completed</p>
 	</div>
 	<div class="px-6 py-2">
