@@ -18,6 +18,7 @@ var (
 	ErrContractNameCannotBeEmpty                 = errors.New("contract name cannot be empty")
 	ErrContractNameAlreadyExists                 = errors.New("contract name already exists")
 	ErrContractSignatoriesLocked                 = errors.New("contract signatories locked")
+	ErrContractUserNotSignatory                  = errors.New("contract user is not signatory")
 	ErrContractIDCannotBeEmpty                   = errors.New("contract id cannot be empty")
 	ErrContractInvalidStatus                     = errors.New("contract invalid status")
 	ErrContractTermsTooShort                     = errors.New("contract terms too short")

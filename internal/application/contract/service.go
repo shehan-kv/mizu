@@ -524,6 +524,70 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 
 }
 
+func (s *Service) ListSignatories(ctx context.Context, contractID string, actorID string) ([]SignatoryDTO, error) {
+
+	cID, err := contract.NewContractID(contractID)
+	if err != nil {
+		return nil, err
+	}
+
+	actor, err := iam.NewUserID(actorID)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := s.contractRepo.Get(ctx, cID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.HasSignatory(actor) {
+		return nil, contract.ErrContractUserNotSignatory
+	}
+
+	signs := c.Signatories()
+
+	signIDs := make([]iam.UserID, 0, len(signs))
+
+	for _, s := range signs {
+		uid := s.UserID()
+		signIDs = append(signIDs, uid)
+	}
+
+	users, err := s.iamRepo.ListByIDs(ctx, signIDs, iam.UserFilter{})
+	if err != nil {
+		return nil, err
+	}
+
+	userMap := make(map[string]*iam.User, len(users))
+
+	for _, u := range users {
+		userMap[u.ID().String()] = u
+	}
+
+	dto := make([]SignatoryDTO, 0, len(signs))
+	for _, sign := range signs {
+		uid := sign.UserID().String()
+
+		u, ok := userMap[uid]
+		if !ok {
+			continue
+		}
+
+		dto = append(dto, SignatoryDTO{
+			ID:        uid,
+			FirstName: u.FirstName(),
+			LastName:  u.LastName(),
+			Title:     u.Title(),
+			Role:      u.Role().String(),
+			Image:     u.Image(),
+			Status:    sign.Status().String(),
+			UpdatedAt: sign.UpdatedAt(),
+		})
+	}
+	return dto, nil
+}
+
 func (s *Service) ReplaceSignatories(ctx context.Context, params ReplaceSignatoriesParams) error {
 	now := time.Now()
 

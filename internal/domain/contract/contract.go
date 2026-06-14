@@ -163,6 +163,15 @@ func (c *Contract) Sign(userID iam.UserID, now time.Time) error {
 	return nil
 }
 
+func (c *Contract) HasSignatory(userID iam.UserID) bool {
+	for _, s := range c.Signatories() {
+		if s.UserID() == userID {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Contract) Reject(userID iam.UserID, now time.Time) error {
 	if c.status != StatusPending {
 		return ErrContractRejectRequiresPending

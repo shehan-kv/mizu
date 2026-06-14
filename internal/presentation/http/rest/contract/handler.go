@@ -29,10 +29,11 @@ func (h *ContractHandler) NewMux(authMiddleware func(http.Handler) http.Handler)
 	mux.Handle("GET /contracts", authMiddleware(http.HandlerFunc(h.ListOverview)))
 	mux.Handle("POST /contracts/{projectID}", authMiddleware(http.HandlerFunc(h.CreateContract)))
 	mux.Handle("GET /contracts/{contractID}", authMiddleware(http.HandlerFunc(h.GetContract)))
-	mux.Handle("GET /contracts/project/{projectID}", authMiddleware(http.HandlerFunc(h.ListOverviewByProject)))
-	mux.Handle("GET /contracts/members/{memberID}", authMiddleware(http.HandlerFunc(h.ListOverviewByMember)))
+	mux.Handle("GET /contracts/overviews/project/{projectID}", authMiddleware(http.HandlerFunc(h.ListOverviewByProject)))
+	mux.Handle("GET /contracts/overviews/members/{memberID}", authMiddleware(http.HandlerFunc(h.ListOverviewByMember)))
 	mux.Handle("POST /contracts/{contractID}/sign", authMiddleware(http.HandlerFunc(h.Sign)))
 	mux.Handle("POST /contracts/{contractID}/reject", authMiddleware(http.HandlerFunc(h.Reject)))
+	mux.Handle("GET /contracts/{contractID}/signatories", authMiddleware(http.HandlerFunc(h.ListSignatories)))
 	mux.Handle("PUT /contracts/{contractID}/signatories", authMiddleware(http.HandlerFunc(h.ReplaceSignatories)))
 
 	return mux
@@ -198,6 +199,23 @@ func (h *ContractHandler) Reject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ContractHandler) ListSignatories(w http.ResponseWriter, r *http.Request) {
+	actorID := middleware.ActorIDFromContext(r.Context())
+
+	result, err := h.contractSrv.ListSignatories(r.Context(), r.PathValue("contractID"), actorID)
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	items := make([]SignatoryResponse, len(result))
+	for i := range result {
+		items[i] = toSignatoryResponse(result[i])
+	}
+
+	response.WriteJSON(w, http.StatusOK, items)
 }
 
 func (h *ContractHandler) ReplaceSignatories(w http.ResponseWriter, r *http.Request) {
