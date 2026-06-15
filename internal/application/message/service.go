@@ -594,7 +594,7 @@ func (s *Service) ListChannelFiles(ctx context.Context, params ListChannelFilesP
 		return shared.Collection[FileDTO]{}, err
 	}
 
-	filter := message.FileFilter{
+	filter := message.ChannelFileFilter{
 		ChannelID: channelID,
 		Keyword:   params.Keyword,
 	}
@@ -657,8 +657,102 @@ func (s *Service) ListChannelFiles(ctx context.Context, params ListChannelFilesP
 		dtos[i] = dto
 	}
 
-	count, err := s.fileRepo.CountByChannel(ctx, message.FileFilter{
+	count, err := s.fileRepo.CountByChannel(ctx, message.ChannelFileFilter{
 		ChannelID: channelID,
+		Keyword:   params.Keyword,
+	})
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+
+	return shared.Collection[FileDTO]{
+		Items:      dtos,
+		TotalCount: count,
+	}, nil
+
+}
+
+func (s *Service) ListProjectFiles(ctx context.Context, params ListProjectFilesParams) (shared.Collection[FileDTO], error) {
+	actor, err := iam.NewUserID(params.ActorID)
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+
+	pID, err := project.NewProjectID(params.ProjectID)
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+
+	page, err := common.NewPage(params.Limit, params.Offset)
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+
+	filter := message.ProjectFileFilter{
+		ProjectID: pID,
+		Keyword:   params.Keyword,
+	}
+
+	p, err := s.projectRepo.Get(ctx, pID)
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+	if !p.HasMember(actor) {
+		return shared.Collection[FileDTO]{}, project.ErrNotProjectMember
+	}
+
+	files, err := s.fileRepo.ListByProject(ctx, filter, page)
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+
+	seen := make(map[iam.UserID]struct{})
+	userIDs := make([]iam.UserID, 0, len(files))
+
+	for i := range files {
+		uid := files[i].UserID()
+		if _, ok := seen[uid]; !ok {
+			seen[uid] = struct{}{}
+			userIDs = append(userIDs, uid)
+		}
+	}
+
+	users, err := s.iamRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
+	if err != nil {
+		return shared.Collection[FileDTO]{}, err
+	}
+
+	userMap := make(map[iam.UserID]iam.User, len(users))
+	for i := range users {
+		userMap[users[i].ID()] = *users[i]
+	}
+
+	dtos := make([]FileDTO, len(files))
+	for i := range files {
+		dto := FileDTO{
+			ID:         files[i].ID().String(),
+			ChannelID:  files[i].ChannelID().String(),
+			Name:       files[i].OriginalName().String(),
+			MimeType:   files[i].MimeType(),
+			Size:       files[i].Size(),
+			UploadedAt: files[i].UploadedAt(),
+		}
+
+		dto.User = MessageSenderDTO{}
+
+		if u, ok := userMap[files[i].UserID()]; ok {
+			dto.User.ID = u.ID().String()
+			dto.User.FirstName = u.FirstName()
+			dto.User.LastName = u.LastName()
+			dto.User.Image = u.Image()
+			dto.User.Title = u.Title()
+			dto.User.Role = u.Role().String()
+		}
+		dtos[i] = dto
+	}
+
+	count, err := s.fileRepo.CountByProject(ctx, message.ProjectFileFilter{
+		ProjectID: pID,
 		Keyword:   params.Keyword,
 	})
 	if err != nil {

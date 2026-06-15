@@ -39,6 +39,7 @@ func (h *MessageHandler) NewMux(authMiddleware func(http.Handler) http.Handler) 
 	mux.Handle("GET /messages/channels/{channelID}", authMiddleware(http.HandlerFunc(h.ListChannelMessages)))
 	mux.Handle("POST /messages/channels/{channelID}/files", authMiddleware(http.HandlerFunc(h.UploadFile)))
 	mux.Handle("GET /messages/channels/{channelID}/files", authMiddleware(http.HandlerFunc(h.ListChannelFiles)))
+	mux.Handle("GET /messages/projects/{projectID}/files", authMiddleware(http.HandlerFunc(h.ListProjectFiles)))
 
 	return mux
 }
@@ -271,6 +272,50 @@ func (h *MessageHandler) ListChannelFiles(w http.ResponseWriter, r *http.Request
 		message.ListChannelFilesParams{
 			ActorID:   actorID,
 			ChannelID: r.PathValue("channelID"),
+			Keyword:   kw,
+			Limit:     p.Limit,
+			Offset:    p.Offset,
+		},
+	)
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	files := make([]FileResponse, len(result.Items))
+	for i := range result.Items {
+		files[i] = toFileResponse(&result.Items[i])
+	}
+
+	response.WriteJSON(w, http.StatusOK, page.PaginatedResponse[FileResponse]{
+		Items:      files,
+		TotalCount: result.TotalCount,
+		Page:       p.Page,
+		Limit:      p.Limit,
+	})
+}
+
+func (h *MessageHandler) ListProjectFiles(w http.ResponseWriter, r *http.Request) {
+
+	p, err := page.FromQuery(r)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid pagination parameters")
+		return
+	}
+
+	actorID := middleware.ActorIDFromContext(r.Context())
+
+	keyword := r.URL.Query().Get("q")
+	var kw *string
+	if keyword != "" {
+		kw = &keyword
+	}
+
+	result, err := h.msgSrv.ListProjectFiles(
+		r.Context(),
+		message.ListProjectFilesParams{
+			ActorID:   actorID,
+			ProjectID: r.PathValue("projectID"),
 			Keyword:   kw,
 			Limit:     p.Limit,
 			Offset:    p.Offset,

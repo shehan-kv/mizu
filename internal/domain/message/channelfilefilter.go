@@ -1,6 +1,6 @@
 package message
 
-type FileFilter struct {
+type ChannelFileFilter struct {
 	ChannelID ChannelID
 	Keyword   *string
 }

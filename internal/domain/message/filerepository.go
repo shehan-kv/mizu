@@ -11,7 +11,9 @@ type FileRepository interface {
 
 	Get(ctx context.Context, id FileID) (*File, error)
 	GetStatsByProject(ctx context.Context, pID project.ProjectID) (Stats, error)
-	ListByChannel(ctx context.Context, f FileFilter, p common.Page) ([]*File, error)
+	ListByChannel(ctx context.Context, f ChannelFileFilter, p common.Page) ([]*File, error)
+	ListByProject(ctx context.Context, f ProjectFileFilter, p common.Page) ([]*File, error)
 
-	CountByChannel(ctx context.Context, f FileFilter) (int, error)
+	CountByChannel(ctx context.Context, f ChannelFileFilter) (int, error)
+	CountByProject(ctx context.Context, f ProjectFileFilter) (int, error)
 }
