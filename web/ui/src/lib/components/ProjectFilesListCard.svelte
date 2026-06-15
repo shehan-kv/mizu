@@ -1,13 +1,13 @@
 <script lang="ts">
 	import * as Table from '$lib/components/ui/table';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Spinner from './Spinner.svelte';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import type { UserRole } from '$lib/api/users';
 	import type { PaginatedResponse } from '$lib/api/page';
-	import { downloadChannelFile, getChannelFiles, type ChannelFile } from '$lib/api/messages';
+	import { downloadChannelFile, getProjectFiles, type ChannelFile } from '$lib/api/messages';
 	import { resolve } from '$app/paths';
 	import { ApiError } from '$lib/api/client';
 
@@ -25,29 +25,27 @@
 		}
 		abort = new AbortController();
 
-		filesPromise = getChannelFiles(projectId, { page: 1, limit: 20 }, abort.signal);
+		filesPromise = getProjectFiles(projectId, { page: 1, limit: 20 }, abort.signal);
 	}
 
 	onMount(() => {
 		loadFiles();
 	});
 
-	// svelte-ignore non_reactive_update
-	let linksPrefix = '';
-	if (role == 'administrator') linksPrefix = '/admin';
-	if (role == 'staff') linksPrefix = '/staff';
+	onDestroy(() => {
+		abort?.abort();
+	});
+
+	const projectFilesRoute =
+		role === 'administrator'
+			? (`/admin/projects/${projectId}/files` as const)
+			: (`/projects/${projectId}/files` as const);
 </script>
 
-<div
-	class="grid h-full w-full grid-rows-[min-content_1fr]
-	overflow-hidden rounded border"
->
-	<div class="flex items-center justify-between bg-neutral-100 px-6 py-2 dark:bg-neutral-900">
+<div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
+	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Files</p>
-		<a
-			href={resolve(`${linksPrefix}/projects/${projectId}/files`)}
-			class="flex items-center gap-1 text-sm"
-		>
+		<a href={resolve(projectFilesRoute)} class="flex items-center gap-1 text-sm">
 			<span>View All</span>
 			<ArrowRight />
 		</a>
