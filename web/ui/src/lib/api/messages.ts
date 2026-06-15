@@ -119,6 +119,25 @@ export async function getChannelFiles(channelId: string, query: FileQuery, signa
 	);
 }
 
+export async function getProjectFiles(projectId: string, query: FileQuery, signal?: AbortSignal) {
+	const params = new URLSearchParams();
+
+	if (query.q) {
+		params.set('q', query.q);
+	}
+
+	params.set('page', query.page.toString());
+	params.set('limit', query.limit.toString());
+
+	return apiFetch<PaginatedResponse<ChannelFile>>(
+		`messages/projects/${projectId}/files?${params.toString()}`,
+		{
+			method: 'GET',
+			signal
+		}
+	);
+}
+
 export function downloadChannelFile(fileId: string) {
 	window.location.href = `${BASE_URL}/messages/files/${fileId}`;
 }
