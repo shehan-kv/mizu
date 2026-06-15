@@ -32,13 +32,15 @@
 	<title>Kanban Board</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr] gap-6 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="mx-auto lg:container">
-		<div class="flex w-fit items-center gap-3 text-sm text-neutral-700 dark:text-neutral-400">
+		<div class="flex w-fit items-center gap-3 text-xs text-neutral-700 dark:text-neutral-400">
 			{#await projectPromise}
 				<p class="">...</p>
 			{:then res}
-				<a href={resolve(`/projects/${res?.id}`)} class="underline">{res?.name}</a>
+				<a href={resolve(`/admin/projects/${res?.id}`)} class="underline">{res?.name}</a>
 			{/await}
 
 			<ChevronRight size={18} />
@@ -54,12 +56,14 @@
 					<KanbanTaskList projectId={id} status="backlog" />
 				</div>
 			</div>
+
 			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
 				<p class="py-3 text-center text-sm">In-Progress</p>
 				<div class="overflow-scroll">
 					<KanbanTaskList projectId={id} status="in-progress" />
 				</div>
 			</div>
+
 			<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
 				<p class="py-3 text-center text-sm">Completed</p>
 				<div class="overflow-scroll">
