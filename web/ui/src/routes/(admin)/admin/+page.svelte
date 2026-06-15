@@ -12,12 +12,12 @@
 </svelte:head>
 
 <div class="mx-auto grid grid-cols-4 gap-2 lg:container">
-	<ProjectsCreatedMetricsCard class="col-span-2 min-h-80" />
-	<RecentProjectsCard class="col-span-2 min-h-80" />
-	<RecentContractsCard class="col-span-4 max-h-100 min-h-80" />
+	<ProjectsCreatedMetricsCard class="col-span-2 h-80" />
+	<RecentProjectsCard role="administrator" class="col-span-2 h-80" />
+	<RecentContractsCard role="administrator" class="col-span-4 max-h-100 min-h-80" />
 
 	<div class="col-span-4 grid grid-cols-5 gap-2">
-		<RecentInvoicesCard class="col-span-2 max-h-80 min-h-50" />
+		<RecentInvoicesCard role="administrator" class="col-span-2 max-h-80 min-h-50" />
 		<InvoicesOverviewCard class="max-h-80 min-h-50" />
 		<InvoicesPaidMetricsCard class="col-span-2 max-h-80 min-h-50" />
 	</div>
