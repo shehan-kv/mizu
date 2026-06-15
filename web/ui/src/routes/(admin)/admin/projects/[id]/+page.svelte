@@ -6,7 +6,7 @@
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { onMount } from 'svelte';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
@@ -73,14 +73,14 @@
 </svelte:head>
 
 <div class="mx-auto grid grid-cols-4 gap-2 lg:container">
-	<div class="col-span-4 text-right">
+	<div class="col-span-4 rounded bg-neutral-50 p-2 text-right dark:bg-neutral-950">
 		{#await projectPromise}
 			<span>...</span>
 		{:then res}
 			{#if res}
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger
-						class="inline-flex cursor-pointer items-center gap-1 rounded bg-neutral-200 px-4 py-2
+						class="inline-flex cursor-pointer items-center gap-1 rounded bg-neutral-100 px-4 py-2
 						text-xs transition hover:bg-neutral-300 dark:bg-neutral-900 
 						dark:hover:bg-neutral-800"
 					>
@@ -94,7 +94,7 @@
 				</DropdownMenu.Root>
 				<button
 					onclick={manageMembersDialog.open}
-					class="cursor-pointer rounded bg-neutral-200 px-4 py-2
+					class="cursor-pointer rounded bg-neutral-100 px-4 py-2
 						text-xs transition hover:bg-neutral-300 dark:bg-neutral-900
 						dark:hover:bg-neutral-800"
 				>
@@ -102,7 +102,7 @@
 				</button>
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger
-						class="inline-flex cursor-pointer items-center gap-1 rounded bg-neutral-200 px-4 py-2
+						class="inline-flex cursor-pointer items-center gap-1 rounded bg-neutral-100 px-4 py-2
 						text-xs transition hover:bg-neutral-300 dark:bg-neutral-900 
 						dark:hover:bg-neutral-800"
 					>
@@ -133,16 +133,16 @@
 				</DropdownMenu.Root>
 				<button
 					onclick={projectDeleteDialog.open}
-					class="cursor-pointer rounded bg-red-300 px-4 py-2 text-xs text-red-950 transition
-						hover:bg-red-400 dark:bg-red-900 dark:text-red-50
-						dark:hover:bg-red-800"
+					class="cursor-pointer rounded bg-red-700 px-4 py-2 text-xs text-red-50 transition
+						hover:bg-red-600 dark:bg-red-400 dark:text-red-950
+						dark:hover:bg-red-500"
 				>
 					Delete
 				</button>
 			{/if}
 		{/await}
 	</div>
-	<div class="space-y-2 rounded border p-6">
+	<div class="space-y-2 rounded bg-neutral-50 p-6 dark:bg-neutral-950">
 		{#await projectPromise}
 			<Spinner />
 		{:then res}
@@ -166,7 +166,7 @@
 								></span>
 							</span>
 						{/if}
-						{toTitleCase(res.status)}
+						{toTitleCaseDashed(res.status)}
 					</div>
 				</div>
 				<div>
@@ -214,31 +214,33 @@
 		{/await}
 	</div>
 
-	<div class="max-h-100 min-h-50">
+	<div class="max-h-100 min-h-50 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectMembersCard projectId={id} bind:this={projectMembersCard} />
 	</div>
 
-	<div class="col-span-2 min-h-80">
+	<div class="col-span-2 min-h-80 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectInvoicePaidChartCard projectId={id} />
 	</div>
 
 	<div class="col-span-4 grid h-84 grid-cols-4 gap-2 overflow-hidden">
-		<div class="col-span-2">
+		<div class="col-span-2 rounded bg-neutral-50 dark:bg-neutral-950">
 			<ProjectTasksCompletedChartCard bind:this={completedTasks} projectId={id} />
 		</div>
 
-		<div class="col-span-2">
+		<div class="col-span-2 rounded bg-neutral-50 dark:bg-neutral-950">
 			<ProjectFilesListCard projectId={id} role="administrator" />
 		</div>
 	</div>
 
-	<ProjectInvoiceListCard bind:this={invList} projectId={id} role="administrator" />
+	<div class="col-span-4 max-h-100 min-h-60 rounded bg-neutral-50 dark:bg-neutral-950">
+		<ProjectInvoiceListCard bind:this={invList} projectId={id} role="administrator" />
+	</div>
 
-	<div class="col-span-4 max-h-100 min-h-50">
+	<div class="col-span-4 max-h-100 min-h-60 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectContractsList bind:this={cntrList} projectId={id} role="administrator" />
 	</div>
 
-	<div class="col-span-4 max-h-100">
+	<div class="col-span-4 max-h-100 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectKanbanCard projectId={id} role="administrator" />
 	</div>
 </div>
@@ -259,7 +261,7 @@
 />
 
 {#if projectPromise}
-	<Dialog.ManageMembers
+	<Dialog.ManageProjectMembers
 		projectId={id}
 		bind:open={manageMembersDialog.isOpen}
 		onSuccess={refreshMembers}
