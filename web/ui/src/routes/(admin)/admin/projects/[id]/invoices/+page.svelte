@@ -2,9 +2,10 @@
 	import * as Table from '$lib/components/ui/table';
 	import { page } from '$app/state';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import FilterInput from '$lib/components/FilterInput.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import * as Dialog from '$lib/components/dialogs';
 	import { onMount } from 'svelte';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import { formatDate } from '$lib/utils/formatDate';
@@ -12,7 +13,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
@@ -21,13 +22,18 @@
 	import { resolve } from '$app/paths';
 	import { getProject, type Project } from '$lib/api/projects';
 	import type { PaginatedResponse } from '$lib/api/page';
-	import { getInvoicesByProject, type InvoiceOverview } from '$lib/api/invoices';
+	import {
+		getInvoicesByProject,
+		type InvoiceOverview,
+		type InvoiceStatus
+	} from '$lib/api/invoices';
 	import { ApiError } from '$lib/api/client';
 	import { INVOICE_STATUS, INVOICE_TYPE } from '$lib/constants/invoice';
+	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
+	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 
 	const MAX_LIMIT = 100;
-	const MIN_LIMIT = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 	const DEFAULT_PAGE_NUMBER = 1;
 
 	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
@@ -38,7 +44,13 @@
 	let status = $state(INVOICE_STATUS.find((s) => s === params.get('status')) ?? '');
 	let type = $state(INVOICE_TYPE.find((t) => t === params.get('type')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
-	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
+
+	const limitParam = Number(params.get('limit'));
+	let limit = $state(
+		Number.isFinite(limitParam)
+			? Math.min(Math.max(limitParam, DEFAULT_LIMIT), MAX_LIMIT).toString()
+			: DEFAULT_LIMIT.toString()
+	);
 
 	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
@@ -69,7 +81,7 @@
 			{
 				q,
 				page: pageNum,
-				limit,
+				limit: Number(limit),
 				status,
 				type
 			},
@@ -105,8 +117,6 @@
 
 	function handleFilter() {
 		pageNum = 1;
-		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
 		loadInvoices();
 	}
@@ -115,19 +125,31 @@
 		loadProject();
 		loadInvoices();
 	});
+
+	type ActionsAllowed = Extract<InvoiceStatus, 'paid' | 'cancelled'>;
+	type SelectedInvoice = InvoiceOverview & { action?: ActionsAllowed };
+	let selectedInvoice: SelectedInvoice | null = $state(null);
+	let setStatusDialog = createDialogState();
+
+	function openStatusDialog(invoice: InvoiceOverview, action: ActionsAllowed) {
+		selectedInvoice = { ...invoice, action };
+		setStatusDialog.open();
+	}
 </script>
 
 <svelte:head>
 	<title>Invoices / Quotes</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr] gap-6 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="mx-auto space-y-4 lg:container">
-		<div class="flex w-fit items-center gap-3 text-sm text-neutral-700 dark:text-neutral-400">
+		<div class="flex w-fit items-center gap-3 text-xs text-neutral-700 dark:text-neutral-400">
 			{#await projectPromise}
 				<p class="">...</p>
 			{:then res}
-				<a href={resolve(`/projects/${res?.id}`)} class="underline">{res?.name}</a>
+				<a href={resolve(`/admin/projects/${res?.id}`)} class="underline">{res?.name}</a>
 			{/await}
 
 			<ChevronRight size={18} />
@@ -160,14 +182,16 @@
 						{ value: 'quote', label: 'Quote' }
 					]}
 				/>
-				<FilterInput
-					id="limit"
-					max={MAX_LIMIT}
-					min={MIN_LIMIT}
-					label="Limit"
-					type="number"
+				<FilterSelect
 					bind:value={limit}
 					onchange={handleFilter}
+					name="Limit"
+					options={[
+						{ value: '25', label: '25' },
+						{ value: '50', label: '50' },
+						{ value: '75', label: '75' },
+						{ value: '100', label: '100' }
+					]}
 				/>
 			</div>
 		</div>
@@ -204,7 +228,7 @@
 											{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
-											{toTitleCase(invoice.status)}
+											{toTitleCaseDashed(invoice.status)}
 											{#if invoice.status == 'paid' || invoice.status == 'accepted'}
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
@@ -230,6 +254,37 @@
 												</button>
 												<button title="Email Me"><Envelope size={18} /></button>
 											</div>
+
+											<DropdownMenu.Root>
+												<DropdownMenu.Trigger
+													class="cursor-pointer p-1 hover:text-neutral-950 dark:hover:text-neutral-50"
+												>
+													<DotsThree size={18} />
+												</DropdownMenu.Trigger>
+												<DropdownMenu.Content class="mr-4 *:text-xs">
+													{#if invoice.status == 'pending' || invoice.status == 'accepted'}
+														<DropdownMenu.Group class="text-xs">
+															<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
+															<DropdownMenu.Item
+																class="pl-4 text-xs"
+																onclick={() => openStatusDialog(invoice, 'paid')}
+															>
+																Paid
+															</DropdownMenu.Item>
+															<DropdownMenu.Item
+																class="pl-4 text-xs"
+																onclick={() => openStatusDialog(invoice, 'cancelled')}
+															>
+																Cancelled
+															</DropdownMenu.Item>
+														</DropdownMenu.Group>
+													{:else}
+														<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
+															<Checks /> Already {toTitleCaseDashed(invoice.status)}
+														</div>
+													{/if}
+												</DropdownMenu.Content>
+											</DropdownMenu.Root>
 										</Table.Cell>
 									</Table.Row>
 								{/each}
@@ -252,3 +307,12 @@
 		{/if}
 	{/await}
 </div>
+
+{#if selectedInvoice && selectedInvoice.action}
+	<Dialog.InvoiceStatusConfirm
+		bind:open={setStatusDialog.isOpen}
+		invoiceId={selectedInvoice.id}
+		status={selectedInvoice.action}
+		onSuccess={loadInvoices}
+	/>
+{/if}
