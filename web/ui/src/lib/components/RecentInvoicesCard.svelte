@@ -8,12 +8,16 @@
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
-	import { resolve } from '$app/paths';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { ApiError } from '$lib/api/client';
+	import type { UserRole } from '$lib/api/users';
 
-	let { class: className = '' }: { class?: string } = $props();
+	interface Props {
+		class?: string;
+		role: UserRole;
+	}
+	let { class: className = '', role = 'client' }: Props = $props();
 
 	let promise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
 	let aborter: AbortController | null = null;
@@ -31,6 +35,11 @@
 	onDestroy(() => {
 		aborter?.abort();
 	});
+
+	// svelte-ignore non_reactive_update
+	let linksPrefix = '';
+	if (role == 'administrator') linksPrefix = '/admin';
+	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <DashboardCard title="Recent Invoices" class={className}>
@@ -59,7 +68,8 @@
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
-									<a href={resolve(`/invoices-and-quotes/${invoice.id}`)} title="View">
+									<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+									<a href={`${linksPrefix}/invoices-and-quotes/${invoice.id}`} title="View">
 										<ArrowRight size={18} />
 									</a>
 								</Table.Cell>
