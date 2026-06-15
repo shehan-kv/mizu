@@ -5,13 +5,12 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
-	import FilterInput from '$lib/components/FilterInput.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import { getUsers, type User } from '$lib/api/users';
@@ -25,8 +24,7 @@
 	import { ApiError } from '$lib/api/client';
 
 	const MAX_LIMIT = 100;
-	const MIN_LIMIT = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 	const DEFAULT_PAGE_NUMBER = 1;
 
 	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
@@ -36,9 +34,15 @@
 	let active = $state(USER_ACTIVE_STATES.find((s) => s === params.get('active')) ?? '');
 	let verified = $state(USER_VERIFIED_STATES.find((s) => s === params.get('verified')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
-	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
 
-	let userPromise: Promise<PaginatedResponse<User>> | null = $state(null);
+	const limitParam = Number(params.get('limit'));
+	let limit = $state(
+		Number.isFinite(limitParam)
+			? Math.min(Math.max(limitParam, DEFAULT_LIMIT), MAX_LIMIT).toString()
+			: DEFAULT_LIMIT.toString()
+	);
+
+	let promise: Promise<PaginatedResponse<User>> | null = $state(null);
 	let abort: AbortController | null = null;
 	function loadUsers() {
 		if (abort) {
@@ -47,7 +51,7 @@
 
 		abort = new AbortController();
 
-		userPromise = getUsers({ q, role: userRole, limit, page: pageNum }, abort.signal);
+		promise = getUsers({ q, role: userRole, limit: Number(limit), page: pageNum }, abort.signal);
 	}
 
 	function updateUrlParam() {
@@ -83,14 +87,16 @@
 
 	function handleFilter() {
 		pageNum = 1;
-		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
 		loadUsers();
 	}
 
 	onMount(() => {
 		loadUsers();
+	});
+
+	onDestroy(() => {
+		abort?.abort();
 	});
 
 	let newUserDialog = createDialogState();
@@ -122,7 +128,9 @@
 	<title>Users</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr_min-content] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr_min-content] gap-6 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="mx-auto flex justify-between lg:container">
 		<div class="flex gap-2">
 			<div class="max-w-96">
@@ -135,7 +143,7 @@
 					name="Role"
 					options={[
 						{ value: '', label: 'All' },
-						...USER_ROLES.map((s) => ({ value: s, label: toTitleCase(s) }))
+						...USER_ROLES.map((s) => ({ value: s, label: toTitleCaseDashed(s) }))
 					]}
 				/>
 			</div>
@@ -146,7 +154,7 @@
 					name="Active"
 					options={[
 						{ value: '', label: 'All' },
-						...USER_ACTIVE_STATES.map((s) => ({ value: s, label: toTitleCase(s) }))
+						...USER_ACTIVE_STATES.map((s) => ({ value: s, label: toTitleCaseDashed(s) }))
 					]}
 				/>
 			</div>
@@ -157,19 +165,21 @@
 					name="Verified"
 					options={[
 						{ value: '', label: 'All' },
-						...USER_VERIFIED_STATES.map((s) => ({ value: s, label: toTitleCase(s) }))
+						...USER_VERIFIED_STATES.map((s) => ({ value: s, label: toTitleCaseDashed(s) }))
 					]}
 				/>
 			</div>
 			<div>
-				<FilterInput
-					id="limit"
-					max={MAX_LIMIT}
-					min={MIN_LIMIT}
-					label="Limit"
-					type="number"
+				<FilterSelect
 					bind:value={limit}
 					onchange={handleFilter}
+					name="Limit"
+					options={[
+						{ value: '25', label: '25' },
+						{ value: '50', label: '50' },
+						{ value: '75', label: '75' },
+						{ value: '100', label: '100' }
+					]}
 				/>
 			</div>
 		</div>
@@ -183,7 +193,7 @@
 		</button>
 	</div>
 
-	{#await userPromise}
+	{#await promise}
 		<Spinner />
 	{:then res}
 		{#if res && res.items}
@@ -211,7 +221,7 @@
 									<Table.Row>
 										<Table.Cell>{user.firstName} {user.lastName}</Table.Cell>
 										<Table.Cell>{user.title ? user.title : 'N/A'}</Table.Cell>
-										<Table.Cell>{toTitleCase(user.role)}</Table.Cell>
+										<Table.Cell>{toTitleCaseDashed(user.role)}</Table.Cell>
 										<Table.Cell>{user.isActive ? 'Active' : 'Deactivated'}</Table.Cell>
 										<Table.Cell>
 											<span class="flex items-center gap-1">
