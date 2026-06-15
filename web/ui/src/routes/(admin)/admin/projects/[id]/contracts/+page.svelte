@@ -2,7 +2,6 @@
 	import * as Table from '$lib/components/ui/table';
 	import { page } from '$app/state';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import FilterInput from '$lib/components/FilterInput.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { onMount } from 'svelte';
@@ -11,12 +10,12 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 	import { goto } from '$app/navigation';
-	import { getContractOverviewsByProject, type Contract } from '$lib/api/contracts';
+	import { getContractOverviewsByProject, type ContractOverview } from '$lib/api/contracts';
 	import { resolve } from '$app/paths';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PaginatedResponse } from '$lib/api/page';
@@ -25,8 +24,7 @@
 	import { CONTRACT_STATUS } from '$lib/constants/contract';
 
 	const MAX_LIMIT = 100;
-	const MIN_LIMIT = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 	const DEFAULT_PAGE_NUMBER = 1;
 
 	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
@@ -36,7 +34,13 @@
 	let q = $state(params.get('q') || '');
 	let status = $state(CONTRACT_STATUS.find((s) => s === params.get('status')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
-	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
+
+	const limitParam = Number(params.get('limit'));
+	let limit = $state(
+		Number.isFinite(limitParam)
+			? Math.min(Math.max(limitParam, DEFAULT_LIMIT), MAX_LIMIT).toString()
+			: DEFAULT_LIMIT.toString()
+	);
 
 	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
@@ -53,7 +57,7 @@
 		});
 	}
 
-	let contractsPromise: Promise<PaginatedResponse<Contract>> | null = $state(null);
+	let contractsPromise: Promise<PaginatedResponse<ContractOverview>> | null = $state(null);
 	let contractsAbort: AbortController | null = null;
 	function loadContracts() {
 		if (contractsAbort) {
@@ -64,7 +68,7 @@
 
 		contractsPromise = getContractOverviewsByProject(
 			id,
-			{ q, status, page: pageNum, limit },
+			{ q, status, page: pageNum, limit: Number(limit) },
 			contractsAbort.signal
 		);
 	}
@@ -91,8 +95,6 @@
 
 	function handleFilter() {
 		pageNum = 1;
-		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
 		loadContracts();
 	}
@@ -107,13 +109,15 @@
 	<title>Contracts</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr] gap-6 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="mx-auto space-y-4 lg:container">
-		<div class="flex w-fit items-center gap-3 text-sm text-neutral-700 dark:text-neutral-400">
+		<div class="flex w-fit items-center gap-3 text-xs text-neutral-700 dark:text-neutral-400">
 			{#await projectPromise}
 				<p class="">...</p>
 			{:then res}
-				<a href={resolve(`/projects/${res?.id}`)} class="underline">{res?.name}</a>
+				<a href={resolve(`/admin/projects/${res?.id}`)} class="underline">{res?.name}</a>
 			{/await}
 
 			<ChevronRight size={18} />
@@ -135,14 +139,16 @@
 						{ value: 'pending', label: 'Pending' }
 					]}
 				/>
-				<FilterInput
-					id="limit"
-					max={MAX_LIMIT}
-					min={MIN_LIMIT}
-					label="Limit"
-					type="number"
+				<FilterSelect
 					bind:value={limit}
 					onchange={handleFilter}
+					name="Limit"
+					options={[
+						{ value: '25', label: '25' },
+						{ value: '50', label: '50' },
+						{ value: '75', label: '75' },
+						{ value: '100', label: '100' }
+					]}
 				/>
 			</div>
 		</div>
@@ -154,7 +160,7 @@
 		{#if res && res.items}
 			<div class="mx-auto gap-4 overflow-y-auto lg:container">
 				{#if res.items.length == 0}
-					<ErrorMessage variant="info" text="Invoices/Quotes Not Found" />
+					<ErrorMessage variant="info" text="Contracts Not Found" />
 				{/if}
 				<div class="overflow-y-auto">
 					{#if res.items.length > 0}
@@ -172,7 +178,7 @@
 									<Table.Row>
 										<Table.Cell>{contract.name}</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
-											{toTitleCase(contract.status)}
+											{toTitleCaseDashed(contract.status)}
 											{#if contract.status == 'signed'}
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
@@ -186,7 +192,7 @@
 												*:dark:hover:text-neutral-50"
 											>
 												<a
-													href={resolve(`/contracts/${contract.id}`)}
+													href={resolve(`/admin/contracts/${contract.id}`)}
 													title="View Contract"
 													class="inline-block"
 												>
