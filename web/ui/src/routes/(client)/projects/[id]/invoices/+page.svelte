@@ -2,7 +2,6 @@
 	import * as Table from '$lib/components/ui/table';
 	import { page } from '$app/state';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import FilterInput from '$lib/components/FilterInput.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { onMount } from 'svelte';
@@ -12,7 +11,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
@@ -26,8 +25,7 @@
 	import { INVOICE_STATUS, INVOICE_TYPE } from '$lib/constants/invoice';
 
 	const MAX_LIMIT = 100;
-	const MIN_LIMIT = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 	const DEFAULT_PAGE_NUMBER = 1;
 
 	const params = new SvelteURLSearchParams(page.url.searchParams.toString());
@@ -38,7 +36,13 @@
 	let status = $state(INVOICE_STATUS.find((s) => s === params.get('status')) ?? '');
 	let type = $state(INVOICE_TYPE.find((t) => t === params.get('type')) ?? '');
 	let pageNum = $state(Number(params.get('page')) || DEFAULT_PAGE_NUMBER);
-	let limit = $state(Math.min(Number(params.get('limit')) || DEFAULT_LIMIT, MAX_LIMIT));
+
+	const limitParam = Number(params.get('limit'));
+	let limit = $state(
+		Number.isFinite(limitParam)
+			? Math.min(Math.max(limitParam, DEFAULT_LIMIT), MAX_LIMIT).toString()
+			: DEFAULT_LIMIT.toString()
+	);
 
 	let projectPromise: Promise<Project> | null = $state(null);
 	let projectAbort: AbortController | null = null;
@@ -69,7 +73,7 @@
 			{
 				q,
 				page: pageNum,
-				limit,
+				limit: Number(limit),
 				status,
 				type
 			},
@@ -105,8 +109,6 @@
 
 	function handleFilter() {
 		pageNum = 1;
-		if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-		if (limit < MIN_LIMIT) limit = MIN_LIMIT;
 		updateUrlParam();
 		loadInvoices();
 	}
@@ -121,9 +123,11 @@
 	<title>Invoices / Quotes</title>
 </svelte:head>
 
-<div class="grid h-full auto-rows-[min-content_1fr] gap-6">
+<div
+	class="grid h-full auto-rows-[min-content_1fr] gap-6 rounded bg-neutral-50 p-4 dark:bg-neutral-950"
+>
 	<div class="mx-auto space-y-4 lg:container">
-		<div class="flex w-fit items-center gap-3 text-sm text-neutral-700 dark:text-neutral-400">
+		<div class="flex w-fit items-center gap-3 text-xs text-neutral-700 dark:text-neutral-400">
 			{#await projectPromise}
 				<p class="">...</p>
 			{:then res}
@@ -160,14 +164,16 @@
 						{ value: 'quote', label: 'Quote' }
 					]}
 				/>
-				<FilterInput
-					id="limit"
-					max={MAX_LIMIT}
-					min={MIN_LIMIT}
-					label="Limit"
-					type="number"
+				<FilterSelect
 					bind:value={limit}
 					onchange={handleFilter}
+					name="Limit"
+					options={[
+						{ value: '25', label: '25' },
+						{ value: '50', label: '50' },
+						{ value: '75', label: '75' },
+						{ value: '100', label: '100' }
+					]}
 				/>
 			</div>
 		</div>
@@ -204,7 +210,7 @@
 											{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center gap-1">
-											{toTitleCase(invoice.status)}
+											{toTitleCaseDashed(invoice.status)}
 											{#if invoice.status == 'paid' || invoice.status == 'accepted'}
 												<Checks size={18} class="text-emerald-500" />
 											{/if}
