@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import Folder from 'phosphor-svelte/lib/Folder';
 	import Chats from 'phosphor-svelte/lib/Chats';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
@@ -10,6 +10,10 @@
 	import { fade, fly } from 'svelte/transition';
 	import FileText from 'phosphor-svelte/lib/FileText';
 	import { resolve } from '$app/paths';
+	import { messageStore } from '$lib/messages/messageStore.svelte';
+	import { onMount } from 'svelte';
+	import type { Message } from '$lib/api/messages';
+	import { channelStore } from '$lib/messages/channelStore.svelte';
 
 	let { children } = $props();
 	let isMobileMenuOpen = $state(false);
@@ -21,17 +25,42 @@
 	function closeMobileMenu() {
 		isMobileMenuOpen = false;
 	}
+
+	const totalUnread = $derived(
+		Object.values(messageStore.state.unreadCounts).reduce((sum, count) => sum + count, 0)
+	);
+
+	onMount(() => {
+		const sse = new EventSource('/api/v1/events');
+
+		sse.addEventListener('integration.messaging.broadcast', (event) => {
+			const message = JSON.parse((event as MessageEvent).data) as Message;
+
+			if (message.channelId === messageStore.state.activeChannelId) {
+				messageStore.appendMessage(message);
+			} else {
+				messageStore.incrementUnread(message.channelId);
+			}
+
+			channelStore.updateActivity(message.channelId, message.createdAt);
+		});
+
+		return () => {
+			sse.close();
+		};
+	});
 </script>
 
 {#snippet nav()}
 	<nav class="h-full">
-		<ul class="flex h-full flex-col text-sm">
+		<ul class="flex h-full flex-col gap-y-0.5 text-sm">
 			<li>
 				<a
-					href={resolve("/")}
-					class="flex items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname == '/'}
+					href={resolve('/')}
+					class="flex items-center gap-2 rounded py-2
+					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
+					class:bg-neutral-200={page.url.pathname == '/'}
+					class:dark:bg-neutral-800={page.url.pathname == '/'}
 					onclick={closeMobileMenu}
 				>
 					<LayoutDashboard size={20} strokeWidth={1.5} /> Dashboard
@@ -39,10 +68,11 @@
 			</li>
 			<li>
 				<a
-					href={resolve("/projects")}
-					class="flex items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname.startsWith('/projects')}
+					href={resolve('/projects')}
+					class="flex items-center gap-2 rounded py-2
+					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
+					class:bg-neutral-200={page.url.pathname.startsWith('/projects')}
+					class:dark:bg-neutral-800={page.url.pathname.startsWith('/projects')}
 					onclick={closeMobileMenu}
 				>
 					<Folder size={20} /> Projects
@@ -50,10 +80,11 @@
 			</li>
 			<li>
 				<a
-					href={resolve("/contracts")}
-					class="flex items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname.startsWith('/contracts')}
+					href={resolve('/contracts')}
+					class="flex items-center gap-2 rounded py-2
+					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
+					class:bg-neutral-200={page.url.pathname.startsWith('/contracts')}
+					class:dark:bg-neutral-800={page.url.pathname.startsWith('/contracts')}
 					onclick={closeMobileMenu}
 				>
 					<FileText size={20} /> Contracts
@@ -61,21 +92,26 @@
 			</li>
 			<li>
 				<a
-					href={resolve("/messages")}
-					class="flex items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname.startsWith('/messages')}
+					href={resolve('/admin/messages')}
+					class="flex items-center gap-2 rounded py-2
+					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
+					class:bg-neutral-200={page.url.pathname.startsWith('/admin/messages')}
+					class:dark:bg-neutral-800={page.url.pathname.startsWith('/admin/messages')}
 					onclick={closeMobileMenu}
 				>
 					<Chats size={20} /> Messages
+					{#if totalUnread > 0}
+						<span class="inline-block size-1.5 rounded-full bg-red-500"></span>
+					{/if}
 				</a>
 			</li>
 			<li>
 				<a
-					href={resolve("/invoices-and-quotes")}
-					class="flex items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
-					class:border-sky-500={page.url.pathname.startsWith('/invoices-and-quotes')}
+					href={resolve('/invoices-and-quotes')}
+					class="flex items-center gap-2 rounded py-2
+					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
+					class:bg-neutral-200={page.url.pathname.startsWith('/invoices-and-quotes')}
+					class:dark:bg-neutral-800={page.url.pathname.startsWith('/invoices-and-quotes')}
 					onclick={closeMobileMenu}
 				>
 					<Invoice size={20} /> Invoices & Quotes
@@ -83,8 +119,8 @@
 			</li>
 			<li class="mt-auto">
 				<button
-					class="flex cursor-pointer items-center gap-2 border-l py-2 pl-4
-					hover:border-neutral-400 dark:hover:border-neutral-700"
+					class="flex w-full cursor-pointer items-center gap-2 rounded py-2
+					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
 				>
 					<UserGear size={20} /> Profile Settings
 				</button>
@@ -93,14 +129,14 @@
 	</nav>
 {/snippet}
 
-<div class="grid h-dvh auto-rows-[min-content_1fr] gap-4">
+<div class="grid h-dvh auto-rows-[min-content_1fr] gap-2 bg-neutral-100 p-2 dark:bg-neutral-900">
 	<Header {openMobileMenu} />
-	<div class="mx-8 mb-8 grid grid-cols-1 gap-4 overflow-auto lg:grid-cols-[14rem_1fr]">
-		<div class="hidden pt-4 lg:block">
+	<div class="grid grid-cols-1 gap-2 overflow-auto lg:grid-cols-[15rem_1fr]">
+		<div class="hidden rounded bg-neutral-50 p-2 lg:block dark:bg-neutral-950">
 			{@render nav()}
 		</div>
 
-		<div class="grow overflow-y-auto py-4 lg:px-4">
+		<div class="grow overflow-y-auto">
 			{@render children()}
 		</div>
 	</div>
