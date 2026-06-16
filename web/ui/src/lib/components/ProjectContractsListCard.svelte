@@ -47,7 +47,6 @@
 		loadContracts();
 	});
 
-	let revisionDialog = createDialogState();
 	let signDialog = createDialogState();
 	let rejectDialog = createDialogState();
 
@@ -65,24 +64,16 @@
 		}
 	}
 
-	function openRevisionDialog(contract: ContractOverview) {
-		selectedContract = contract;
-		revisionDialog.open();
-	}
-
-	// svelte-ignore non_reactive_update
-	let linksPrefix = '';
-	if (role == 'administrator') linksPrefix = '/admin';
-	if (role == 'staff') linksPrefix = '/staff';
+	const contractsRoute =
+		role === 'administrator'
+			? (`/admin/projects/${projectId}/contracts` as const)
+			: (`/projects/${projectId}/contracts` as const);
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
 	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Contracts</p>
-		<a
-			href={`${linksPrefix}/projects/${projectId}/contracts`}
-			class="flex items-center gap-1 text-sm"
-		>
+		<a href={resolve(contractsRoute)} class="flex items-center gap-1 text-sm">
 			<span>View All</span>
 			<ArrowRight />
 		</a>
@@ -156,15 +147,6 @@
 																contract.memberSignatoryStatus
 															)}
 														</div>
-													{/if}
-
-													{#if role == 'client' && contract.memberSignatoryStatus != 'rejected' && contract.memberSignatoryStatus != 'signed'}
-														<DropdownMenu.Item
-															class="pl-4 text-xs"
-															onclick={() => openRevisionDialog(contract)}
-														>
-															Request Revision
-														</DropdownMenu.Item>
 													{/if}
 												{:else}
 													<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
