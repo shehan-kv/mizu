@@ -3,7 +3,7 @@
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
-	import { toTitleCase } from '$lib/utils/toTitleCase';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import { onMount } from 'svelte';
 	import ProjectMembersCard from '$lib/components/ProjectMembersCard.svelte';
 	import InvoiceListCard from '$lib/components/ProjectInvoiceListCard.svelte';
@@ -39,7 +39,7 @@
 </svelte:head>
 
 <div class="mx-auto grid grid-cols-4 gap-2 lg:container">
-	<div class="space-y-2 rounded border p-6">
+	<div class="space-y-2 rounded bg-neutral-50 p-6 dark:bg-neutral-950">
 		{#await projectPromise}
 			<Spinner />
 		{:then res}
@@ -63,7 +63,7 @@
 								></span>
 							</span>
 						{/if}
-						{toTitleCase(res.status)}
+						{toTitleCaseDashed(res.status)}
 					</div>
 				</div>
 				<div>
@@ -111,31 +111,33 @@
 		{/await}
 	</div>
 
-	<div class="max-h-100 min-h-50">
+	<div class="max-h-100 min-h-50 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectMembersCard projectId={id} />
 	</div>
 
-	<div class="col-span-2 min-h-80">
+	<div class="col-span-2 min-h-80 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectInvoicePaidChartCard projectId={id} />
 	</div>
 
 	<div class="col-span-4 grid h-84 grid-cols-4 gap-2 overflow-hidden">
-		<div class="col-span-2">
+		<div class="col-span-2 rounded bg-neutral-50 dark:bg-neutral-950">
 			<ProjectTasksCompletedChartCard projectId={id} />
 		</div>
 
-		<div class="col-span-2">
+		<div class="col-span-2 rounded bg-neutral-50 dark:bg-neutral-950">
 			<ProjectFilesListCard projectId={id} />
 		</div>
 	</div>
 
-	<InvoiceListCard projectId={id} role="client" />
+	<div class="col-span-4 max-h-100 min-h-60 rounded bg-neutral-50 dark:bg-neutral-950">
+		<InvoiceListCard projectId={id} role="client" />
+	</div>
 
-	<div class="col-span-4 max-h-100 min-h-50">
+	<div class="col-span-4 max-h-100 min-h-60 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectContractsListCard projectId={id} role="client" />
 	</div>
 
-	<div class="col-span-4 max-h-100">
+	<div class="col-span-4 max-h-100 rounded bg-neutral-50 dark:bg-neutral-950">
 		<ProjectKanbanCard projectId={id} role="client" />
 	</div>
 </div>
