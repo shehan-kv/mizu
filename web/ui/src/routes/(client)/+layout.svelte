@@ -92,7 +92,7 @@
 			</li>
 			<li>
 				<a
-					href={resolve('/admin/messages')}
+					href={resolve('/messages')}
 					class="flex items-center gap-2 rounded py-2
 					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
 					class:bg-neutral-200={page.url.pathname.startsWith('/admin/messages')}
