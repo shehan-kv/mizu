@@ -201,7 +201,7 @@
 			{/each}
 		{:else}
 			<div>
-				<ErrorMessage variant="info" text="Tasks Not Found" retry={loadTasks} />
+				<ErrorMessage variant="info" text="Tasks Not Found" />
 			</div>
 		{/if}
 	{/if}
