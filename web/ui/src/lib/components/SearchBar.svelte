@@ -23,7 +23,7 @@
 	}
 </script>
 
-<div class="relative rounded bg-neutral-100 dark:bg-neutral-900">
+<div class="relative w-full rounded bg-neutral-100 dark:bg-neutral-900">
 	<input
 		type="search"
 		name="search"

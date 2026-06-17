@@ -105,7 +105,36 @@
 					</div>
 				</div>
 			</div>
-			{#if role == 'client' && invoice.status == 'pending'}
+			{#if role == 'administrator' || role == 'staff'}
+				{#if invoice.status == 'pending' || invoice.status == 'accepted'}
+					<div class="space-x-1">
+						<button
+							onclick={() => openStatusDialog('paid')}
+							class="inline-flex cursor-pointer items-center gap-2
+							rounded bg-neutral-950 px-4 py-3 text-xs text-neutral-50 transition
+							hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950
+							dark:hover:bg-neutral-300"
+						>
+							Mark As Paid <Checks size={16} />
+						</button>
+
+						<button
+							onclick={() => openStatusDialog('cancelled')}
+							class="inline-flex cursor-pointer items-center gap-2
+							rounded bg-neutral-100 px-4 py-3 text-xs text-neutral-950 transition
+							hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100
+							dark:hover:bg-neutral-800"
+						>
+							Cancel <WarningCircle size={16} />
+						</button>
+					</div>
+				{:else}
+					<div class="text-muted-foreground flex items-center gap-2 text-xs">
+						<Checks size={16} />
+						Already {toTitleCaseDashed(invoice.status)}
+					</div>
+				{/if}
+			{:else if invoice.status == 'pending'}
 				<div class="space-x-1">
 					<button
 						onclick={() => openStatusDialog('accepted')}
@@ -116,6 +145,7 @@
 					>
 						Accept <Checks size={16} />
 					</button>
+
 					<button
 						onclick={() => openStatusDialog('rejected')}
 						class="inline-flex cursor-pointer items-center gap-2
@@ -126,26 +156,10 @@
 						Reject <WarningCircle size={16} />
 					</button>
 				</div>
-			{:else if invoice.status == 'pending'}
-				<div class="space-x-1">
-					<button
-						onclick={() => openStatusDialog('paid')}
-						class="inline-flex cursor-pointer items-center gap-2
-						rounded bg-neutral-950 px-4 py-3 text-xs text-neutral-50 transition
-						hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950
-						dark:hover:bg-neutral-300"
-					>
-						Mark As Paid <Checks size={16} />
-					</button>
-					<button
-						onclick={() => openStatusDialog('cancelled')}
-						class="inline-flex cursor-pointer items-center gap-2
-						rounded bg-neutral-100 px-4 py-3 text-xs text-neutral-950 transition
-						hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100
-						dark:hover:bg-neutral-800"
-					>
-						Cancel <WarningCircle size={16} />
-					</button>
+			{:else}
+				<div class="text-muted-foreground flex items-center gap-2 text-xs">
+					<Checks size={16} />
+					Already {toTitleCaseDashed(invoice.status)}
 				</div>
 			{/if}
 		</div>

@@ -8,18 +8,18 @@
 	import { formatMinutes } from '$lib/utils/formatMinutes';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
-	import type { UserRole } from '$lib/api/users';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import { getTasks, type Task, type TaskStatus } from '$lib/api/task';
+	import { resolve } from '$app/paths';
+	import { auth } from '$lib/auth/auth.svelte';
 
 	interface Props {
 		projectId: string;
 		status: TaskStatus;
-		role?: UserRole;
 	}
-	let { projectId, status, role = 'client' }: Props = $props();
+	let { projectId, status }: Props = $props();
 
 	let isLoading = $state(false);
 
@@ -92,11 +92,6 @@
 		selectedTask = task;
 		assigneeDialog.open();
 	}
-
-	// svelte-ignore non_reactive_update
-	let linksPrefix = '';
-	if (role == 'administrator') linksPrefix = '/admin';
-	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div class="h-full space-y-2 overflow-y-auto" bind:this={container} onscroll={handleScroll}>
@@ -132,7 +127,7 @@
 							{/if}
 						</div>
 
-						{#if role == 'administrator'}
+						{#if auth.role == 'administrator'}
 							<div class="flex items-center gap-1 text-right">
 								<DropdownMenu.Root>
 									<DropdownMenu.Trigger
@@ -165,7 +160,7 @@
 								</DropdownMenu.Root>
 
 								<a
-									href={`${linksPrefix}/projects/${projectId}/kanban/${task.id}`}
+									href={resolve(`/projects/${projectId}/kanban/${task.id}`)}
 									class="inline-block cursor-pointer rounded bg-neutral-200 px-2 py-1
 									transition hover:bg-neutral-300 dark:bg-neutral-800
 									dark:hover:bg-neutral-700"

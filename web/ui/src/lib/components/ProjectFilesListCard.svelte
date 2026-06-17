@@ -5,7 +5,6 @@
 	import Spinner from './Spinner.svelte';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import type { UserRole } from '$lib/api/users';
 	import type { PaginatedResponse } from '$lib/api/page';
 	import { downloadChannelFile, getProjectFiles, type ChannelFile } from '$lib/api/messages';
 	import { resolve } from '$app/paths';
@@ -13,9 +12,8 @@
 
 	interface Props {
 		projectId: string;
-		role?: UserRole;
 	}
-	let { projectId, role = 'client' }: Props = $props();
+	let { projectId }: Props = $props();
 
 	let filesPromise: Promise<PaginatedResponse<ChannelFile>> | null = $state(null);
 	let abort: AbortController | null = null;
@@ -35,17 +33,12 @@
 	onDestroy(() => {
 		abort?.abort();
 	});
-
-	const projectFilesRoute =
-		role === 'administrator'
-			? (`/admin/projects/${projectId}/files` as const)
-			: (`/projects/${projectId}/files` as const);
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
 	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Files</p>
-		<a href={resolve(projectFilesRoute)} class="flex items-center gap-1 text-sm">
+		<a href={resolve(`/projects/${projectId}/files`)} class="flex items-center gap-1 text-sm">
 			<span>View All</span>
 			<ArrowRight />
 		</a>

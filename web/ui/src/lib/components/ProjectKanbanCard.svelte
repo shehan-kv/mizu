@@ -1,28 +1,18 @@
 <script lang="ts">
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import KanbanTaskList from './KanbanTaskList.svelte';
-	import type { UserRole } from '$lib/api/users';
 	import { resolve } from '$app/paths';
 
 	interface Props {
 		projectId: string;
-		role?: UserRole;
 	}
-	let { projectId, role = 'client' }: Props = $props();
-
-	// svelte-ignore non_reactive_update
-	let linksPrefix = '';
-	if (role == 'administrator') linksPrefix = '/admin';
-	if (role == 'staff') linksPrefix = '/staff';
+	let { projectId }: Props = $props();
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
 	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Kanban Board</p>
-		<a
-			href={resolve(`${linksPrefix}/projects/${projectId}/kanban`)}
-			class="flex items-center gap-1 text-sm"
-		>
+		<a href={resolve(`/projects/${projectId}/kanban`)} class="flex items-center gap-1 text-sm">
 			<span>View</span>
 			<ArrowRight />
 		</a>
@@ -31,19 +21,19 @@
 		<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
 			<p class="py-3 text-center text-sm">Backlog</p>
 			<div class="overflow-scroll">
-				<KanbanTaskList {projectId} status="backlog" {role} />
+				<KanbanTaskList {projectId} status="backlog" />
 			</div>
 		</div>
 		<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
 			<p class="py-3 text-center text-sm">In-Progress</p>
 			<div class="overflow-scroll">
-				<KanbanTaskList {projectId} status="in-progress" {role} />
+				<KanbanTaskList {projectId} status="in-progress" />
 			</div>
 		</div>
 		<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
 			<p class="py-3 text-center text-sm">Completed</p>
 			<div class="overflow-scroll">
-				<KanbanTaskList {projectId} status="completed" {role} />
+				<KanbanTaskList {projectId} status="completed" />
 			</div>
 		</div>
 	</div>

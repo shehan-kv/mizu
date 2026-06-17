@@ -11,13 +11,12 @@
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import ErrorMessage from './ErrorMessage.svelte';
 	import { ApiError } from '$lib/api/client';
-	import type { UserRole } from '$lib/api/users';
+	import { resolve } from '$app/paths';
 
 	interface Props {
 		class?: string;
-		role: UserRole;
 	}
-	let { class: className = '', role = 'client' }: Props = $props();
+	let { class: className = '' }: Props = $props();
 
 	let promise: Promise<PaginatedResponse<InvoiceOverview>> | null = $state(null);
 	let aborter: AbortController | null = null;
@@ -35,11 +34,6 @@
 	onDestroy(() => {
 		aborter?.abort();
 	});
-
-	// svelte-ignore non_reactive_update
-	let linksPrefix = '';
-	if (role == 'administrator') linksPrefix = '/admin';
-	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <DashboardCard title="Recent Invoices" class={className}>
@@ -68,8 +62,7 @@
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
-									<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-									<a href={`${linksPrefix}/invoices-and-quotes/${invoice.id}`} title="View">
+									<a href={resolve(`/invoices-and-quotes/${invoice.id}`)} title="View">
 										<ArrowRight size={18} />
 									</a>
 								</Table.Cell>

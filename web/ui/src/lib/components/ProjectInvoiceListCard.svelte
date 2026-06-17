@@ -59,20 +59,12 @@
 		selectedInvoice = { ...invoice, action };
 		setStatusDialog.open();
 	}
-
-	// svelte-ignore non_reactive_update
-	let linksPrefix = '';
-	if (role == 'administrator') linksPrefix = '/admin';
-	if (role == 'staff') linksPrefix = '/staff';
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
 	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Invoices / Quotes</p>
-		<a
-			href={`${linksPrefix}/projects/${projectId}/invoices`}
-			class="flex items-center gap-1 text-sm"
-		>
+		<a href={resolve(`/projects/${projectId}/invoices`)} class="flex items-center gap-1 text-sm">
 			<span>View All</span>
 			<ArrowRight />
 		</a>
@@ -111,7 +103,7 @@
 										*:dark:hover:text-neutral-50"
 									>
 										<a
-											href={resolve(`/admin/invoices-and-quotes/${invoice.id}`)}
+											href={resolve(`/invoices-and-quotes/${invoice.id}`)}
 											class="inline-block"
 											title="View"
 										>

@@ -11,7 +11,6 @@
 
 	import { getContractOverviewsByProject, type ContractOverview } from '$lib/api/contracts';
 	import { onMount } from 'svelte';
-	import type { UserRole } from '$lib/api/users';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import type { PaginatedResponse } from '$lib/api/page';
@@ -20,9 +19,8 @@
 
 	interface Props {
 		projectId: string;
-		role?: UserRole;
 	}
-	let { projectId, role = 'client' }: Props = $props();
+	let { projectId }: Props = $props();
 
 	let contractsPromise: Promise<PaginatedResponse<ContractOverview>> | null = $state(null);
 	let abort: AbortController | null = null;
@@ -63,17 +61,12 @@
 			rejectDialog.open();
 		}
 	}
-
-	const contractsRoute =
-		role === 'administrator'
-			? (`/admin/projects/${projectId}/contracts` as const)
-			: (`/projects/${projectId}/contracts` as const);
 </script>
 
 <div class="grid h-full w-full grid-rows-[min-content_1fr] overflow-hidden">
 	<div class="flex items-center justify-between border-b px-6 py-2">
 		<p class="text-sm">Contracts</p>
-		<a href={resolve(contractsRoute)} class="flex items-center gap-1 text-sm">
+		<a href={resolve(`/projects/${projectId}/contracts`)} class="flex items-center gap-1 text-sm">
 			<span>View All</span>
 			<ArrowRight />
 		</a>
@@ -112,7 +105,7 @@
 										*:dark:hover:text-neutral-50"
 									>
 										<a
-											href={resolve(`/admin/contracts/${contract.id}`)}
+											href={resolve(`/contracts/${contract.id}`)}
 											class="inline-block"
 											title="View"
 										>
