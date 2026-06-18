@@ -9,8 +9,30 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { toggleTheme } from '$lib/utils/theme';
+	import { signOut } from '$lib/api/users';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { ApiError } from '$lib/api/client';
+	import { toast } from 'svelte-sonner';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
 	let { openMobileMenu }: { openMobileMenu: () => void } = $props();
+
+	let signoutLoading = $state(false);
+
+	function handleSignOut() {
+		try {
+			signoutLoading = true;
+			signOut();
+			goto(resolve('/sign-in'));
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('Could Not Sign Out');
+			}
+		}
+	}
 </script>
 
 <header
@@ -47,8 +69,15 @@
 				<User size={20} />
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content class="mt-2 mr-4">
-				<DropdownMenu.Item class="py-2">
-					<span class="flex items-center gap-3"><SignOut />Sign Out</span>
+				<DropdownMenu.Item class="py-2" onclick={handleSignOut} disabled={signoutLoading}>
+					<button class="flex items-center gap-3">
+						{#if signoutLoading}
+							<CircleNotch />
+						{:else}
+							<SignOut />
+						{/if}
+						Sign Out
+					</button>
 				</DropdownMenu.Item>
 				<DropdownMenu.Item class="py-2">
 					<span class="flex items-center gap-3">
