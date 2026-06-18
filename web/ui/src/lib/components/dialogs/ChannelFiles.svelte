@@ -26,7 +26,7 @@
 	let q = $state('');
 
 	let page = $state(1);
-	let limit = $state(30);
+	let limit = $state(25);
 
 	let filesPromise: Promise<PaginatedResponse<ChannelFile>> | null = $state(null);
 
@@ -59,7 +59,7 @@
 	<div class="grid auto-rows-[min-content_1fr_min-content] gap-6 overflow-y-auto px-5">
 		<div class="flex-none">
 			<div class="container mx-auto flex items-end justify-between gap-4">
-				<p class="font-bold">Uploaded Files in {channel.name}</p>
+				<p class="font-bold">Uploaded Files - {channel.name}</p>
 				<div class="w-full max-w-xs">
 					<SearchBar bind:value={_q} onchange={handleSearch} />
 				</div>
@@ -78,7 +78,7 @@
 						<Table.Root class="container mx-auto">
 							<Table.Header>
 								<Table.Row>
-									<Table.Head class="font-bold">ID</Table.Head>
+									<Table.Head class="font-bold">#ID</Table.Head>
 									<Table.Head class="font-bold">File Name</Table.Head>
 									<Table.Head class="font-bold">Size</Table.Head>
 									<Table.Head class="font-bold">Uploaded Date</Table.Head>

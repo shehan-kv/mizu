@@ -25,7 +25,7 @@
 	let { open = $bindable(), channel }: Props = $props();
 
 	const DEFAULT_PAGE = 1;
-	const DEFAULT_LIMIT = 30;
+	const DEFAULT_LIMIT = 25;
 
 	let page = $state(DEFAULT_PAGE);
 	let limit = $state(DEFAULT_LIMIT);

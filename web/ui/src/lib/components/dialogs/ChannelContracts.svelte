@@ -1,6 +1,5 @@
 <script lang="ts">
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 
 	import * as Table from '$lib/components/ui/table';
@@ -29,7 +28,7 @@
 	let status = $state('');
 
 	let page = $state(1);
-	let limit = $state(30);
+	let limit = $state(25);
 
 	let selectedContract: ContractOverview | null = $state(null);
 	let contractViewDialog = createDialogState();
@@ -73,7 +72,7 @@
 	<div class="grid auto-rows-[min-content_1fr_min-content] gap-6 overflow-y-auto px-5">
 		<div class="flex-none">
 			<div class="container mx-auto flex items-end justify-between gap-4">
-				<p class="font-bold">Contracts of {channel.name}</p>
+				<p class="font-bold">Contracts - {channel.name}</p>
 				<div class="w-full max-w-xs">
 					<SearchBar bind:value={_q} onchange={handleSearch} />
 				</div>
@@ -95,7 +94,7 @@
 							<Table.Root class="container mx-auto">
 								<Table.Header>
 									<Table.Row>
-										<Table.Head class="font-bold">ID</Table.Head>
+										<Table.Head class="font-bold">#ID</Table.Head>
 										<Table.Head class="font-bold">Name</Table.Head>
 										<Table.Head class="font-bold">Status</Table.Head>
 										<Table.Head class="font-bold">Created Date</Table.Head>
@@ -106,7 +105,7 @@
 									{#each res.items as contract (contract.id)}
 										<Table.Row>
 											<Table.Cell>
-												{contract.id.replaceAll('-', '').slice(-8).toUpperCase()}</Table.Cell
+												#{contract.id.replaceAll('-', '').slice(-8).toUpperCase()}</Table.Cell
 											>
 											<Table.Cell>{contract.name}</Table.Cell>
 											<Table.Cell class="flex items-center gap-1">
@@ -128,9 +127,6 @@
 														title="View Contract"
 													>
 														<ArrowRight size={18} />
-													</button>
-													<button title="Download the Latest Version as PDF">
-														<DownloadSimple size={18} />
 													</button>
 													<button title="Email Me"><Envelope size={18} /></button>
 												</div>
@@ -155,5 +151,5 @@
 </FullScreenDialog>
 
 {#if selectedContract}
-	<ChannelViewContract bind:open={contractViewDialog.isOpen} contract={selectedContract} />
+	<ChannelViewContract bind:open={contractViewDialog.isOpen} contractId={selectedContract.id} />
 {/if}
