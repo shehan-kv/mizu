@@ -387,6 +387,7 @@ func main() {
 		uow,
 		authzAppService,
 		projectService,
+		intBus,
 		idgen,
 		log,
 	)

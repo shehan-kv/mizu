@@ -3,6 +3,7 @@ package project
 import (
 	"context"
 	"mizu/internal/application/authz"
+	"mizu/internal/application/eventbus"
 	"mizu/internal/application/logger"
 	"mizu/internal/application/shared"
 	"mizu/internal/application/uow"
@@ -29,6 +30,8 @@ type Service struct {
 	authzSrv   *authz.Service
 	projectSrv *project.Service
 
+	internalBus eventbus.InternalBus
+
 	idGen  common.IDGenerator
 	logger logger.Logger
 }
@@ -43,6 +46,7 @@ func NewService(
 	uow uow.UnitOfWork,
 	authzSrv *authz.Service,
 	projectSrv *project.Service,
+	internalBus eventbus.InternalBus,
 	idGen common.IDGenerator,
 	logger logger.Logger,
 ) *Service {
@@ -56,6 +60,7 @@ func NewService(
 		uow:          uow,
 		authzSrv:     authzSrv,
 		projectSrv:   projectSrv,
+		internalBus:  internalBus,
 		idGen:        idGen,
 		logger:       logger,
 	}
@@ -187,9 +192,16 @@ func (s *Service) CreateProject(ctx context.Context, params CreateProjectParams)
 		return err
 	}
 
-	return s.uow.Execute(ctx, func(ctx context.Context) error {
+	err = s.uow.Execute(ctx, func(ctx context.Context) error {
 		return s.projectRepo.Add(ctx, p)
 	})
+	if err != nil {
+		return err
+	}
+
+	s.publishEvents(ctx, p.PullEvents())
+
+	return nil
 }
 
 func (s *Service) ListStats(ctx context.Context, params ListStatsParams) (*shared.Collection[StatsDTO], error) {
@@ -703,4 +715,15 @@ func (s *Service) Delete(ctx context.Context, projectID string, actorID string) 
 	}
 
 	return s.projectRepo.Remove(ctx, p)
+}
+
+func (s *Service) publishEvents(ctx context.Context, events []common.Event) {
+	for _, event := range events {
+		if err := s.internalBus.Publish(ctx, event); err != nil {
+			s.logger.Warn("failed to publish event",
+				"event_type", event.EventType(),
+				"err", err,
+			)
+		}
+	}
 }
