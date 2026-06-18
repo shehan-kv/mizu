@@ -5,7 +5,6 @@
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { onMount } from 'svelte';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import { formatDate } from '$lib/utils/formatDate';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -198,9 +197,6 @@
 												>
 													<ArrowRight size={18} />
 												</a>
-												<button title="Download the Latest Version as PDF">
-													<DownloadSimple size={18} />
-												</button>
 												<button title="Email Me"><Envelope size={18} /></button>
 											</div>
 										</Table.Cell>

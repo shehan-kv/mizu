@@ -2,7 +2,6 @@
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import { formatDate } from '$lib/utils/formatDate';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
@@ -40,7 +39,6 @@
 				class="space-x-1 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
 							*:dark:hover:text-neutral-50"
 			>
-				<button title="Download Contract As PDF"><DownloadSimple size={18} /> </button>
 				<button title="Email Me"><Envelope size={18} /> </button>
 			</div>
 		</div>

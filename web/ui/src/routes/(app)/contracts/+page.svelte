@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Checks from 'phosphor-svelte/lib/Checks';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 	import * as Table from '$lib/components/ui/table';
@@ -205,9 +204,6 @@
 												>
 													<ArrowRight size={18} />
 												</a>
-												<button title="Download the Latest Version as PDF">
-													<DownloadSimple size={18} />
-												</button>
 												<button title="Email Me"><Envelope size={18} /></button>
 
 												<DropdownMenu.Root>
