@@ -24,12 +24,8 @@
 
 		isLoading = true;
 		signIn(signInForm)
-			.then((data) => {
-				if (data.role == 'administrator') {
-					goto(resolve('/admin'));
-				} else {
-					goto(resolve('/'));
-				}
+			.then(() => {
+				goto(resolve('/'));
 			})
 			.catch(() => {
 				toast.error('Sign-in Failed');
