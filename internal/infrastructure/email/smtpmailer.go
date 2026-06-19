@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"mizu/internal/application/mailer"
 	"mizu/internal/domain/iam"
 	"mizu/internal/domain/verification"
 	"net"
@@ -181,6 +182,63 @@ func (m *SMTPMailer) SendVerifiedEmail(ctx context.Context, email iam.Email) err
 	msg := message{
 		to:      sanitizeHeader(email.String()),
 		subject: sanitizeHeader("Your Account Has Been Successfully Verified"),
+		body:    body.String(),
+		result:  result,
+	}
+
+	select {
+	case m.ch <- msg:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.ContractEmail) error {
+	if m.closed.Load() {
+		return errors.New("email.Mailer.SendContractEmail: mailer closed")
+	}
+
+	t, err := m.templates.Get(TemplateContractEmail)
+	if err != nil {
+		return fmt.Errorf("email.Mailer.SendContractEmail: %w", err)
+	}
+
+	var body bytes.Buffer
+
+	data := struct {
+		Subject       string
+		ContractID    string
+		ContractName  string
+		ContractTerms string
+		ProjectID     string
+		ProjectName   string
+		Signatories   []mailer.ContractSignatory
+	}{
+		Subject:       email.Subject,
+		ContractID:    email.ContractID,
+		ContractName:  email.ContractName,
+		ContractTerms: email.ContractTerms,
+		ProjectID:     email.ProjectID,
+		ProjectName:   email.ProjectName,
+		Signatories:   email.Signatories,
+	}
+
+	if err := t.Execute(&body, data); err != nil {
+		return fmt.Errorf("email.Mailer.SendVerifiedEmail: render template: %w", err)
+	}
+
+	result := make(chan error, 1)
+
+	msg := message{
+		to:      sanitizeHeader(email.RecipientEmail),
+		subject: sanitizeHeader(email.Subject),
 		body:    body.String(),
 		result:  result,
 	}

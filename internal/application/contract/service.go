@@ -5,6 +5,7 @@ import (
 	"mizu/internal/application/authz"
 	"mizu/internal/application/eventbus"
 	"mizu/internal/application/logger"
+	"mizu/internal/application/mailer"
 	"mizu/internal/application/shared"
 	"mizu/internal/domain/common"
 	"mizu/internal/domain/contract"
@@ -23,7 +24,8 @@ type Service struct {
 
 	internalBus eventbus.InternalBus
 
-	idGen common.IDGenerator
+	idGen  common.IDGenerator
+	mailer mailer.Mailer
 
 	logger logger.Logger
 }
@@ -36,6 +38,7 @@ func NewService(
 	authzSrv *authz.Service,
 	internalBus eventbus.InternalBus,
 	idGen common.IDGenerator,
+	mailer mailer.Mailer,
 	logger logger.Logger,
 ) *Service {
 	return &Service{
@@ -46,6 +49,7 @@ func NewService(
 		authzSrv:     authzSrv,
 		internalBus:  internalBus,
 		idGen:        idGen,
+		mailer:       mailer,
 		logger:       logger,
 	}
 }
@@ -642,6 +646,99 @@ func (s *Service) ReplaceSignatories(ctx context.Context, params ReplaceSignator
 	}
 
 	return s.contractRepo.Save(ctx, c)
+}
+
+func (s *Service) EmailContract(ctx context.Context, contractID string, actorID string, memberID string) error {
+
+	cID, err := contract.NewContractID(contractID)
+	if err != nil {
+		return err
+	}
+
+	actor, err := iam.NewUserID(actorID)
+	if err != nil {
+		return err
+	}
+
+	member, err := iam.NewUserID(memberID)
+	if err != nil {
+		return err
+	}
+
+	err = s.authzSrv.RequireAdministratorStaffOrSelf(ctx, actor, member)
+	if err != nil {
+		return err
+	}
+
+	c, err := s.contractRepo.Get(ctx, cID)
+	if err != nil {
+		return err
+	}
+
+	p, err := s.projectRepo.Get(ctx, c.ProjectID())
+	if err != nil {
+		return err
+	}
+
+	m, err := s.iamRepo.GetByID(ctx, member)
+	if err != nil {
+		return err
+	}
+
+	if !p.HasMember(actor) || !p.HasMember(member) {
+		return project.ErrNotProjectMember
+	}
+
+	signs := c.Signatories()
+
+	signIDs := make([]iam.UserID, 0, len(signs))
+	for i := range signs {
+		signIDs = append(signIDs, signs[i].UserID())
+	}
+
+	users, err := s.iamRepo.ListByIDs(ctx, signIDs, iam.UserFilter{})
+	if err != nil {
+		return err
+	}
+
+	userMap := make(map[iam.UserID]*iam.User, len(users))
+	for i := range users {
+		userMap[users[i].ID()] = users[i]
+	}
+
+	signatories := make([]mailer.ContractSignatory, 0, len(signs))
+
+	for i := range signs {
+		u, ok := userMap[signs[i].UserID()]
+		if !ok {
+			return contract.ErrContractSignatoryNotFound
+		}
+
+		signatories = append(signatories, mailer.ContractSignatory{
+			ID:        u.ID().String(),
+			FirstName: u.FirstName(),
+			LastName:  u.LastName(),
+			Email:     u.Email().String(),
+			Title:     u.Title(),
+			Role:      u.Role().String(),
+			Status:    signs[i].Status().String(),
+			UpdatedAt: signs[i].UpdatedAt(),
+		})
+	}
+
+	return s.mailer.SendContractEmail(ctx, mailer.ContractEmail{
+		Subject:        "Contract",
+		RecipientEmail: m.Email().String(),
+
+		ContractID:    c.ID().String(),
+		ContractName:  c.Name().String(),
+		ContractTerms: c.Terms().String(),
+
+		ProjectID:   p.ID().String(),
+		ProjectName: p.Name().String(),
+
+		Signatories: signatories,
+	})
 }
 
 func (s *Service) publishEvents(ctx context.Context, events []common.Event) {

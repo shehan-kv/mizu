@@ -41,6 +41,12 @@ func (s *Service) RequireAdministratorOrStaff(ctx context.Context, actorID iam.U
 	}
 	return nil
 }
+func (s *Service) RequireAdministratorStaffOrSelf(ctx context.Context, actorID iam.UserID, targetID iam.UserID) error {
+	if actorID == targetID {
+		return nil
+	}
+	return s.RequireAdministratorOrStaff(ctx, actorID)
+}
 
 func (s *Service) RequireClient(ctx context.Context, actorID iam.UserID) error {
 	actor, err := s.iamRepo.GetByID(ctx, actorID)

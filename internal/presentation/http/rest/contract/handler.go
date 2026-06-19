@@ -31,6 +31,7 @@ func (h *ContractHandler) NewMux(authMiddleware func(http.Handler) http.Handler)
 	mux.Handle("GET /contracts/{contractID}", authMiddleware(http.HandlerFunc(h.GetContract)))
 	mux.Handle("GET /contracts/overviews/project/{projectID}", authMiddleware(http.HandlerFunc(h.ListOverviewByProject)))
 	mux.Handle("GET /contracts/overviews/members/{memberID}", authMiddleware(http.HandlerFunc(h.ListOverviewByMember)))
+	mux.Handle("POST /contracts/{contractID}/email", authMiddleware(http.HandlerFunc(h.EmailContract)))
 	mux.Handle("POST /contracts/{contractID}/sign", authMiddleware(http.HandlerFunc(h.Sign)))
 	mux.Handle("POST /contracts/{contractID}/reject", authMiddleware(http.HandlerFunc(h.Reject)))
 	mux.Handle("GET /contracts/{contractID}/signatories", authMiddleware(http.HandlerFunc(h.ListSignatories)))
@@ -177,6 +178,17 @@ func (h *ContractHandler) ListOverview(w http.ResponseWriter, r *http.Request) {
 		Page:       p.Page,
 		Limit:      p.Limit,
 	})
+}
+
+func (h *ContractHandler) EmailContract(w http.ResponseWriter, r *http.Request) {
+	actorID := middleware.ActorIDFromContext(r.Context())
+
+	if err := h.contractSrv.EmailContract(r.Context(), r.PathValue("contractID"), actorID, actorID); err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ContractHandler) Sign(w http.ResponseWriter, r *http.Request) {

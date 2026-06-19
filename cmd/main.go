@@ -417,6 +417,7 @@ func main() {
 		authzAppService,
 		intBus,
 		idgen,
+		mlr,
 		log,
 	)
 	messageAppService := messageApp.NewService(

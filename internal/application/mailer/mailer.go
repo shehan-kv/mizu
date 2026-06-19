@@ -12,4 +12,5 @@ var ErrMailDeliveryFailed = errors.New("failed to deliver email")
 type Mailer interface {
 	SendVerificationEmail(ctx context.Context, email iam.Email, verificationID verification.VerificationID) error
 	SendVerifiedEmail(ctx context.Context, email iam.Email) error
+	SendContractEmail(ctx context.Context, email ContractEmail) error
 }
