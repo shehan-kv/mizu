@@ -14,7 +14,7 @@
 	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import FilterSelect from '$lib/components/FilterSelect.svelte';
 	import { formatDate } from '$lib/utils/formatDate';
-	import { getContractOverviews, type ContractOverview } from '$lib/api/contracts';
+	import { emailContract, getContractOverviews, type ContractOverview } from '$lib/api/contracts';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import { resolve } from '$app/paths';
@@ -22,6 +22,8 @@
 	import type { PaginatedResponse } from '$lib/api/page';
 	import { ApiError } from '$lib/api/client';
 	import { CONTRACT_STATUS } from '$lib/constants/contract';
+	import { toast } from 'svelte-sonner';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
 	const MAX_LIMIT = 100;
 	const DEFAULT_LIMIT = 25;
@@ -44,9 +46,7 @@
 
 	let abort: AbortController | null = null;
 	function loadContracts() {
-		if (abort) {
-			abort.abort();
-		}
+		abort?.abort();
 
 		abort = new AbortController();
 
@@ -79,6 +79,39 @@
 		pageNum = 1;
 		updateUrlParam();
 		loadContracts();
+	}
+
+	let isEmailSending = $state(false);
+	let abortEmail: AbortController | null = null;
+	async function handleEmail(c: ContractOverview) {
+		abortEmail?.abort();
+		abortEmail = new AbortController();
+
+		isEmailSending = true;
+		selectedContract = c;
+
+		try {
+			await emailContract(c.id, abortEmail.signal);
+			toast.success('Contract Emailed Successfully', {
+				description: c.name,
+				descriptionClass: 'text-xs'
+			});
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message, {
+					description: c.name,
+					descriptionClass: 'text-xs'
+				});
+			} else {
+				toast.error('Could Not Email Contract', {
+					description: c.name,
+					descriptionClass: 'text-xs'
+				});
+			}
+		} finally {
+			isEmailSending = false;
+			selectedContract = null;
+		}
 	}
 
 	onMount(() => {
@@ -195,7 +228,8 @@
 										<Table.Cell>{formatDate(contract.createdAt)}</Table.Cell>
 										<Table.Cell>
 											<div
-												class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950 dark:text-neutral-400 *:dark:hover:text-neutral-50"
+												class="text-xs text-neutral-500 *:cursor-pointer *:px-1.5 *:hover:text-neutral-950
+												dark:text-neutral-400 *:dark:hover:text-neutral-50"
 											>
 												<a
 													href={resolve(`/contracts/${contract.id}`)}
@@ -204,7 +238,18 @@
 												>
 													<ArrowRight size={18} />
 												</a>
-												<button title="Email Me"><Envelope size={18} /></button>
+												<button
+													title="Email Me"
+													disabled={selectedContract?.id == contract.id && isEmailSending}
+													onclick={() => handleEmail(contract)}
+													class="disabled:cursor-progress"
+												>
+													{#if selectedContract?.id == contract.id && isEmailSending}
+														<CircleNotch size={18} class="animate-spin" />
+													{:else}
+														<Envelope size={18} />
+													{/if}
+												</button>
 
 												<DropdownMenu.Root>
 													<DropdownMenu.Trigger

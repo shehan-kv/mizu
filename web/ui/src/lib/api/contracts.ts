@@ -135,6 +135,13 @@ export async function createContract(
 	});
 }
 
+export async function emailContract(contractId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`contracts/${contractId}/email`, {
+		method: 'POST',
+		signal
+	});
+}
+
 export async function signContract(contractId: string, signal?: AbortSignal) {
 	return apiFetch<void>(`contracts/${contractId}/sign`, {
 		method: 'POST',

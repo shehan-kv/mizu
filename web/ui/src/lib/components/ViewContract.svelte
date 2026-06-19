@@ -7,8 +7,11 @@
 	import ErrorMessage from './ErrorMessage.svelte';
 	import ConfirmSignContract from './dialogs/ConfirmSignContract.svelte';
 	import ConfirmRejectContract from './dialogs/ConfirmRejectContract.svelte';
-	import { type Contract } from '$lib/api/contracts';
+	import { emailContract, type Contract } from '$lib/api/contracts';
 	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
+	import { ApiError } from '$lib/api/client';
+	import { toast } from 'svelte-sonner';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
 	interface Props {
 		contract: Contract;
@@ -18,6 +21,28 @@
 
 	let confirmSignDialog = createDialogState();
 	let confirmRejectDialog = createDialogState();
+
+	let isEmailSending = $state(false);
+	let abortEmail: AbortController | null = null;
+	async function handleEmail() {
+		abortEmail?.abort();
+		abortEmail = new AbortController();
+
+		isEmailSending = true;
+
+		try {
+			await emailContract(contract.id, abortEmail.signal);
+			toast.success('Contract Emailed Successfully');
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message);
+			} else {
+				toast.error('Could Not Email Contract');
+			}
+		} finally {
+			isEmailSending = false;
+		}
+	}
 </script>
 
 {#snippet cardTitle(text: string)}
@@ -39,7 +64,18 @@
 				class="space-x-1 text-neutral-700 *:cursor-pointer *:px-2 *:py-1.5 *:hover:text-neutral-950 dark:text-neutral-400
 							*:dark:hover:text-neutral-50"
 			>
-				<button title="Email Me"><Envelope size={18} /> </button>
+				<button
+					title="Email Me"
+					onclick={handleEmail}
+					disabled={isEmailSending}
+					class="disabled:cursor-progress"
+				>
+					{#if isEmailSending}
+						<CircleNotch size={18} class="animate-spin" />
+					{:else}
+						<Envelope size={18} />
+					{/if}
+				</button>
 			</div>
 		</div>
 		<div class="overflow-y-auto p-6">

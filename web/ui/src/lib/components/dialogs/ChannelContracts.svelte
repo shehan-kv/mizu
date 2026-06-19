@@ -14,8 +14,14 @@
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { Channel } from '$lib/api/messages';
-	import { getContractOverviewsByProject, type ContractOverview } from '$lib/api/contracts';
+	import {
+		emailContract,
+		getContractOverviewsByProject,
+		type ContractOverview
+	} from '$lib/api/contracts';
 	import type { PaginatedResponse } from '$lib/api/page';
+	import { toast } from 'svelte-sonner';
+	import { ApiError } from '$lib/api/client';
 
 	interface Props {
 		open: boolean;
@@ -60,6 +66,39 @@
 		// set page to 1 when a user searches for a file.
 		page = 1;
 		q = _q;
+	}
+
+	let isEmailSending = $state(false);
+	let abortEmail: AbortController | null = null;
+	async function handleEmail(c: ContractOverview) {
+		abortEmail?.abort();
+		abortEmail = new AbortController();
+
+		isEmailSending = true;
+		selectedContract = c;
+
+		try {
+			await emailContract(c.id, abortEmail.signal);
+			toast.success('Contract Emailed Successfully', {
+				description: c.name,
+				descriptionClass: 'text-xs'
+			});
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message, {
+					description: c.name,
+					descriptionClass: 'text-xs'
+				});
+			} else {
+				toast.error('Could Not Email Contract', {
+					description: c.name,
+					descriptionClass: 'text-xs'
+				});
+			}
+		} finally {
+			isEmailSending = false;
+			selectedContract = null;
+		}
 	}
 
 	$effect(() => {
@@ -128,7 +167,14 @@
 													>
 														<ArrowRight size={18} />
 													</button>
-													<button title="Email Me"><Envelope size={18} /></button>
+													<button
+														title="Email Me"
+														onclick={() => handleEmail(contract)}
+														disabled={selectedContract?.id == contract.id && isEmailSending}
+														class="disabled:cursor-progress"
+													>
+														<Envelope size={18} />
+													</button>
 												</div>
 											</Table.Cell>
 										</Table.Row>
