@@ -8,7 +8,7 @@
 	import * as Dialog from '$lib/components/dialogs';
 
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import TextEditor from '$lib/components/TextEditor.svelte';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
@@ -145,6 +145,10 @@
 
 	onMount(() => {
 		loadChannels();
+	});
+
+	onDestroy(() => {
+		messageStore.state.activeChannelId = null;
 	});
 
 	let fileDialog = createDialogState();
