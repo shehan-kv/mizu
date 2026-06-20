@@ -7,4 +7,8 @@
 
 {@render children()}
 
-<Toaster />
+<Toaster
+	toastOptions={{
+		descriptionClass: 'text-xs !text-neutral-700 dark:!text-neutral-300'
+	}}
+/>

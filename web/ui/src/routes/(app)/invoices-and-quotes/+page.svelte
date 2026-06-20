@@ -115,19 +115,16 @@
 		try {
 			await emailInvoice(inv.id, abortEmail.signal);
 			toast.success(`${inv.isInvoice ? 'Invoice' : 'Quote'} Emailed Successfully`, {
-				description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
-				descriptionClass: 'text-xs'
+				description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`
 			});
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.message, {
-					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
-					descriptionClass: 'text-xs'
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`
 				});
 			} else {
 				toast.error(`Could Not Email Contract ${inv.isInvoice ? 'Invoice' : 'Quote'}`, {
-					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
-					descriptionClass: 'text-xs'
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`
 				});
 			}
 		} finally {

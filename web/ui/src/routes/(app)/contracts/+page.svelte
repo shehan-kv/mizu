@@ -93,19 +93,16 @@
 		try {
 			await emailContract(c.id, abortEmail.signal);
 			toast.success('Contract Emailed Successfully', {
-				description: c.name,
-				descriptionClass: 'text-xs'
+				description: c.name
 			});
 		} catch (error) {
 			if (error instanceof ApiError) {
 				toast.error(error.message, {
-					description: c.name,
-					descriptionClass: 'text-xs'
+					description: c.name
 				});
 			} else {
 				toast.error('Could Not Email Contract', {
-					description: c.name,
-					descriptionClass: 'text-xs'
+					description: c.name
 				});
 			}
 		} finally {
