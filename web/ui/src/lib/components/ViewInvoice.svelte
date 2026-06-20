@@ -83,15 +83,17 @@
 			{#if auth.role == 'administrator' || auth.role == 'staff'}
 				{#if invoice.status == 'pending' || invoice.status == 'accepted'}
 					<div class="space-x-1">
-						<button
-							onclick={() => openStatusDialog('paid')}
-							class="inline-flex cursor-pointer items-center gap-2
+						{#if invoice.status == 'accepted'}
+							<button
+								onclick={() => openStatusDialog('paid')}
+								class="inline-flex cursor-pointer items-center gap-2
 							rounded bg-neutral-950 px-4 py-3 text-xs text-neutral-50 transition
 							hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950
 							dark:hover:bg-neutral-300"
-						>
-							Mark As Paid <Checks size={16} />
-						</button>
+							>
+								Mark As Paid <Checks size={16} />
+							</button>
+						{/if}
 
 						<button
 							onclick={() => openStatusDialog('cancelled')}

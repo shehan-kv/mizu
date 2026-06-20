@@ -124,12 +124,14 @@
 													{#if invoice.status == 'pending' || invoice.status == 'accepted'}
 														<DropdownMenu.Group class="text-xs">
 															<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
-															<DropdownMenu.Item
-																class="pl-4 text-xs"
-																onclick={() => openStatusDialog(invoice, 'paid')}
-															>
-																Paid
-															</DropdownMenu.Item>
+															{#if invoice.status == 'accepted'}
+																<DropdownMenu.Item
+																	class="pl-4 text-xs"
+																	onclick={() => openStatusDialog(invoice, 'paid')}
+																>
+																	Paid
+																</DropdownMenu.Item>
+															{/if}
 															<DropdownMenu.Item
 																class="pl-4 text-xs"
 																onclick={() => openStatusDialog(invoice, 'cancelled')}
