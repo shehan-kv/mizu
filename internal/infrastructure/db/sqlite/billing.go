@@ -168,6 +168,7 @@ func (r *BillingRepository) Get(ctx context.Context, id billing.InvoiceID) (*bil
 		invoiceID            string
 		projectID            string
 		isInvoice            bool
+		status               string
 		dueAt                *time.Time
 		currencyCode         string
 		currencyName         string
@@ -189,6 +190,7 @@ func (r *BillingRepository) Get(ctx context.Context, id billing.InvoiceID) (*bil
             i.id,
             i.project_id,
             i.is_invoice,
+			i.status,
             i.due_at,
             i.currency_code,
             c.name,
@@ -211,6 +213,7 @@ func (r *BillingRepository) Get(ctx context.Context, id billing.InvoiceID) (*bil
 		&invoiceID,
 		&projectID,
 		&isInvoice,
+		&status,
 		&dueAt,
 		&currencyCode,
 		&currencyName,
@@ -508,10 +511,19 @@ func (r *BillingRepository) Get(ctx context.Context, id billing.InvoiceID) (*bil
 		)
 	}
 
+	statusValue, err := billing.NewStatus(status)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"billing.BillingRepository.Get: invalid status: %w",
+			err,
+		)
+	}
+
 	invoice := billing.RestoreInvoice(
 		id,
 		projectIDValue,
 		isInvoice,
+		statusValue,
 		dueAt,
 		currency,
 		note,
@@ -551,6 +563,8 @@ func (r *BillingRepository) GetCurrencyByCode(ctx context.Context, c billing.Cur
 		c.String(),
 	).Scan(
 		&code,
+		&name,
+		&symbol,
 		&decimalPlaces,
 	)
 	if err != nil {
@@ -791,6 +805,7 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
 		invoiceID            string
 		projectID            string
 		isInvoice            bool
+		status               string
 		dueAt                *time.Time
 		currencyCode         string
 		currencyName         string
@@ -815,6 +830,7 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
             i.id,
             i.project_id,
             i.is_invoice,
+			i.status,
             i.due_at,
             i.currency_code,
             c.name,
@@ -855,6 +871,7 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
 			&row.invoiceID,
 			&row.projectID,
 			&row.isInvoice,
+			&row.status,
 			&row.dueAt,
 			&row.currencyCode,
 			&row.currencyName,
@@ -1188,6 +1205,14 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
 			)
 		}
 
+		status, err := billing.NewStatus(row.status)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"billing.BillingRepository.ListByMember: invalid status: %w",
+				err,
+			)
+		}
+
 		invID, err := billing.NewInvoiceID(row.invoiceID)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -1200,6 +1225,7 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
 			invID,
 			projectIDValue,
 			row.isInvoice,
+			status,
 			row.dueAt,
 			currency,
 			row.note,
@@ -1225,6 +1251,7 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 		invoiceID            string
 		projectID            string
 		isInvoice            bool
+		status               string
 		dueAt                *time.Time
 		currencyCode         string
 		currencyName         string
@@ -1249,6 +1276,7 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
             i.id,
             i.project_id,
             i.is_invoice,
+			i.status,
             i.due_at,
             i.currency_code,
             c.name,
@@ -1287,6 +1315,7 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 			&row.invoiceID,
 			&row.projectID,
 			&row.isInvoice,
+			&row.status,
 			&row.dueAt,
 			&row.currencyCode,
 			&row.currencyName,
@@ -1620,6 +1649,14 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 			)
 		}
 
+		status, err := billing.NewStatus(row.status)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"billing.BillingRepository.ListByProject: invalid status: %w",
+				err,
+			)
+		}
+
 		invID, err := billing.NewInvoiceID(row.invoiceID)
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -1632,6 +1669,7 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 			invID,
 			projectIDValue,
 			row.isInvoice,
+			status,
 			row.dueAt,
 			currency,
 			row.note,
