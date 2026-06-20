@@ -119,11 +119,13 @@ func (h *IAMHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	actorID := middleware.ActorIDFromContext(r.Context())
 
 	result, err := h.iamSrv.ListUsers(r.Context(), iam.ListUsersParams{
-		ActorID: actorID,
-		Keyword: query.ExtractString(r, "q"),
-		Role:    query.ExtractString(r, "role"),
-		Limit:   p.Limit,
-		Offset:  p.Offset,
+		ActorID:    actorID,
+		Keyword:    query.ExtractString(r, "q"),
+		Role:       query.ExtractString(r, "role"),
+		IsActive:   query.ExtractBool(r, "isActive"),
+		IsVerified: query.ExtractBool(r, "isVerified"),
+		Limit:      p.Limit,
+		Offset:     p.Offset,
 	})
 	if err != nil {
 		h.writeServiceError(w, r.Method, r.URL.Path, err)

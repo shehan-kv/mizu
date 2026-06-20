@@ -562,8 +562,9 @@ func (s *Service) ListUsers(ctx context.Context, params ListUsersParams) (*share
 	}
 
 	filter := iam.UserFilter{
-		Keyword:  params.Keyword,
-		IsActive: params.IsActive,
+		Keyword:    params.Keyword,
+		IsActive:   params.IsActive,
+		IsVerified: params.IsVerified,
 	}
 
 	if params.Role != nil {

@@ -356,6 +356,11 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 		args = append(args, *filter.IsActive)
 	}
 
+	if filter.IsVerified != nil {
+		sb.WriteString(" AND is_verified = ?")
+		args = append(args, *filter.IsVerified)
+	}
+
 	sb.WriteString(" ORDER BY created_at DESC LIMIT ? OFFSET ?")
 	args = append(args, page.Limit(), page.Offset())
 
