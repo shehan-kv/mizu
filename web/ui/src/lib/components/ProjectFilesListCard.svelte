@@ -64,6 +64,7 @@
 								</Table.Cell>
 								<Table.Cell class="pr-0" align="right">
 									<button
+										title="Download"
 										onclick={() => downloadChannelFile(file.id)}
 										class="inline-block cursor-pointer"
 									>
