@@ -147,7 +147,7 @@ func (t Item) UnitPrice() Decimal {
 }
 
 func (t Item) DiscountRate() Decimal {
-	return t.DiscountRate()
+	return t.discountRate
 }
 
 func (t Item) DiscountType() DiscountType {
