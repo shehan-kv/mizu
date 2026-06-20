@@ -62,8 +62,11 @@ export async function getInvoicesByProject(
 	// set "status" param if status is truthy
 	if (query.status) params.set('status', query.status);
 
-	// set "type" param if type is truthy
-	if (query.type) params.set('type', query.type);
+	if (query.type == 'invoice') {
+		params.set('isInvoice', 'true');
+	} else if (query.type == 'quote') {
+		params.set('isInvoice', 'false');
+	}
 
 	params.set('page', query.page.toString());
 	params.set('limit', query.limit.toString());
