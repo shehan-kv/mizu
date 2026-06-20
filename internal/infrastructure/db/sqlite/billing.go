@@ -823,39 +823,85 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
 	invoiceRows := make([]invoiceRow, 0)
 	invoiceIDs := make([]string, 0)
 
-	rows, err := ex.QueryContext(
-		ctx,
-		`
-        SELECT
-            i.id,
-            i.project_id,
-            i.is_invoice,
-			i.status,
-            i.due_at,
-            i.currency_code,
-            c.name,
-            c.symbol,
-            c.decimal_places,
-            i.note,
-            i.total_tax,
-            i.total_discount,
-            i.sub_total,
-            i.version,
-            i.created_at,
-            i.updated_at
-        FROM invoices i
-        INNER JOIN currencies c
-            ON c.code = i.currency_code
-        INNER JOIN project_members pm
-            ON pm.project_id = i.project_id
-        WHERE pm.user_id = ?
-        ORDER BY i.created_at DESC
-        LIMIT ? OFFSET ?
-        `,
-		f.MemberID.String(),
-		p.Limit(),
-		p.Offset(),
-	)
+	queryArgs := make([]any, 0)
+
+	var invQuery strings.Builder
+
+	invQuery.WriteString(`
+    SELECT
+        i.id,
+        i.project_id,
+        i.is_invoice,
+        i.status,
+        i.due_at,
+        i.currency_code,
+        c.name,
+        c.symbol,
+        c.decimal_places,
+        i.note,
+        i.total_tax,
+        i.total_discount,
+        i.sub_total,
+        i.version,
+        i.created_at,
+        i.updated_at
+    FROM invoices i
+    INNER JOIN currencies c
+        ON c.code = i.currency_code
+    INNER JOIN project_members pm
+        ON pm.project_id = i.project_id
+    WHERE pm.user_id = ?
+	`)
+
+	queryArgs = append(queryArgs, f.MemberID.String())
+
+	if f.Keyword != nil && strings.TrimSpace(*f.Keyword) != "" {
+		keyword := "%" + strings.TrimSpace(*f.Keyword) + "%"
+
+		invQuery.WriteString(`
+        AND (
+            i.id LIKE ?
+            OR i.note LIKE ?
+        )
+    `)
+
+		queryArgs = append(
+			queryArgs,
+			keyword,
+			keyword,
+		)
+	}
+
+	if f.IsInvoice != nil {
+		invQuery.WriteString(`
+        AND i.is_invoice = ?
+    `)
+
+		queryArgs = append(
+			queryArgs,
+			*f.IsInvoice,
+		)
+	}
+
+	if f.Status != nil {
+		invQuery.WriteString(`
+        AND i.status = ?
+    `)
+
+		queryArgs = append(
+			queryArgs,
+			string(*f.Status),
+		)
+	}
+
+	invQuery.WriteString(`
+    ORDER BY i.created_at DESC
+    LIMIT ? OFFSET ?
+	`)
+
+	queryArgs = append(queryArgs, p.Limit(), p.Offset())
+
+	rows, err := ex.QueryContext(ctx, invQuery.String(), queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"billing.BillingRepository.ListByMember: %w",
@@ -1269,37 +1315,71 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 	invoiceRows := make([]invoiceRow, 0)
 	invoiceIDs := make([]string, 0)
 
-	rows, err := ex.QueryContext(
-		ctx,
-		`
-        SELECT
-            i.id,
-            i.project_id,
-            i.is_invoice,
-			i.status,
-            i.due_at,
-            i.currency_code,
-            c.name,
-            c.symbol,
-            c.decimal_places,
-            i.note,
-            i.total_tax,
-            i.total_discount,
-            i.sub_total,
-            i.version,
-            i.created_at,
-            i.updated_at
-        FROM invoices i
-        INNER JOIN currencies c
-            ON c.code = i.currency_code
-        WHERE i.project_id = ?
-        ORDER BY i.created_at DESC
-        LIMIT ? OFFSET ?
-        `,
-		f.ProjectID.String(),
-		p.Limit(),
-		p.Offset(),
-	)
+	queryArgs := make([]any, 0)
+
+	var invQuery strings.Builder
+
+	invQuery.WriteString(`
+    SELECT
+        i.id,
+        i.project_id,
+        i.is_invoice,
+        i.status,
+        i.due_at,
+        i.currency_code,
+        c.name,
+        c.symbol,
+        c.decimal_places,
+        i.note,
+        i.total_tax,
+        i.total_discount,
+        i.sub_total,
+        i.version,
+        i.created_at,
+        i.updated_at
+    FROM invoices i
+    INNER JOIN currencies c
+        ON c.code = i.currency_code
+    WHERE i.project_id = ?
+	`)
+
+	queryArgs = append(queryArgs, f.ProjectID.String())
+
+	if f.Keyword != nil && strings.TrimSpace(*f.Keyword) != "" {
+		invQuery.WriteString(`
+        AND (
+            i.note LIKE ?
+            OR i.id LIKE ?
+        )
+    `)
+
+		keyword := "%" + strings.TrimSpace(*f.Keyword) + "%"
+		queryArgs = append(queryArgs, keyword, keyword)
+	}
+
+	if f.IsInvoice != nil {
+		invQuery.WriteString(`
+        AND i.is_invoice = ?
+    `)
+
+		queryArgs = append(queryArgs, *f.IsInvoice)
+	}
+
+	if f.Status != nil {
+		invQuery.WriteString(`
+        AND i.status = ?
+    `)
+
+		queryArgs = append(queryArgs, string(*f.Status))
+	}
+
+	invQuery.WriteString(`
+    ORDER BY i.created_at DESC
+    LIMIT ? OFFSET ?
+	`)
+
+	queryArgs = append(queryArgs, p.Limit(), p.Offset())
+	rows, err := ex.QueryContext(ctx, invQuery.String(), queryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"billing.BillingRepository.ListByProject: %w",
@@ -1353,9 +1433,9 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 
 	args := make([]any, len(invoiceIDs))
 
-	var b strings.Builder
+	var itemsQuery strings.Builder
 
-	b.WriteString(`
+	itemsQuery.WriteString(`
         SELECT
             invoice_id,
             description,
@@ -1379,18 +1459,18 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 
 	for i, invoiceID := range invoiceIDs {
 		if i > 0 {
-			b.WriteString(",")
+			itemsQuery.WriteString(",")
 		}
 
-		b.WriteString("?")
+		itemsQuery.WriteString("?")
 		args[i] = invoiceID
 	}
 
-	b.WriteString(")")
+	itemsQuery.WriteString(")")
 
 	itemRows, err := ex.QueryContext(
 		ctx,
-		b.String(),
+		itemsQuery.String(),
 		args...,
 	)
 	if err != nil {
