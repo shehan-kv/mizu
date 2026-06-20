@@ -54,6 +54,11 @@ function clearUnread(channelId: string) {
 	state.unreadCounts[channelId] = 0;
 }
 
+function resetMessages() {
+	state.activeChannelId = null;
+	state.messages = [];
+}
+
 function resetPagination(pageSize = 100) {
 	state.oldestLoadedPage = 1;
 	state.pageSize = pageSize;
@@ -73,5 +78,6 @@ export const messageStore = {
 	incrementUnread,
 	clearUnread,
 	resetPagination,
-	incrementLoadedPage
+	incrementLoadedPage,
+	resetMessages
 };

@@ -148,7 +148,7 @@
 	});
 
 	onDestroy(() => {
-		messageStore.state.activeChannelId = null;
+		messageStore.resetMessages();
 	});
 
 	let fileDialog = createDialogState();
