@@ -82,7 +82,10 @@
 								dark:text-neutral-400 dark:hover:text-neutral-50"
 							>
 								<Table.Cell class="pl-0">
-									{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id}
+									{invoice.isInvoice ? 'Invoice' : 'Quote'} #{invoice.id
+										.replaceAll('-', '')
+										.slice(-8)
+										.toUpperCase()}
 								</Table.Cell>
 								<Table.Cell class="flex items-center gap-1">
 									{toTitleCaseDashed(invoice.status)}

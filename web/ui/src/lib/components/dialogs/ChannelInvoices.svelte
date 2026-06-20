@@ -1,5 +1,4 @@
 <script lang="ts">
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import Envelope from 'phosphor-svelte/lib/Envelope';
 	import ArrowRight from 'phosphor-svelte/lib/ArrowRight';
 	import Checks from 'phosphor-svelte/lib/Checks';
@@ -15,8 +14,11 @@
 	import { formatDate } from '$lib/utils/formatDate';
 	import type { Channel } from '$lib/api/messages';
 	import ChannelViewInvoice from './ChannelViewInvoice.svelte';
-	import { getInvoicesByProject, type InvoiceOverview } from '$lib/api/invoices';
+	import { emailInvoice, getInvoicesByProject, type InvoiceOverview } from '$lib/api/invoices';
 	import type { PaginatedResponse } from '$lib/api/page';
+	import { toast } from 'svelte-sonner';
+	import { ApiError } from '$lib/api/client';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
 	interface Props {
 		open: boolean;
@@ -52,6 +54,39 @@
 			{ page, limit },
 			abortController.signal
 		);
+	}
+
+	let isEmailSending = $state(false);
+	let abortEmail: AbortController | null = null;
+	async function handleEmail(inv: InvoiceOverview) {
+		abortEmail?.abort();
+		abortEmail = new AbortController();
+
+		isEmailSending = true;
+		selectedInvoice = inv;
+
+		try {
+			await emailInvoice(inv.id, abortEmail.signal);
+			toast.success(`${inv.isInvoice ? 'Invoice' : 'Quote'} Emailed Successfully`, {
+				description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+				descriptionClass: 'text-xs'
+			});
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message, {
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+					descriptionClass: 'text-xs'
+				});
+			} else {
+				toast.error(`Could Not Email Contract ${inv.isInvoice ? 'Invoice' : 'Quote'}`, {
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+					descriptionClass: 'text-xs'
+				});
+			}
+		} finally {
+			isEmailSending = false;
+			selectedInvoice = null;
+		}
 	}
 
 	$effect(() => {
@@ -123,10 +158,18 @@
 													>
 														<ArrowRight size={18} />
 													</button>
-													<button title="Download as PDF">
-														<DownloadSimple size={18} />
+													<button
+														title="Email Me"
+														disabled={selectedInvoice?.id == invoice.id && isEmailSending}
+														onclick={() => handleEmail(invoice)}
+														class="disabled:cursor-progress"
+													>
+														{#if selectedInvoice?.id == invoice.id && isEmailSending}
+															<CircleNotch size={18} class="animate-spin" />
+														{:else}
+															<Envelope size={18} />
+														{/if}
 													</button>
-													<button title="Email Me"><Envelope size={18} /></button>
 												</div>
 											</Table.Cell>
 										</Table.Row>

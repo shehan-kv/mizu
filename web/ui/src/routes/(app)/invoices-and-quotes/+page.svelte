@@ -9,7 +9,12 @@
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
 	import { onDestroy, onMount } from 'svelte';
-	import { getInvoices, type InvoiceOverview, type InvoiceStatus } from '$lib/api/invoices';
+	import {
+		emailInvoice,
+		getInvoices,
+		type InvoiceOverview,
+		type InvoiceStatus
+	} from '$lib/api/invoices';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/Spinner.svelte';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
@@ -25,6 +30,8 @@
 	import { ApiError } from '$lib/api/client';
 	import { INVOICE_STATUS, INVOICE_TYPE } from '$lib/constants/invoice';
 	import { auth } from '$lib/auth/auth.svelte';
+	import { toast } from 'svelte-sonner';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
 	const MAX_LIMIT = 100;
 	const DEFAULT_LIMIT = 25;
@@ -94,6 +101,39 @@
 		pageNum = 1;
 		updateUrlParam();
 		loadInvoices();
+	}
+
+	let isEmailSending = $state(false);
+	let abortEmail: AbortController | null = null;
+	async function handleEmail(inv: InvoiceOverview) {
+		abortEmail?.abort();
+		abortEmail = new AbortController();
+
+		isEmailSending = true;
+		selectedInvoice = inv;
+
+		try {
+			await emailInvoice(inv.id, abortEmail.signal);
+			toast.success(`${inv.isInvoice ? 'Invoice' : 'Quote'} Emailed Successfully`, {
+				description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+				descriptionClass: 'text-xs'
+			});
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message, {
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+					descriptionClass: 'text-xs'
+				});
+			} else {
+				toast.error(`Could Not Email Contract ${inv.isInvoice ? 'Invoice' : 'Quote'}`, {
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+					descriptionClass: 'text-xs'
+				});
+			}
+		} finally {
+			isEmailSending = false;
+			selectedInvoice = null;
+		}
 	}
 
 	onMount(() => {
@@ -191,7 +231,9 @@
 								{#each res.items as invoice (invoice.id)}
 									<Table.Row>
 										<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
-										<Table.Cell>#{invoice.id}</Table.Cell>
+										<Table.Cell>
+											#{invoice.id.replaceAll('-', '').slice(-8).toUpperCase()}
+										</Table.Cell>
 										<Table.Cell>{invoice.projectName}</Table.Cell>
 										<Table.Cell>
 											{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
@@ -218,7 +260,18 @@
 												>
 													<ArrowRight size={18} />
 												</a>
-												<button title="Email Me"><Envelope size={18} /></button>
+												<button
+													title="Email Me"
+													disabled={selectedInvoice?.id == invoice.id && isEmailSending}
+													onclick={() => handleEmail(invoice)}
+													class="disabled:cursor-progress"
+												>
+													{#if selectedInvoice?.id == invoice.id && isEmailSending}
+														<CircleNotch size={18} class="animate-spin" />
+													{:else}
+														<Envelope size={18} />
+													{/if}
+												</button>
 
 												<DropdownMenu.Root>
 													<DropdownMenu.Trigger

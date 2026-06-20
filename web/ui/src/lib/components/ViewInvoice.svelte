@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getInvoice, type Invoice, type InvoiceStatus } from '$lib/api/invoices';
+	import { type Invoice, type InvoiceStatus } from '$lib/api/invoices';
 	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/dialogs';
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
@@ -7,37 +7,18 @@
 	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
 	import Note from 'phosphor-svelte/lib/Note';
 
-	import Spinner from './Spinner.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
-	import { onMount } from 'svelte';
 	import Checks from 'phosphor-svelte/lib/Checks';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import { createDialogState } from './dialogs/createDialogState.svelte';
-	import type { UserRole } from '$lib/api/users';
-	import { ApiError } from '$lib/api/client';
+	import { auth } from '$lib/auth/auth.svelte';
 
 	interface Props {
-		invoiceId: string;
-		role?: UserRole;
-		onLoad?: (invoice: Invoice) => unknown;
+		invoice: Invoice;
+		refresh?: () => unknown;
 	}
 
-	let { invoiceId, role = 'client', onLoad }: Props = $props();
-
-	let invoicePromise: Promise<Invoice> | null = $state(null);
-	let abortController: AbortController | null = null;
-
-	function loadInvoice() {
-		if (abortController) {
-			abortController.abort();
-		}
-		abortController = new AbortController();
-
-		invoicePromise = getInvoice(invoiceId, abortController.signal).then((res) => {
-			onLoad?.(res);
-			return res;
-		});
-	}
+	let { invoice, refresh }: Props = $props();
 
 	let setStatusDialog = createDialogState();
 	type Status = Exclude<InvoiceStatus, 'pending'>;
@@ -47,17 +28,11 @@
 		selectedStatus = status;
 		setStatusDialog.open();
 	}
-
-	onMount(() => {
-		loadInvoice();
-	});
 </script>
 
-{#await invoicePromise}
-	<Spinner />
-{:then invoice}
-	{#if invoice}
-		<div class="flex justify-between">
+{#if invoice}
+	<div>
+		<div class="flex items-start justify-between">
 			<div class="flex gap-20">
 				<div class="space-y-2">
 					<div>
@@ -105,7 +80,7 @@
 					</div>
 				</div>
 			</div>
-			{#if role == 'administrator' || role == 'staff'}
+			{#if auth.role == 'administrator' || auth.role == 'staff'}
 				{#if invoice.status == 'pending' || invoice.status == 'accepted'}
 					<div class="space-x-1">
 						<button
@@ -236,25 +211,19 @@
 			<p class="inline-flex items-center gap-1"><Note size={20} /> Note</p>
 			<p class="max-w-xl whitespace-break-spaces">{invoice.note || 'N/A'}</p>
 		</div>
-	{:else}
-		<ErrorMessage variant="info" text="Invoice/Quote Not Found" />
-	{/if}
-{:catch err}
-	{#if err instanceof ApiError}
-		<ErrorMessage variant="warn" text="Invalid Request" retry={loadInvoice} />
-	{:else}
-		<ErrorMessage variant="warn" text="An Error Occurred" retry={loadInvoice} />
-	{/if}
-{/await}
+	</div>
+{:else}
+	<ErrorMessage variant="info" text="Invoice/Quote Not Found" />
+{/if}
 
 {#if selectedStatus}
 	<Dialog.InvoiceStatusConfirm
 		bind:open={setStatusDialog.isOpen}
-		{invoiceId}
+		invoiceId={invoice.id}
 		status={selectedStatus}
 		onSuccess={() => {
 			selectedStatus = null;
-			loadInvoice();
+			refresh?.();
 		}}
 	/>
 {/if}

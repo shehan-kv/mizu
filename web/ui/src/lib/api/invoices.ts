@@ -261,9 +261,16 @@ export async function createInvoice(
 	req: CreateInvoiceParams,
 	signal: AbortSignal
 ) {
-	return apiFetch<void>(`invoices/project/${projectId}`, {
+	return apiFetch<void>(`invoices/${projectId}`, {
 		method: 'POST',
 		body: JSON.stringify(req),
+		signal
+	});
+}
+
+export async function emailInvoice(invoiceId: string, signal?: AbortSignal) {
+	return apiFetch<void>(`invoices/${invoiceId}/email`, {
+		method: 'POST',
 		signal
 	});
 }

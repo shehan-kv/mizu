@@ -22,6 +22,7 @@
 	import { getProject, type Project } from '$lib/api/projects';
 	import type { PaginatedResponse } from '$lib/api/page';
 	import {
+		emailInvoice,
 		getInvoicesByProject,
 		type InvoiceOverview,
 		type InvoiceStatus
@@ -31,6 +32,8 @@
 	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import { auth } from '$lib/auth/auth.svelte';
+	import { toast } from 'svelte-sonner';
+	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
 	const MAX_LIMIT = 100;
 	const DEFAULT_LIMIT = 25;
@@ -119,6 +122,39 @@
 		pageNum = 1;
 		updateUrlParam();
 		loadInvoices();
+	}
+
+	let isEmailSending = $state(false);
+	let abortEmail: AbortController | null = null;
+	async function handleEmail(inv: InvoiceOverview) {
+		abortEmail?.abort();
+		abortEmail = new AbortController();
+
+		isEmailSending = true;
+		selectedInvoice = inv;
+
+		try {
+			await emailInvoice(inv.id, abortEmail.signal);
+			toast.success(`${inv.isInvoice ? 'Invoice' : 'Quote'} Emailed Successfully`, {
+				description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+				descriptionClass: 'text-xs'
+			});
+		} catch (error) {
+			if (error instanceof ApiError) {
+				toast.error(error.message, {
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+					descriptionClass: 'text-xs'
+				});
+			} else {
+				toast.error(`Could Not Email Contract ${inv.isInvoice ? 'Invoice' : 'Quote'}`, {
+					description: `#${inv.id.replaceAll('-', '').slice(-8).toUpperCase()}`,
+					descriptionClass: 'text-xs'
+				});
+			}
+		} finally {
+			isEmailSending = false;
+			selectedInvoice = null;
+		}
 	}
 
 	onMount(() => {
@@ -223,7 +259,9 @@
 								{#each res.items as invoice (invoice.id)}
 									<Table.Row>
 										<Table.Cell>{invoice.isInvoice ? 'Invoice' : 'Quote'}</Table.Cell>
-										<Table.Cell>#{invoice.id}</Table.Cell>
+										<Table.Cell>
+											#{invoice.id.replaceAll('-', '').slice(-8).toUpperCase()}
+										</Table.Cell>
 										<Table.Cell>
 											{currencyFormatter(invoice.currencyCode, invoice.subTotal)}
 										</Table.Cell>
@@ -249,58 +287,69 @@
 												>
 													<ArrowRight size={18} />
 												</a>
-												<button title="Email Me"><Envelope size={18} /></button>
-											</div>
-
-											<DropdownMenu.Root>
-												<DropdownMenu.Trigger
-													class="cursor-pointer p-1 hover:text-neutral-950 dark:hover:text-neutral-50"
+												<button
+													title="Email Me"
+													disabled={selectedInvoice?.id == invoice.id && isEmailSending}
+													onclick={() => handleEmail(invoice)}
+													class="disabled:cursor-progress"
 												>
-													<DotsThree size={18} />
-												</DropdownMenu.Trigger>
-												<DropdownMenu.Content class="mr-4 *:text-xs">
-													{#if auth.role == 'administrator' || auth.role == 'staff'}
-														{#if invoice.status == 'pending' || invoice.status == 'accepted'}
-															<DropdownMenu.Group class="text-xs">
-																<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
-																<DropdownMenu.Item
-																	class="pl-4 text-xs"
-																	onclick={() => openStatusDialog(invoice, 'paid')}
-																>
-																	Paid
-																</DropdownMenu.Item>
-																<DropdownMenu.Item
-																	class="pl-4 text-xs"
-																	onclick={() => openStatusDialog(invoice, 'cancelled')}
-																>
-																	Cancelled
-																</DropdownMenu.Item>
-															</DropdownMenu.Group>
+													{#if selectedInvoice?.id == invoice.id && isEmailSending}
+														<CircleNotch size={18} class="animate-spin" />
+													{:else}
+														<Envelope size={18} />
+													{/if}
+												</button>
+
+												<DropdownMenu.Root>
+													<DropdownMenu.Trigger
+														class="cursor-pointer p-1 hover:text-neutral-950 dark:hover:text-neutral-50"
+													>
+														<DotsThree size={18} />
+													</DropdownMenu.Trigger>
+													<DropdownMenu.Content class="mr-4 *:text-xs">
+														{#if auth.role == 'administrator' || auth.role == 'staff'}
+															{#if invoice.status == 'pending' || invoice.status == 'accepted'}
+																<DropdownMenu.Group class="text-xs">
+																	<DropdownMenu.Label class="text-xs">Mark As</DropdownMenu.Label>
+																	<DropdownMenu.Item
+																		class="pl-4 text-xs"
+																		onclick={() => openStatusDialog(invoice, 'paid')}
+																	>
+																		Paid
+																	</DropdownMenu.Item>
+																	<DropdownMenu.Item
+																		class="pl-4 text-xs"
+																		onclick={() => openStatusDialog(invoice, 'cancelled')}
+																	>
+																		Cancelled
+																	</DropdownMenu.Item>
+																</DropdownMenu.Group>
+															{:else}
+																<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
+																	<Checks /> Already {toTitleCaseDashed(invoice.status)}
+																</div>
+															{/if}
+														{:else if invoice.status == 'pending'}
+															<DropdownMenu.Item
+																class="pl-4 text-xs"
+																onclick={() => openStatusDialog(invoice, 'accepted')}
+															>
+																Accept
+															</DropdownMenu.Item>
+															<DropdownMenu.Item
+																class="pl-4 text-xs"
+																onclick={() => openStatusDialog(invoice, 'rejected')}
+															>
+																Reject
+															</DropdownMenu.Item>
 														{:else}
 															<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
 																<Checks /> Already {toTitleCaseDashed(invoice.status)}
 															</div>
 														{/if}
-													{:else if invoice.status == 'pending'}
-														<DropdownMenu.Item
-															class="pl-4 text-xs"
-															onclick={() => openStatusDialog(invoice, 'accepted')}
-														>
-															Accept
-														</DropdownMenu.Item>
-														<DropdownMenu.Item
-															class="pl-4 text-xs"
-															onclick={() => openStatusDialog(invoice, 'rejected')}
-														>
-															Reject
-														</DropdownMenu.Item>
-													{:else}
-														<div class="flex items-center gap-2 px-2 py-1.5 text-xs">
-															<Checks /> Already {toTitleCaseDashed(invoice.status)}
-														</div>
-													{/if}
-												</DropdownMenu.Content>
-											</DropdownMenu.Root>
+													</DropdownMenu.Content>
+												</DropdownMenu.Root>
+											</div>
 										</Table.Cell>
 									</Table.Row>
 								{/each}
