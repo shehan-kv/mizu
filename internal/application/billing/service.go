@@ -5,6 +5,7 @@ import (
 	"mizu/internal/application/authz"
 	"mizu/internal/application/eventbus"
 	"mizu/internal/application/logger"
+	"mizu/internal/application/mailer"
 	"mizu/internal/application/shared"
 	"mizu/internal/domain/billing"
 	"mizu/internal/domain/common"
@@ -14,6 +15,7 @@ import (
 )
 
 type Service struct {
+	iamRepo     iam.Repository
 	billingRepo billing.Repository
 	projectRepo project.Repository
 
@@ -21,25 +23,30 @@ type Service struct {
 
 	internalBus eventbus.InternalBus
 
-	idGen common.IDGenerator
+	idGen  common.IDGenerator
+	mailer mailer.Mailer
 
 	logger logger.Logger
 }
 
 func NewService(
+	iamRepo iam.Repository,
 	billingRepo billing.Repository,
 	projectRepo project.Repository,
 	authzSrv *authz.Service,
 	internalBus eventbus.InternalBus,
 	idGen common.IDGenerator,
+	mailer mailer.Mailer,
 	logger logger.Logger,
 ) *Service {
 	return &Service{
+		iamRepo:     iamRepo,
 		billingRepo: billingRepo,
 		projectRepo: projectRepo,
 		authzSrv:    authzSrv,
 		internalBus: internalBus,
 		idGen:       idGen,
+		mailer:      mailer,
 		logger:      logger,
 	}
 }
@@ -382,6 +389,103 @@ func (s *Service) GetInvoice(ctx context.Context, actorID string, invoiceID stri
 		SubTotal:      inv.SubTotal().String(),
 		Items:         itemdto,
 	}, nil
+}
+
+func (s *Service) EmailInvoice(ctx context.Context, invoiceID string, actorID string, memberID string) error {
+
+	invID, err := billing.NewInvoiceID(invoiceID)
+	if err != nil {
+		return err
+	}
+
+	actor, err := iam.NewUserID(actorID)
+	if err != nil {
+		return err
+	}
+
+	member, err := iam.NewUserID(memberID)
+	if err != nil {
+		return err
+	}
+
+	inv, err := s.billingRepo.Get(ctx, invID)
+	if err != nil {
+		return err
+	}
+
+	if err := s.authzSrv.RequireAdministratorStaffOrSelf(ctx, actor, member); err != nil {
+		return err
+	}
+
+	m, err := s.iamRepo.GetByID(ctx, member)
+	if err != nil {
+		return err
+	}
+
+	p, err := s.projectRepo.Get(ctx, inv.ProjectID())
+	if err != nil {
+		return err
+	}
+
+	if !p.HasMember(actor) || !p.HasMember(member) {
+		return project.ErrNotProjectMember
+	}
+
+	items := inv.Items()
+	emailItems := make([]mailer.InvoiceItem, 0, len(items))
+	for _, item := range items {
+		emailItems = append(emailItems, mailer.InvoiceItem{
+			Description: item.Description(),
+
+			Qty:       item.Qty().String(),
+			UnitPrice: item.UnitPrice().String(),
+
+			DiscountRate: item.DiscountRate().String(),
+			DiscountType: item.DiscountType().String(),
+
+			TaxRate: item.TaxRate().String(),
+			TaxType: item.TaxType().String(),
+
+			LineGross:    item.LineGross().String(),
+			LineDiscount: item.LineDiscount().String(),
+			LineNet:      item.LineNet().String(),
+			LineTax:      item.LineTax().String(),
+			LineTotal:    item.LineTotal().String(),
+		})
+	}
+
+	id := inv.ID().String()
+	suffix := id[max(0, len(id)-8):]
+
+	subjectType := "Quote"
+	if inv.IsInvoice() {
+		subjectType = "Invoice"
+	}
+
+	subject := subjectType + ": #" + suffix
+
+	email := mailer.InvoiceEmail{
+		Subject:        subject,
+		RecipientEmail: m.Email().String(),
+
+		InvoiceID: inv.ID().String(),
+		ProjectID: inv.ProjectID().String(),
+
+		Status:       inv.Status().String(),
+		CurrencyName: inv.Currency().Name().String(),
+		CurrencyCode: inv.Currency().Code().String(),
+
+		DueAt: inv.DueAt(),
+		Note:  inv.Note(),
+
+		Items: emailItems,
+
+		SubTotal:      inv.SubTotal().String(),
+		TotalTax:      inv.TotalTax().String(),
+		TotalDiscount: inv.TotalDiscount().String(),
+	}
+
+	return s.mailer.SendInvoiceEmail(ctx, email)
 }
 
 func (s *Service) AcceptInvoice(ctx context.Context, actorID string, invoiceID string) error {

@@ -13,4 +13,5 @@ type Mailer interface {
 	SendVerificationEmail(ctx context.Context, email iam.Email, verificationID verification.VerificationID) error
 	SendVerifiedEmail(ctx context.Context, email iam.Email) error
 	SendContractEmail(ctx context.Context, email ContractEmail) error
+	SendInvoiceEmail(ctx context.Context, email InvoiceEmail) error
 }

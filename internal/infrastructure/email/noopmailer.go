@@ -34,3 +34,9 @@ func (m *NoOpMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 
 	return nil
 }
+
+func (m *NoOpMailer) SendInvoiceEmail(ctx context.Context, email mailer.InvoiceEmail) error {
+	m.logger.Info("invoice email skipped: using no-op mailer")
+
+	return nil
+}

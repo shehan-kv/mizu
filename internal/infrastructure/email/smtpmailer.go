@@ -257,6 +257,79 @@ func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 	}
 }
 
+func (m *SMTPMailer) SendInvoiceEmail(ctx context.Context, email mailer.InvoiceEmail) error {
+	if m.closed.Load() {
+		return errors.New("email.Mailer.SendInvoiceEmail: mailer closed")
+	}
+
+	t, err := m.templates.Get(TemplateInvoiceEmail)
+	if err != nil {
+		return fmt.Errorf("email.Mailer.SendInvoiceEmail: %w", err)
+	}
+
+	var body bytes.Buffer
+
+	var dueAt string
+	if email.DueAt != nil {
+		dueAt = email.DueAt.UTC().Format("02 Jan 2006 UTC")
+	}
+	data := struct {
+		InvoiceID     string
+		ProjectID     string
+		Status        string
+		CurrencyName  string
+		CurrencyCode  string
+		DueAt         string
+		Note          *string
+		Items         []mailer.InvoiceItem
+		SubTotal      string
+		TotalTax      string
+		TotalDiscount string
+	}{
+		InvoiceID: email.InvoiceID,
+		ProjectID: email.ProjectID,
+
+		Status:       email.Status,
+		CurrencyName: email.CurrencyName,
+		CurrencyCode: email.CurrencyCode,
+
+		DueAt: dueAt,
+		Note:  email.Note,
+
+		Items: email.Items,
+
+		SubTotal:      email.SubTotal,
+		TotalTax:      email.TotalTax,
+		TotalDiscount: email.TotalDiscount,
+	}
+
+	if err := t.Execute(&body, data); err != nil {
+		return fmt.Errorf("email.Mailer.SendInvoiceEmail: render template: %w", err)
+	}
+
+	result := make(chan error, 1)
+
+	msg := message{
+		to:      sanitizeHeader(email.RecipientEmail),
+		subject: sanitizeHeader(email.Subject),
+		body:    body.String(),
+		result:  result,
+	}
+
+	select {
+	case m.ch <- msg:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (m *SMTPMailer) send(to, subject, body string) error {
 	if err := m.ensureConnected(); err != nil {
 		return fmt.Errorf("email.Mailer.send: connect: %w", err)

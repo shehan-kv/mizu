@@ -402,11 +402,13 @@ func main() {
 		log,
 	)
 	billingAppService := billingApp.NewService(
+		iamRepo,
 		billingRepo,
 		projectRepo,
 		authzAppService,
 		intBus,
 		idgen,
+		mlr,
 		log,
 	)
 	contractAppService := contractApp.NewService(

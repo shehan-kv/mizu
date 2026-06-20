@@ -28,7 +28,7 @@ func (h *BillingHandler) NewMux(authMiddleware func(http.Handler) http.Handler) 
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /invoices", authMiddleware(http.HandlerFunc(h.ListInvoices)))
-	mux.Handle("POST /invoices/project/{projectID}", authMiddleware(http.HandlerFunc(h.CreateInvoice)))
+	mux.Handle("POST /invoices/{projectID}", authMiddleware(http.HandlerFunc(h.CreateInvoice)))
 	mux.Handle("GET /invoices/project/{projectID}", authMiddleware(http.HandlerFunc(h.ListInvoicesByProject)))
 	mux.Handle("GET /invoices/{invoiceID}", authMiddleware(http.HandlerFunc(h.GetInvoice)))
 	mux.Handle("GET /invoices/member/{memberID}", authMiddleware(http.HandlerFunc(h.ListInvoicesByMember)))
@@ -37,6 +37,7 @@ func (h *BillingHandler) NewMux(authMiddleware func(http.Handler) http.Handler) 
 	mux.Handle("PUT /invoices/{invoiceID}/pay", authMiddleware(http.HandlerFunc(h.PayInvoice)))
 	mux.Handle("PUT /invoices/{invoiceID}/cancel", authMiddleware(http.HandlerFunc(h.CancelInvoice)))
 	mux.Handle("PUT /invoices/{invoiceID}/convert", authMiddleware(http.HandlerFunc(h.ConvertToInvoice)))
+	mux.Handle("POST /invoices/{invoiceID}/email", authMiddleware(http.HandlerFunc(h.EmailInvoice)))
 	mux.Handle("GET /invoices/paid-count", authMiddleware(http.HandlerFunc(h.ListPaidCount)))
 	mux.Handle("GET /invoices/paid-count/project/{projectID}", authMiddleware(http.HandlerFunc(h.ListPaidCountByProject)))
 	mux.Handle("GET /invoices/paid-count/member/{memberID}", authMiddleware(http.HandlerFunc(h.ListPaidCountByMember)))
@@ -252,6 +253,17 @@ func (h *BillingHandler) ConvertToInvoice(w http.ResponseWriter, r *http.Request
 	actorID := middleware.ActorIDFromContext(r.Context())
 
 	if err := h.billingSrv.ConvertToInvoice(r.Context(), actorID, r.PathValue("invoiceID")); err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *BillingHandler) EmailInvoice(w http.ResponseWriter, r *http.Request) {
+	actorID := middleware.ActorIDFromContext(r.Context())
+
+	if err := h.billingSrv.EmailInvoice(r.Context(), r.PathValue("invoiceID"), actorID, actorID); err != nil {
 		h.writeServiceError(w, r.Method, r.URL.Path, err)
 		return
 	}
