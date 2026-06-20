@@ -22,6 +22,7 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PaginatedResponse } from '$lib/api/page';
 	import { ApiError } from '$lib/api/client';
+	import { auth } from '$lib/auth/auth.svelte';
 
 	const MAX_LIMIT = 100;
 	const DEFAULT_LIMIT = 25;
@@ -51,7 +52,10 @@
 
 		abort = new AbortController();
 
-		promise = getUsers({ q, role: userRole, limit: Number(limit), page: pageNum }, abort.signal);
+		promise = getUsers(
+			{ q, role: userRole, active, verified, limit: Number(limit), page: pageNum },
+			abort.signal
+		);
 	}
 
 	function updateUrlParam() {
@@ -244,45 +248,46 @@
 											>
 												<ArrowRight size={18} />
 											</a>
-
-											<DropdownMenu.Root>
-												<DropdownMenu.Trigger
-													class="cursor-pointer p-1 hover:text-neutral-950 dark:hover:text-neutral-50"
-												>
-													<DotsThree size={18} />
-												</DropdownMenu.Trigger>
-												<DropdownMenu.Content class="mr-4 *:text-xs">
-													{#if user.isActive}
-														<DropdownMenu.Item
-															class="text-xs"
-															onclick={() => openStatusDialog(user, 'deactivate')}
-														>
-															Deactivate
-														</DropdownMenu.Item>
-													{:else}
-														<DropdownMenu.Item
-															class="text-xs"
-															onclick={() => openStatusDialog(user, 'activate')}
-														>
-															Activate
-														</DropdownMenu.Item>
-													{/if}
-													{#if !user.isVerified}
-														<DropdownMenu.Item
-															class="text-xs"
-															onclick={() => openResendVerifyDialog(user)}
-														>
-															Resend Verification Email
-														</DropdownMenu.Item>
-													{/if}
-													<DropdownMenu.Item
-														class="py-2 text-xs"
-														onclick={() => openDeleteDialog(user)}
+											{#if auth.role == 'administrator'}
+												<DropdownMenu.Root>
+													<DropdownMenu.Trigger
+														class="cursor-pointer p-1 hover:text-neutral-950 dark:hover:text-neutral-50"
 													>
-														<Trash />Delete
-													</DropdownMenu.Item>
-												</DropdownMenu.Content>
-											</DropdownMenu.Root>
+														<DotsThree size={18} />
+													</DropdownMenu.Trigger>
+													<DropdownMenu.Content class="mr-4 *:text-xs">
+														{#if user.isActive}
+															<DropdownMenu.Item
+																class="text-xs"
+																onclick={() => openStatusDialog(user, 'deactivate')}
+															>
+																Deactivate
+															</DropdownMenu.Item>
+														{:else}
+															<DropdownMenu.Item
+																class="text-xs"
+																onclick={() => openStatusDialog(user, 'activate')}
+															>
+																Activate
+															</DropdownMenu.Item>
+														{/if}
+														{#if !user.isVerified}
+															<DropdownMenu.Item
+																class="text-xs"
+																onclick={() => openResendVerifyDialog(user)}
+															>
+																Resend Verification Email
+															</DropdownMenu.Item>
+														{/if}
+														<DropdownMenu.Item
+															class="py-2 text-xs"
+															onclick={() => openDeleteDialog(user)}
+														>
+															<Trash />Delete
+														</DropdownMenu.Item>
+													</DropdownMenu.Content>
+												</DropdownMenu.Root>
+											{/if}
 										</Table.Cell>
 									</Table.Row>
 								{/each}

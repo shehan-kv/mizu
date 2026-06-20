@@ -39,6 +39,8 @@ export interface User {
 export interface UserQuery {
 	q?: string;
 	role?: string;
+	active?: string;
+	verified?: string;
 	page: number;
 	limit: number;
 }
@@ -50,6 +52,18 @@ export async function getUsers(query: UserQuery, signal?: AbortSignal) {
 
 	if (query.role) {
 		params.set('role', query.role);
+	}
+
+	if (query.active == 'active') {
+		params.set('isActive', 'true');
+	} else if (query.active == 'disabled') {
+		params.set('isActive', 'false');
+	}
+
+	if (query.verified == 'verified') {
+		params.set('isVerified', 'true');
+	} else if (query.verified == 'pending') {
+		params.set('isVerified', 'false');
 	}
 
 	params.set('page', query.page.toString());
