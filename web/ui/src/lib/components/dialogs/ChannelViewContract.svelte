@@ -6,7 +6,6 @@
 
 	import ViewContract from '../ViewContract.svelte';
 	import { createDialogState } from './createDialogState.svelte';
-	import { onDestroy, onMount } from 'svelte';
 	import Spinner from '../Spinner.svelte';
 	import { auth } from '$lib/auth/auth.svelte';
 	import ErrorMessage from '../ErrorMessage.svelte';
@@ -33,12 +32,12 @@
 
 	let manageSignatoriesDialog = createDialogState();
 
-	onMount(() => {
-		loadContract();
-	});
-
-	onDestroy(() => {
-		abort?.abort();
+	$effect(() => {
+		if (open) {
+			loadContract();
+		} else {
+			abort?.abort();
+		}
 	});
 </script>
 
