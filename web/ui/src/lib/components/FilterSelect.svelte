@@ -15,16 +15,15 @@
 	// HTML Select with bindable value and onchange props
 	let { value = $bindable(), onchange, options, name }: Props = $props();
 
-	// let inputValue = $state<string>('');
-	const selectedLabel = $derived(
-		value ? options.find((option) => option.value === value)?.label : 'All'
-	);
+	const selectedLabel = $derived(options.find((option) => option.value === value)?.label ?? '');
 </script>
 
 <div class="flex h-full items-center gap-3 rounded bg-neutral-100 pr-1 pl-2 dark:bg-neutral-900">
 	<p class="text-xs">{name}</p>
 	<Select.Root
 		type="single"
+		bind:value
+		disabled={options.length == 0}
 		onValueChange={(v) => {
 			value = v;
 			onchange();
