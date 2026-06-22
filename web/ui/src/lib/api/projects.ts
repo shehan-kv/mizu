@@ -78,7 +78,7 @@ export interface ProjectMember {
 	firstName: string;
 	lastName: string;
 	title?: string;
-	image?: string;
+	hasImage: boolean;
 	role: string;
 }
 

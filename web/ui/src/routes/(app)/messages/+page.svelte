@@ -254,7 +254,8 @@
 				<div class=" space-y-2.5">
 					{#each channelMembers as member (member.id)}
 						<Message.Member
-							image={member.image}
+							id={member.id}
+							hasImage={member.hasImage}
 							name={`${member.firstName} ${member.lastName}`}
 							title={member.title}
 							role={member.role}
@@ -331,7 +332,8 @@
 									name={message.sender.firstName + ' ' + message.sender.lastName}
 									title={message.sender.title}
 									date={message.createdAt}
-									image={message.sender.image}
+									hasImage={message.sender.hasImage}
+									id={message.sender.id}
 									message={message.content}
 								/>
 							{:else}

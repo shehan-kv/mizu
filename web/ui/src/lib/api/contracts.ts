@@ -8,7 +8,7 @@ export interface Signatory {
 	role: string;
 	status: string;
 	title?: string;
-	image?: string;
+	hasImage: boolean;
 	updatedAt: Date;
 }
 

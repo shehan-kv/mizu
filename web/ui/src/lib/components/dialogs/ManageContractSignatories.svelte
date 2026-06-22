@@ -32,7 +32,7 @@
 			id: signatory.id,
 			firstName: signatory.firstName,
 			lastName: signatory.lastName,
-			image: signatory.image,
+			hasImage: signatory.hasImage,
 			role: signatory.role,
 			title: signatory.title
 		};
@@ -154,7 +154,8 @@
 							{#each confirmSignatories as member (member.id)}
 								<div class="grid grid-cols-[1fr_min-content] items-center">
 									<UserCard
-										image={member.image}
+										id={member.id}
+										hasImage={member.hasImage}
 										role={member.role}
 										title={member.title}
 										name={`${member.firstName} ${member.lastName}`}

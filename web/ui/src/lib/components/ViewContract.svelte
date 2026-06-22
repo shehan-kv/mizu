@@ -9,7 +9,7 @@
 	import ConfirmRejectContract from './dialogs/ConfirmRejectContract.svelte';
 	import { emailContract, type Contract } from '$lib/api/contracts';
 	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
-	import { ApiError } from '$lib/api/client';
+	import { ApiError, BASE_URL } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
@@ -130,9 +130,9 @@
 					{#each contract.signatories as signatory (signatory.id)}
 						<div class="flex gap-1.5">
 							<div class="size-10 rounded-full bg-neutral-200/80 dark:bg-neutral-800">
-								{#if signatory.image}
+								{#if signatory.hasImage}
 									<img
-										src={signatory.image}
+										src={`${BASE_URL}users/profile-images/${signatory.id}`}
 										alt={`${signatory.firstName} ${signatory.lastName} profile picture`}
 										class="size-full object-cover"
 									/>

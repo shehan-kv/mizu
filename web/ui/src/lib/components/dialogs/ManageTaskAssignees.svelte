@@ -132,10 +132,11 @@
 						{/if}
 
 						{#if confirmAssignees.length > 0}
-							{#each confirmAssignees as assignee (assignee)}
+							{#each confirmAssignees as assignee (assignee.id)}
 								<div class="grid grid-cols-[1fr_min-content] items-center">
 									<UserCard
-										image={assignee.image}
+										id={assignee.id}
+										hasImage={assignee.hasImage}
 										role={assignee.role}
 										title={assignee.title}
 										name={`${assignee.firstName} ${assignee.lastName}`}

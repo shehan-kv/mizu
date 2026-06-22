@@ -191,7 +191,8 @@
 								{#each req.signatories as signatory (signatory.id)}
 									<div class="flex items-center justify-between gap-2">
 										<UserCard
-											image={signatory.image}
+											id={signatory.id}
+											hasImage={signatory.hasImage}
 											name={`${signatory.firstName} ${signatory.lastName}`}
 											role={signatory.role}
 											title={signatory.title}

@@ -386,7 +386,8 @@
 								{#each req.assignees as user (user.id)}
 									<div class="flex items-center justify-between gap-2">
 										<UserCard
-											image={user.image}
+											id={user.id}
+											hasImage={user.hasImage}
 											name={`${user.firstName} ${user.lastName}`}
 											role={user.role}
 											title={user.title}

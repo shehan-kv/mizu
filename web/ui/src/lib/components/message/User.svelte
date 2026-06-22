@@ -1,20 +1,26 @@
 <script lang="ts">
+	import { BASE_URL } from '$lib/api/client';
 	import { formatDate } from '$lib/utils/formatDate';
 
 	interface Props {
-		image?: string;
+		id: string;
+		hasImage: boolean;
 		name: string;
 		title?: string;
 		message: string;
 		date: Date;
 	}
-	let { image, name, title, message, date }: Props = $props();
+	let { id, hasImage, name, title, message, date }: Props = $props();
 </script>
 
 <div class="flex gap-2 py-3.5">
 	<div class="size-10 overflow-hidden rounded-full bg-neutral-300 dark:bg-neutral-800">
-		{#if image}
-			<img src={image} alt={`${name} profile picture`} class="size-full object-cover" />
+		{#if hasImage}
+			<img
+				src={`${BASE_URL}users/profile-images/${id}`}
+				alt={`${name} profile picture`}
+				class="size-full object-cover"
+			/>
 		{:else if name}
 			<div class="flex size-full items-center justify-center text-neutral-500">
 				{name[0]}

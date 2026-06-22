@@ -29,9 +29,9 @@ export interface User {
 	title?: string;
 	email: string;
 	role: UserRole;
-	image?: string;
+	hasImage: boolean;
 	createdAt: Date;
-	lastLogin?: Date;
+	lastSignIn?: Date;
 	isActive: boolean;
 	isVerified: boolean;
 }

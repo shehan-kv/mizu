@@ -27,7 +27,7 @@ export interface ChannelMember {
 	id: string;
 	firstName: string;
 	lastName: string;
-	image?: string;
+	hasImage: boolean;
 	title?: string;
 	role: string;
 }
@@ -43,7 +43,7 @@ export interface MessageSender {
 	id: string;
 	firstName: string;
 	lastName: string;
-	image?: string;
+	hasImage: boolean;
 	title?: string;
 	role: string;
 }
@@ -55,7 +55,7 @@ export interface Message {
 		id: string;
 		firstName: string;
 		lastName: string;
-		image?: string;
+		hasImage: boolean;
 		title?: string;
 		role?: string;
 	};
