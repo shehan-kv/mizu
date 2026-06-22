@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
 	import X from 'phosphor-svelte/lib/X';
+	import type { Snippet } from 'svelte';
 
 	interface Props {
 		open: boolean;
-		onOpenChange?: (state: boolean) => any;
-		children: any;
+		onOpenChange?: (state: boolean) => unknown;
+		children: Snippet;
 	}
 	let { open = $bindable(), children, onOpenChange }: Props = $props();
 </script>
@@ -20,9 +21,9 @@
 		<Dialog.Content
 			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=closed]:fade-out 
 			data-[state=open]:slide-in-from-bottom data-[state=open]:fade-in
-			outline-hidden fixed 
-			inset-8 z-50 grid auto-rows-[min-content_1fr] gap-4 overflow-hidden rounded bg-white 
-			pb-4 duration-500 dark:bg-neutral-950 "
+			fixed inset-8 
+			z-50 grid auto-rows-[min-content_1fr] gap-4 overflow-hidden rounded bg-white pb-4 
+			outline-hidden duration-500 dark:bg-neutral-950 "
 		>
 			<div class="text-right">
 				<Dialog.Close
