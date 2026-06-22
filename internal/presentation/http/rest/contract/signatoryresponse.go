@@ -8,7 +8,7 @@ type SignatoryResponse struct {
 	LastName  string    `json:"lastName"`
 	Title     *string   `json:"title"`
 	Role      string    `json:"role"`
-	Image     *string   `json:"image"`
+	HasImage  bool      `json:"hasImage"`
 	Status    string    `json:"status"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

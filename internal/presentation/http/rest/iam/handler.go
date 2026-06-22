@@ -3,6 +3,7 @@ package iam
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"mizu/internal/application/iam"
 	"mizu/internal/application/logger"
 	domainiam "mizu/internal/domain/iam"
@@ -31,6 +32,7 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	mux.Handle("POST /users", authMiddleware(http.HandlerFunc(h.CreateUser)))
 	mux.Handle("GET /users", authMiddleware(http.HandlerFunc(h.ListUsers)))
 	mux.Handle("GET /users/me", authMiddleware(http.HandlerFunc(h.GetMe)))
+	mux.Handle("GET /users/profile-images/{userID}", authMiddleware(http.HandlerFunc(h.GetProfileImage)))
 	mux.Handle("GET /users/verifications/{verificationID}", http.HandlerFunc(h.ValidateVerification))
 	mux.Handle("POST /users/verifications/{verificationID}/confirm", http.HandlerFunc(h.VerifyAccount))
 	mux.Handle("POST /users/verifications/{userID}/regenerate-verification", authMiddleware(http.HandlerFunc(h.RegenerateVerification)))
@@ -160,6 +162,25 @@ func (h *IAMHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	response.WriteJSON(w, http.StatusOK, toUserResponse(result))
 }
 
+func (h *IAMHandler) GetProfileImage(w http.ResponseWriter, r *http.Request) {
+
+	result, err := h.iamSrv.GetProfileImage(r.Context(), r.PathValue("userID"))
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	defer result.Reader.Close()
+
+	w.Header().Set("Content-Type", result.MimeType)
+	w.Header().Set("Content-Disposition", "inline")
+
+	_, err = io.Copy(w, result.Reader)
+	if err != nil {
+		return
+	}
+}
+
 func (h *IAMHandler) ValidateVerification(w http.ResponseWriter, r *http.Request) {
 
 	err := h.iamSrv.VerificationExists(r.Context(), r.PathValue("verificationID"))
@@ -267,6 +288,9 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 	case errors.Is(err, domainiam.ErrUserNotFound):
 		response.WriteError(w, http.StatusNotFound, "user not found")
 
+	case errors.Is(err, domainiam.ErrUserImageNotFound):
+		response.WriteError(w, http.StatusNotFound, "user image not found")
+
 	case errors.Is(err, domainverification.ErrVerificationNotFound):
 		response.WriteError(w, http.StatusNotFound, "user not found")
 
@@ -316,6 +340,12 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 	case errors.Is(err, domainiam.ErrUserInvalidRole):
 		response.WriteError(w, http.StatusBadRequest, "invalid role")
 
+	case errors.Is(err, domainiam.ErrUserImageNameCannotBeEmpty):
+		response.WriteError(w, http.StatusBadRequest, "invalid image")
+
+	case errors.Is(err, domainiam.ErrUserMimeTypeCannotBeEmpty):
+		response.WriteError(w, http.StatusBadRequest, "invalid mime-type")
+
 	case errors.Is(err, domainverification.ErrVerificationIDCannotBeEmpty):
 		response.WriteError(w, http.StatusBadRequest, "verification id cannot be empty")
 
@@ -346,9 +376,10 @@ func toUserResponse(user *iam.UserDTO) UserResponse {
 		Email:      user.Email,
 		Title:      user.Title,
 		Role:       user.Role,
-		Image:      user.Image,
+		HasImage:   user.HasImage,
 		IsActive:   user.IsActive,
 		IsVerified: user.IsVerified,
 		CreatedAt:  user.CreatedAt,
+		LastSignIn: user.LastSignIn,
 	}
 }

@@ -136,7 +136,8 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 		role, 
 		title, 
 		email, 
-		image, 
+		image,
+		image_mime, 
 		is_active, 
 		is_verified, 
 		last_signin_at, 
@@ -156,6 +157,7 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 		title        *string
 		email        string
 		image        *string
+		imageMime    *string
 		isActive     bool
 		isVerified   bool
 		lastSignInAt *time.Time
@@ -172,6 +174,7 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 		&title,
 		&email,
 		&image,
+		&imageMime,
 		&isActive,
 		&isVerified,
 		&lastSignInAt,
@@ -206,13 +209,29 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
 	}
 
+	var imageVO *iam.Image
+	if image != nil && imageMime != nil {
+		imgName, err := iam.NewImageName(*image)
+		if err != nil {
+			return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		}
+
+		imgMime, err := iam.NewMimeType(*imageMime)
+		if err != nil {
+			return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		}
+
+		img := iam.NewImage(imgName, imgMime)
+		imageVO = &img
+	}
+
 	user := iam.RestoreUser(
 		userID,
 		name,
 		emailVO,
 		title,
 		roleVO,
-		image,
+		imageVO,
 		isActive,
 		isVerified,
 		lastSignInAt,
@@ -235,6 +254,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		title, 
 		password, 
 		image, 
+		image_mime, 
 		is_active, 
 		is_verified, 
 		last_signin_at, 
@@ -254,6 +274,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		title        *string
 		password     string
 		image        *string
+		imageMime    *string
 		isActive     bool
 		isVerified   bool
 		lastSignInAt *time.Time
@@ -270,6 +291,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		&title,
 		&password,
 		&image,
+		&imageMime,
 		&isActive,
 		&isVerified,
 		&lastSignInAt,
@@ -281,22 +303,38 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: %w", iam.ErrUserNotFound, err)
 		}
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
 	}
 
 	userID, err := iam.NewUserID(rawID)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
 	}
 
 	name, err := iam.NewName(firstName, lastName)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
 	}
 
 	roleVO, err := iam.NewRole(role)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+	}
+
+	var imageVO *iam.Image
+	if image != nil && imageMime != nil {
+		imgName, err := iam.NewImageName(*image)
+		if err != nil {
+			return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+		}
+
+		imgMime, err := iam.NewMimeType(*imageMime)
+		if err != nil {
+			return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+		}
+
+		img := iam.NewImage(imgName, imgMime)
+		imageVO = &img
 	}
 
 	user := iam.RestoreUser(
@@ -305,7 +343,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		email,
 		title,
 		roleVO,
-		image,
+		imageVO,
 		isActive,
 		isVerified,
 		lastSignInAt,
@@ -330,6 +368,7 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
         title,
         email,
         image,
+        image_mime,
         is_active,
         is_verified,
         last_signin_at,
@@ -380,6 +419,7 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 			title        *string
 			email        string
 			image        *string
+			imageMime    *string
 			isActive     bool
 			isVerified   bool
 			lastSignInAt *time.Time
@@ -396,6 +436,7 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 			&title,
 			&email,
 			&image,
+			&imageMime,
 			&isActive,
 			&isVerified,
 			&lastSignInAt,
@@ -427,13 +468,29 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 			return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
 		}
 
+		var imageVO *iam.Image
+		if image != nil && imageMime != nil {
+			imgName, err := iam.NewImageName(*image)
+			if err != nil {
+				return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			}
+
+			imgMime, err := iam.NewMimeType(*imageMime)
+			if err != nil {
+				return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			}
+
+			img := iam.NewImage(imgName, imgMime)
+			imageVO = &img
+		}
+
 		user := iam.RestoreUser(
 			userID,
 			name,
 			emailVO,
 			title,
 			roleVO,
-			image,
+			imageVO,
 			isActive,
 			isVerified,
 			lastSignInAt,
@@ -468,6 +525,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 			title,
 			email,
 			image,
+			image_mime,
 			is_active,
 			is_verified,
 			last_signin_at,
@@ -528,6 +586,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 			title        *string
 			email        string
 			image        *string
+			imageMime    *string
 			isActive     bool
 			isVerified   bool
 			lastSignInAt *time.Time
@@ -544,6 +603,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 			&title,
 			&email,
 			&image,
+			&imageMime,
 			&isActive,
 			&isVerified,
 			&lastSignInAt,
@@ -575,13 +635,29 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
 		}
 
+		var imageVO *iam.Image
+		if image != nil && imageMime != nil {
+			imgName, err := iam.NewImageName(*image)
+			if err != nil {
+				return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			}
+
+			imgMime, err := iam.NewMimeType(*imageMime)
+			if err != nil {
+				return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			}
+
+			img := iam.NewImage(imgName, imgMime)
+			imageVO = &img
+		}
+
 		users = append(users, iam.RestoreUser(
 			userID,
 			name,
 			emailVO,
 			title,
 			roleVO,
-			image,
+			imageVO,
 			isActive,
 			isVerified,
 			lastSignInAt,
@@ -721,6 +797,7 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 			title = ?,
 			email = ?,
 			image = ?,
+			image_mime = ?,
 			is_active = ?,
 			is_verified = ?,
 			last_signin_at = ?,
@@ -730,6 +807,16 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 		  AND version = ?
 	`
 
+	var img *string
+	var mime *string
+	if user.Image() != nil {
+		n := user.Image().Name().String()
+		img = &n
+
+		m := user.Image().MimeType().String()
+		mime = &m
+	}
+
 	result, err := r.db.ExecContext(
 		ctx,
 		query,
@@ -738,7 +825,8 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 		user.Role().String(),
 		user.Title(),
 		user.Email().String(),
-		user.Image(),
+		img,
+		mime,
 		user.IsActive(),
 		user.IsVerified(),
 		user.LastSignInAt(),

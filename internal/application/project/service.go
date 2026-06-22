@@ -416,7 +416,7 @@ func (s *Service) GetProjectOverview(ctx context.Context, projectID string, acto
 			ID:        u.ID().String(),
 			FirstName: u.FirstName(),
 			LastName:  u.LastName(),
-			Image:     u.Image(),
+			HasImage:  u.Image() != nil,
 			Role:      u.Role().String(),
 		}
 	}
@@ -498,7 +498,7 @@ func (s *Service) ListMembers(ctx context.Context, params ListMembersParams) ([]
 			FirstName: members[i].FirstName(),
 			LastName:  members[i].LastName(),
 			Title:     members[i].Title(),
-			Image:     members[i].Image(),
+			HasImage:  members[i].Image() != nil,
 			Role:      members[i].Role().String(),
 		})
 	}

@@ -11,7 +11,7 @@ type User struct {
 	email        Email
 	title        *string
 	role         Role
-	image        *string
+	image        *Image
 	isActive     bool
 	isVerified   bool
 	lastSignInAt *time.Time
@@ -89,7 +89,7 @@ func RestoreUser(
 	email Email,
 	title *string,
 	role Role,
-	image *string,
+	image *Image,
 	isActive bool,
 	isVerified bool,
 	lastSignInAt *time.Time,
@@ -137,7 +137,7 @@ func (u *User) Role() Role {
 	return u.role
 }
 
-func (u *User) Image() *string {
+func (u *User) Image() *Image {
 	return u.image
 }
 

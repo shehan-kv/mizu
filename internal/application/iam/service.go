@@ -4,6 +4,7 @@ import (
 	"context"
 	"mizu/internal/application/authz"
 	"mizu/internal/application/eventbus"
+	"mizu/internal/application/filestore"
 	"mizu/internal/application/logger"
 	"mizu/internal/application/mailer"
 	"mizu/internal/application/session"
@@ -29,6 +30,7 @@ type Service struct {
 
 	internalBus eventbus.InternalBus
 
+	fileStore    filestore.Store
 	idGen        common.IDGenerator
 	sessionStore session.Store
 	logger       logger.Logger
@@ -45,6 +47,7 @@ func NewService(
 	authzSrv *authz.Service,
 	projectSrv *project.Service,
 	internalBus eventbus.InternalBus,
+	fileStore filestore.Store,
 	idGen common.IDGenerator,
 	sessionStore session.Store,
 	logger logger.Logger,
@@ -61,6 +64,7 @@ func NewService(
 		authzSrv:         authzSrv,
 		projectSrv:       projectSrv,
 		internalBus:      internalBus,
+		fileStore:        fileStore,
 		idGen:            idGen,
 		sessionStore:     sessionStore,
 		logger:           logger,
@@ -545,6 +549,36 @@ func (s *Service) GetUser(ctx context.Context, actorID string, userID string) (*
 	return &dto, nil
 }
 
+func (s *Service) GetProfileImage(ctx context.Context, userID string) (*ProfileImageDTO, error) {
+
+	uID, err := iam.NewUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := s.iamRepo.GetByID(ctx, uID)
+	if err != nil {
+		return nil, err
+	}
+
+	img := u.Image()
+
+	if img == nil {
+		return nil, iam.ErrUserImageNotFound
+	}
+
+	reader, err := s.fileStore.Open(ctx, img.Name().String())
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProfileImageDTO{
+		Name:     img.Name().String(),
+		MimeType: img.MimeType().String(),
+		Reader:   reader,
+	}, nil
+}
+
 func (s *Service) ListUsers(ctx context.Context, params ListUsersParams) (*shared.Collection[UserDTO], error) {
 
 	actor, err := iam.NewUserID(params.ActorID)
@@ -607,10 +641,11 @@ func (s Service) toUserDTO(user *iam.User) UserDTO {
 		Email:      user.Email().String(),
 		Title:      user.Title(),
 		Role:       user.Role().String(),
-		Image:      user.Image(),
+		HasImage:   user.Image() != nil,
 		IsActive:   user.IsActive(),
 		IsVerified: user.IsVerified(),
 		CreatedAt:  user.CreatedAt(),
+		LastSignIn: user.LastSignInAt(),
 	}
 }
 

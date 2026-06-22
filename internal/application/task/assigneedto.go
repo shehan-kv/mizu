@@ -5,6 +5,6 @@ type AssigneeDTO struct {
 	FirstName string
 	LastName  string
 	Title     *string
-	Image     *string
+	HasImage  bool
 	Role      string
 }

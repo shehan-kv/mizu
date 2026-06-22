@@ -383,7 +383,7 @@ func toMemberResponse(m *project.MemberDTO) MemberResponse {
 		FirstName: m.FirstName,
 		LastName:  m.LastName,
 		Title:     m.Title,
-		Image:     m.Image,
+		HasImage:  m.HasImage,
 		Role:      m.Role,
 	}
 }

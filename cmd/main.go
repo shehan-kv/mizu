@@ -371,6 +371,7 @@ func main() {
 		authzAppService,
 		projectService,
 		intBus,
+		fileStore,
 		idgen,
 		sessionStore,
 		log,

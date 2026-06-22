@@ -344,7 +344,7 @@ func (s *Service) ListTasks(ctx context.Context, params ListTaskParams) (*shared
 			FirstName: users[i].FirstName(),
 			LastName:  users[i].LastName(),
 			Title:     users[i].Title(),
-			Image:     users[i].Image(),
+			HasImage:  users[i].Image() != nil,
 			Role:      users[i].Role().String(),
 		}
 	}
@@ -462,7 +462,7 @@ func (s *Service) ListAssignees(ctx context.Context, taskID string, actorID stri
 			FirstName: users[i].FirstName(),
 			LastName:  users[i].LastName(),
 			Title:     users[i].Title(),
-			Image:     users[i].Image(),
+			HasImage:  users[i].Image() != nil,
 			Role:      users[i].Role().String(),
 		}
 	}

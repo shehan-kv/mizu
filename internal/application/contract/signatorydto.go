@@ -8,7 +8,7 @@ type SignatoryDTO struct {
 	LastName  string
 	Title     *string
 	Role      string
-	Image     *string
+	HasImage  bool
 	Status    string
 	UpdatedAt time.Time
 }

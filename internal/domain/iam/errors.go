@@ -5,6 +5,8 @@ import "errors"
 var (
 	ErrUserFirstNameCannotBeEmpty = errors.New("user firstname cannot be empty")
 	ErrUserConcurrentModification = errors.New("user concurrent modification")
+	ErrUserImageNameCannotBeEmpty = errors.New("user image name cannot be empty")
+	ErrUserMimeTypeCannotBeEmpty  = errors.New("user mime type cannot be empty")
 	ErrUserLastNameCannotBeEmpty  = errors.New("user lastname cannot be empty")
 	ErrUserInvalidEmailAddress    = errors.New("user invalid email address")
 	ErrUserEmailAlreadyExists     = errors.New("user email already exists")
@@ -15,6 +17,7 @@ var (
 	ErrUserPasswordTooLong        = errors.New("user password too long")
 	ErrUserAlreadyVerified        = errors.New("user is already verified")
 	ErrUserIDCannotBeEmpty        = errors.New("user id cannot be empty")
+	ErrUserImageNotFound          = errors.New("user image not found")
 	ErrUserInvalidRole            = errors.New("user invalid role")
 	ErrUserNotFound               = errors.New("user not found")
 	ErrUserInactive               = errors.New("user is inactive")

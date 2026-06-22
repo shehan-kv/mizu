@@ -265,7 +265,7 @@ func (s *Service) GetContract(ctx context.Context, actorID string, contractID st
 			LastName:  u.LastName(),
 			Title:     u.Title(),
 			Role:      u.Role().String(),
-			Image:     u.Image(),
+			HasImage:  u.Image() != nil,
 			Status:    signs[i].Status().String(),
 			UpdatedAt: signs[i].UpdatedAt(),
 		})
@@ -384,7 +384,7 @@ func (s *Service) ListOverviewByProject(ctx context.Context, params ListByProjec
 				LastName:  u.LastName(),
 				Title:     u.Title(),
 				Role:      u.Role().String(),
-				Image:     u.Image(),
+				HasImage:  u.Image() != nil,
 				Status:    sg[j].Status().String(),
 				UpdatedAt: sg[j].UpdatedAt(),
 			})
@@ -503,7 +503,7 @@ func (s *Service) ListOverviewByMember(ctx context.Context, params ListByMemberP
 				LastName:  u.LastName(),
 				Title:     u.Title(),
 				Role:      u.Role().String(),
-				Image:     u.Image(),
+				HasImage:  u.Image() != nil,
 				Status:    sg[j].Status().String(),
 				UpdatedAt: sg[j].UpdatedAt(),
 			})
@@ -584,7 +584,7 @@ func (s *Service) ListSignatories(ctx context.Context, contractID string, actorI
 			LastName:  u.LastName(),
 			Title:     u.Title(),
 			Role:      u.Role().String(),
-			Image:     u.Image(),
+			HasImage:  u.Image() != nil,
 			Status:    sign.Status().String(),
 			UpdatedAt: sign.UpdatedAt(),
 		})

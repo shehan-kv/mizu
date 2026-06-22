@@ -318,7 +318,7 @@ func toSignatoryResponse(s contract.SignatoryDTO) SignatoryResponse {
 		LastName:  s.LastName,
 		Title:     s.Title,
 		Role:      s.Role,
-		Image:     s.Image,
+		HasImage:  s.HasImage,
 		Status:    s.Status,
 		UpdatedAt: s.UpdatedAt,
 	}

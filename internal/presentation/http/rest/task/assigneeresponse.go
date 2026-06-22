@@ -5,6 +5,6 @@ type AssigneeResponse struct {
 	FirstName string  `json:"firstName"`
 	LastName  string  `json:"lastName"`
 	Title     *string `json:"title"`
-	Image     *string `json:"image"`
+	HasImage  bool    `json:"hasImage"`
 	Role      string  `json:"role"`
 }

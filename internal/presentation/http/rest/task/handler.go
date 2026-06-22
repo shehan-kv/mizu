@@ -216,7 +216,7 @@ func toAssigneeResponse(a *task.AssigneeDTO) AssigneeResponse {
 		FirstName: a.FirstName,
 		LastName:  a.LastName,
 		Title:     a.Title,
-		Image:     a.Image,
+		HasImage:  a.HasImage,
 		Role:      a.Role,
 	}
 }

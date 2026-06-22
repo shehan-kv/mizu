@@ -426,7 +426,7 @@ func toMemberResponse(m *message.MemberDTO) MemberResponse {
 		ID:        m.ID,
 		FirstName: m.FirstName,
 		LastName:  m.LastName,
-		Image:     m.Image,
+		HasImage:  m.HasImage,
 		Title:     m.Title,
 		Role:      m.Role,
 	}

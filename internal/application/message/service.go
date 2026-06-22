@@ -292,7 +292,7 @@ func (s *Service) ListChannelMembers(ctx context.Context, actorID string, channe
 			ID:        m[i].ID().String(),
 			FirstName: m[i].FirstName(),
 			LastName:  m[i].LastName(),
-			Image:     m[i].Image(),
+			HasImage:  m[i].Image() != nil,
 			Title:     m[i].Title(),
 			Role:      m[i].Role().String(),
 		}
@@ -364,6 +364,12 @@ func (s *Service) CreateMessage(ctx context.Context, params CreateMessageParams)
 	lastName := actor.LastName()
 	role := actor.Role().String()
 
+	var image *string
+	if actor.Image() != nil {
+		name := actor.Image().Name().String()
+		image = &name
+	}
+
 	if err := s.externalBus.Publish(ctx, integration.MessageBroadcast{
 		MessageID:       msgID.String(),
 		ChannelID:       m.ChannelID().String(),
@@ -371,7 +377,7 @@ func (s *Service) CreateMessage(ctx context.Context, params CreateMessageParams)
 		SenderID:        actorID.String(),
 		SenderFirstName: &firstName,
 		SenderLastName:  &lastName,
-		SenderImage:     actor.Image(),
+		SenderImage:     image,
 		SenderTitle:     actor.Title(),
 		SenderRole:      &role,
 		IsSystem:        false,
@@ -450,11 +456,17 @@ func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMes
 		}
 		if !messages[i].IsSystemMessage() {
 			if u, ok := userMap[messages[i].SenderID()]; ok {
+				var image *string
+				if u.Image() != nil {
+					name := u.Image().Name().String()
+					image = &name
+				}
+
 				dto.Sender = &MessageSenderDTO{
 					ID:        u.ID().String(),
 					FirstName: u.FirstName(),
 					LastName:  u.LastName(),
-					Image:     u.Image(),
+					Image:     image,
 					Title:     u.Title(),
 					Role:      u.Role().String(),
 				}
@@ -647,10 +659,16 @@ func (s *Service) ListChannelFiles(ctx context.Context, params ListChannelFilesP
 		dto.User = MessageSenderDTO{}
 
 		if u, ok := userMap[files[i].UserID()]; ok {
+			var image *string
+			if u.Image() != nil {
+				name := u.Image().Name().String()
+				image = &name
+			}
+
 			dto.User.ID = u.ID().String()
 			dto.User.FirstName = u.FirstName()
 			dto.User.LastName = u.LastName()
-			dto.User.Image = u.Image()
+			dto.User.Image = image
 			dto.User.Title = u.Title()
 			dto.User.Role = u.Role().String()
 		}
@@ -741,10 +759,16 @@ func (s *Service) ListProjectFiles(ctx context.Context, params ListProjectFilesP
 		dto.User = MessageSenderDTO{}
 
 		if u, ok := userMap[files[i].UserID()]; ok {
+			var image *string
+			if u.Image() != nil {
+				name := u.Image().Name().String()
+				image = &name
+			}
+
 			dto.User.ID = u.ID().String()
 			dto.User.FirstName = u.FirstName()
 			dto.User.LastName = u.LastName()
-			dto.User.Image = u.Image()
+			dto.User.Image = image
 			dto.User.Title = u.Title()
 			dto.User.Role = u.Role().String()
 		}

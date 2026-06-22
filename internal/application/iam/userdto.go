@@ -9,8 +9,9 @@ type UserDTO struct {
 	Email      string
 	Title      *string
 	Role       string
-	Image      *string
+	HasImage   bool
 	IsActive   bool
 	IsVerified bool
 	CreatedAt  time.Time
+	LastSignIn *time.Time
 }
