@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ApiError } from '$lib/api/client';
-	import { activateUser } from '$lib/api/users';
+	import { regenerateUserVerification } from '$lib/api/users';
 	import { Dialog } from 'bits-ui';
 	import WarningCircle from 'phosphor-svelte/lib/WarningCircle';
 	import X from 'phosphor-svelte/lib/X';
@@ -23,7 +23,7 @@
 		abort = new AbortController();
 
 		try {
-			await activateUser(userId, abort.signal);
+			await regenerateUserVerification(userId, abort.signal);
 
 			toast.success(`Successfully Sent`);
 			onSuccess?.();
