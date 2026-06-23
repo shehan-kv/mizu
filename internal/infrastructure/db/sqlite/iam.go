@@ -23,7 +23,15 @@ func NewIAMRepository(db *sql.DB) *IAMRepository {
 	}
 }
 
+func (r *IAMRepository) executor(ctx context.Context) executor {
+	if tx, ok := txFromContext(ctx); ok {
+		return tx
+	}
+	return r.db
+}
+
 func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
+	ex := r.executor(ctx)
 
 	query := `
 	INSERT INTO users(
@@ -54,7 +62,7 @@ func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
 		mime = &m
 	}
 
-	_, err := r.db.ExecContext(
+	_, err := ex.ExecContext(
 		ctx,
 		query,
 		user.ID().String(),
@@ -88,6 +96,7 @@ func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
 }
 
 func (r *IAMRepository) Exists(ctx context.Context, id iam.UserID) (bool, error) {
+	ex := r.executor(ctx)
 
 	query := `
     SELECT EXISTS (
@@ -96,7 +105,7 @@ func (r *IAMRepository) Exists(ctx context.Context, id iam.UserID) (bool, error)
     `
 
 	var exists bool
-	err := r.db.QueryRowContext(ctx, query, id.String()).Scan(&exists)
+	err := ex.QueryRowContext(ctx, query, id.String()).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("iam.IAMRepository.Exists: %w", err)
 	}
@@ -105,6 +114,7 @@ func (r *IAMRepository) Exists(ctx context.Context, id iam.UserID) (bool, error)
 }
 
 func (r *IAMRepository) ExistsAll(ctx context.Context, ids []iam.UserID) (bool, error) {
+	ex := r.executor(ctx)
 
 	if len(ids) == 0 {
 		return false, nil
@@ -130,7 +140,7 @@ func (r *IAMRepository) ExistsAll(ctx context.Context, ids []iam.UserID) (bool, 
 	sb.WriteString(")")
 
 	var count int
-	err := r.db.QueryRowContext(ctx, sb.String(), args...).Scan(&count)
+	err := ex.QueryRowContext(ctx, sb.String(), args...).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("iam.IAMRepository.ExistsAll: %w", err)
 	}
@@ -139,6 +149,7 @@ func (r *IAMRepository) ExistsAll(ctx context.Context, ids []iam.UserID) (bool, 
 }
 
 func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, error) {
+	ex := r.executor(ctx)
 
 	query := `
     SELECT
@@ -159,7 +170,7 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
     FROM users
     WHERE id = ?
     `
-	row := r.db.QueryRowContext(ctx, query, id.String())
+	row := ex.QueryRowContext(ctx, query, id.String())
 
 	var (
 		rawID        string
@@ -256,6 +267,7 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 }
 
 func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Email) (*iam.UserCredentials, error) {
+	ex := r.executor(ctx)
 
 	query := `
     SELECT
@@ -276,7 +288,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
     FROM users
     WHERE email = ?
     `
-	row := r.db.QueryRowContext(ctx, query, email.String())
+	row := ex.QueryRowContext(ctx, query, email.String())
 
 	var (
 		rawID        string
@@ -368,6 +380,8 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 }
 
 func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page common.Page) ([]*iam.User, error) {
+	ex := r.executor(ctx)
+
 	var sb strings.Builder
 	args := make([]any, 0)
 
@@ -415,7 +429,7 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 	sb.WriteString(" ORDER BY created_at DESC LIMIT ? OFFSET ?")
 	args = append(args, page.Limit(), page.Offset())
 
-	rows, err := r.db.QueryContext(ctx, sb.String(), args...)
+	rows, err := ex.QueryContext(ctx, sb.String(), args...)
 	if err != nil {
 		return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
 	}
@@ -521,6 +535,8 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 }
 
 func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.UserFilter) ([]*iam.User, error) {
+	ex := r.executor(ctx)
+
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -581,7 +597,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 		args = append(args, *f.IsActive)
 	}
 
-	rows, err := r.db.QueryContext(ctx, sb.String(), args...)
+	rows, err := ex.QueryContext(ctx, sb.String(), args...)
 	if err != nil {
 		return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
 	}
@@ -687,6 +703,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 }
 
 func (r *IAMRepository) IsAnyAdministrator(ctx context.Context, ids []iam.UserID) (bool, error) {
+	ex := r.executor(ctx)
 
 	if len(ids) == 0 {
 		return false, nil
@@ -712,7 +729,7 @@ func (r *IAMRepository) IsAnyAdministrator(ctx context.Context, ids []iam.UserID
 	sb.WriteString("))")
 
 	var exists bool
-	err := r.db.QueryRowContext(ctx, sb.String(), args...).Scan(&exists)
+	err := ex.QueryRowContext(ctx, sb.String(), args...).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("iam.IAMRepository.IsAnyAdministrator: %w", err)
 	}
@@ -721,6 +738,8 @@ func (r *IAMRepository) IsAnyAdministrator(ctx context.Context, ids []iam.UserID
 }
 
 func (r *IAMRepository) HasAdministrator(ctx context.Context) (bool, error) {
+	ex := r.executor(ctx)
+
 	query := `
 		SELECT EXISTS(
 			SELECT 1
@@ -731,7 +750,7 @@ func (r *IAMRepository) HasAdministrator(ctx context.Context) (bool, error) {
 	`
 
 	var exists bool
-	err := r.db.QueryRowContext(ctx, query, iam.RoleAdministrator.String()).Scan(&exists)
+	err := ex.QueryRowContext(ctx, query, iam.RoleAdministrator.String()).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("iam.IAMRepository.HasAdministrator: %w", err)
 	}
@@ -740,13 +759,15 @@ func (r *IAMRepository) HasAdministrator(ctx context.Context) (bool, error) {
 }
 
 func (r *IAMRepository) SetPassword(ctx context.Context, user *iam.User, hash string) error {
+	ex := r.executor(ctx)
+
 	query := `
 		UPDATE users
 		SET password = ?, version = version + 1
 		WHERE id = ? AND version = ?
 	`
 
-	result, err := r.db.ExecContext(ctx, query, hash, user.ID().String(), user.Version())
+	result, err := ex.ExecContext(ctx, query, hash, user.ID().String(), user.Version())
 	if err != nil {
 		return fmt.Errorf("iam.IAMRepository.SetPassword: %w", err)
 	}
@@ -763,7 +784,9 @@ func (r *IAMRepository) SetPassword(ctx context.Context, user *iam.User, hash st
 	return nil
 }
 
-func (r *IAMRepository) Count(ctx context.Context, filter iam.UserFilter) (int, error) {
+func (r *IAMRepository) Count(ctx context.Context, f iam.UserFilter) (int, error) {
+	ex := r.executor(ctx)
+
 	var sb strings.Builder
 	args := make([]any, 0)
 
@@ -773,25 +796,25 @@ func (r *IAMRepository) Count(ctx context.Context, filter iam.UserFilter) (int, 
     WHERE 1=1
 `)
 
-	if filter.Keyword != nil {
+	if f.Keyword != nil {
 		sb.WriteString(" AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)")
-		keyword := "%" + *filter.Keyword + "%"
+		keyword := "%" + *f.Keyword + "%"
 		args = append(args, keyword, keyword, keyword)
 	}
 
-	if filter.Role != nil {
+	if f.Role != nil {
 		sb.WriteString(" AND role = ?")
-		args = append(args, filter.Role.String())
+		args = append(args, f.Role.String())
 	}
 
-	if filter.IsActive != nil {
+	if f.IsActive != nil {
 		sb.WriteString(" AND is_active = ?")
-		args = append(args, *filter.IsActive)
+		args = append(args, *f.IsActive)
 	}
 
 	var count int
 
-	err := r.db.QueryRowContext(ctx, sb.String(), args...).Scan(&count)
+	err := ex.QueryRowContext(ctx, sb.String(), args...).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("iam.IAMRepository.Count: %w", err)
 	}
@@ -800,6 +823,8 @@ func (r *IAMRepository) Count(ctx context.Context, filter iam.UserFilter) (int, 
 }
 
 func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
+	ex := r.executor(ctx)
+
 	const query = `
 		UPDATE users
 		SET
@@ -829,7 +854,7 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 		mime = &m
 	}
 
-	result, err := r.db.ExecContext(
+	result, err := ex.ExecContext(
 		ctx,
 		query,
 		user.FirstName(),
@@ -864,12 +889,14 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 }
 
 func (r *IAMRepository) Remove(ctx context.Context, user *iam.User) error {
+	ex := r.executor(ctx)
+
 	query := `
 		DELETE FROM users
 		WHERE id = ? AND version = ?
 	`
 
-	result, err := r.db.ExecContext(
+	result, err := ex.ExecContext(
 		ctx,
 		query,
 		user.ID().String(),
