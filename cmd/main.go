@@ -13,6 +13,7 @@ import (
 	"mizu/internal/application/session"
 	"mizu/internal/application/uow"
 	"mizu/internal/infrastructure/auth"
+	"mizu/internal/infrastructure/db/postgres"
 	"mizu/internal/infrastructure/db/sqlite"
 	"mizu/internal/infrastructure/email"
 	"mizu/internal/infrastructure/eventbus/externalbus"
@@ -282,6 +283,30 @@ func main() {
 		channelRepo = sqlite.NewChannelRepository(db)
 		fileRepo = sqlite.NewFileRepository(db)
 		uow = sqlite.NewUnitOfWork(db)
+
+	case "postgres":
+		db, err := postgres.Connect(dbConnString)
+		if err != nil {
+			log.Fatal("postgres connection failed", "err", err)
+		}
+
+		log.Info("migrating postgres")
+		if err := sqlite.RunMigrations(db); err != nil {
+			log.Fatal("failed to migrate postgres", "err", err)
+		}
+
+		defer db.Close()
+
+		iamRepo = postgres.NewIAMRepository(db)
+		verificationRepo = postgres.NewVerificationRepository(db)
+		projectRepo = postgres.NewProjectRepository(db)
+		taskRepo = postgres.NewTaskRepository(db)
+		billingRepo = postgres.NewBillingRepository(db)
+		contractRepo = postgres.NewContractRepository(db)
+		messageRepo = postgres.NewMessageRepository(db)
+		channelRepo = postgres.NewChannelRepository(db)
+		fileRepo = postgres.NewFileRepository(db)
+		uow = postgres.NewUnitOfWork(db)
 
 	default:
 		log.Fatal("unrecognized database driver", "driver", dbDriver)
