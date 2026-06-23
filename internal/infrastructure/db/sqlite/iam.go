@@ -33,6 +33,7 @@ func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
 		title, 
 		email, 
 		image, 
+		image_mime, 
 		is_active, 
 		is_verified, 
 		role, 
@@ -40,8 +41,18 @@ func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
 		created_at, 
 		updated_at
 	)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
+
+	var img *string
+	var mime *string
+	if user.Image() != nil {
+		n := user.Image().Name().String()
+		img = &n
+
+		m := user.Image().MimeType().String()
+		mime = &m
+	}
 
 	_, err := r.db.ExecContext(
 		ctx,
@@ -51,7 +62,8 @@ func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
 		user.LastName(),
 		user.Title(),
 		user.Email().String(),
-		user.Image(),
+		img,
+		mime,
 		user.IsActive(),
 		user.IsVerified(),
 		user.Role().String(),
