@@ -3,6 +3,7 @@
 	import Chats from 'phosphor-svelte/lib/Chats';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
 	import UserGear from 'phosphor-svelte/lib/UserGear';
+	import * as Dialog from '$lib/components/dialogs';
 	import X from 'phosphor-svelte/lib/X';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import { page } from '$app/state';
@@ -18,6 +19,7 @@
 	import { auth } from '$lib/auth/auth.svelte';
 	import FullScreenSpinner from '$lib/components/FullScreenSpinner.svelte';
 	import FullScreenErrorMessage from '$lib/components/FullScreenErrorMessage.svelte';
+	import { createDialogState } from '$lib/components/dialogs/createDialogState.svelte';
 
 	let { children } = $props();
 	let isMobileMenuOpen = $state(false);
@@ -29,6 +31,8 @@
 	function closeMobileMenu() {
 		isMobileMenuOpen = false;
 	}
+
+	let viewProfile = createDialogState();
 
 	const totalUnread = $derived(
 		Object.values(messageStore.state.unreadCounts).reduce((sum, count) => sum + count, 0)
@@ -143,6 +147,7 @@
 			{/if}
 			<li class="mt-auto">
 				<button
+					onclick={viewProfile.open}
 					class="flex w-full cursor-pointer items-center gap-2 rounded py-2
 					pl-4 transition hover:bg-neutral-200 dark:hover:bg-neutral-800"
 				>
@@ -201,3 +206,5 @@
 		</div>
 	{/if}
 {/if}
+
+<Dialog.ViewMe bind:open={viewProfile.isOpen} />

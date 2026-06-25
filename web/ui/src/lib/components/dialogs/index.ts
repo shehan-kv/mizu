@@ -23,6 +23,9 @@ import ManageUserProjects from './ManageUserProjects.svelte';
 import NewChannel from './NewChannel.svelte';
 import ManageChannelMembers from './ManageChannelMembers.svelte';
 import ManageContractSignatories from './ManageContractSignatories.svelte';
+import ViewUser from './ViewUser.svelte';
+import ViewMe from './ViewMe.svelte';
+import EditUser from './EditUser.svelte';
 
 export {
 	ChannelFiles,
@@ -49,5 +52,8 @@ export {
 	ManageUserProjects,
 	NewChannel,
 	ManageChannelMembers,
-	ManageContractSignatories
+	ManageContractSignatories,
+	ViewUser,
+	ViewMe,
+	EditUser
 };

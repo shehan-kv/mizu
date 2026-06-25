@@ -18,7 +18,6 @@
 	import DotsThree from 'phosphor-svelte/lib/DotsThree';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import { USER_ACTIVE_STATES, USER_ROLES, USER_VERIFIED_STATES } from '$lib/constants/user';
-	import { resolve } from '$app/paths';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PaginatedResponse } from '$lib/api/page';
 	import { ApiError } from '$lib/api/client';
@@ -46,10 +45,7 @@
 	let promise: Promise<PaginatedResponse<User>> | null = $state(null);
 	let abort: AbortController | null = null;
 	function loadUsers() {
-		if (abort) {
-			abort.abort();
-		}
-
+		abort?.abort();
 		abort = new AbortController();
 
 		promise = getUsers(
@@ -106,6 +102,7 @@
 	let newUserDialog = createDialogState();
 	let deleteUserDialog = createDialogState();
 	let resendVerifyDialog = createDialogState();
+	let viewUserDialog = createDialogState();
 
 	type StatusActionsAllowed = 'activate' | 'deactivate';
 	type SelectedUser = User & { action?: StatusActionsAllowed };
@@ -203,7 +200,7 @@
 		{#if res && res.items}
 			<div class="mx-auto gap-4 overflow-y-auto lg:container">
 				{#if res.items.length == 0}
-					<ErrorMessage variant="info" text="Change Requests Not Found" />
+					<ErrorMessage variant="info" text="Users Not Found" />
 				{/if}
 				<div class="overflow-y-auto">
 					{#if res.items.length > 0}
@@ -237,17 +234,21 @@
 											</span>
 										</Table.Cell>
 										<Table.Cell>{formatDate(user.createdAt)}</Table.Cell>
-										<Table.Cell>{user.lastLogin ? formatDate(user.lastLogin) : 'N/A'}</Table.Cell>
+										<Table.Cell>{user.lastSignIn ? formatDate(user.lastSignIn) : 'N/A'}</Table.Cell>
 										<Table.Cell>
-											<a
-												href={resolve(`/users/${user.id}`)}
+											<button
+												onclick={() => {
+													selectedUser = user;
+													viewUserDialog.open();
+												}}
 												class="inline-block cursor-pointer px-1.5 text-xs
 												text-neutral-500 hover:text-neutral-950 dark:text-neutral-400
 												dark:hover:text-neutral-50"
 												title="View"
 											>
 												<ArrowRight size={18} />
-											</a>
+											</button>
+
 											{#if auth.role == 'administrator'}
 												<DropdownMenu.Root>
 													<DropdownMenu.Trigger
@@ -330,4 +331,6 @@
 	/>
 
 	<Dialog.ResendVerifyEmailConfirm bind:open={resendVerifyDialog.isOpen} userId={selectedUser.id} />
+
+	<Dialog.ViewUser bind:open={viewUserDialog.isOpen} userId={selectedUser.id} refresh={loadUsers} />
 {/if}
