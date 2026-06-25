@@ -1,5 +1,5 @@
 import type { USER_ROLES } from '$lib/constants/user';
-import { apiFetch } from './client';
+import { apiFetch, BASE_URL } from './client';
 import type { PaginatedResponse } from './page';
 
 export type UserRole = (typeof USER_ROLES)[number];
@@ -138,6 +138,82 @@ export async function validateUserVerification(verificationId: string, signal?: 
 	return apiFetch<void>(`users/verifications/${verificationId}`, {
 		method: 'GET',
 		signal
+	});
+}
+
+export interface UserUpdateParams {
+	firstName: string;
+	lastName: string;
+	email: string;
+	title?: string;
+	role: string;
+	image?: File;
+}
+export async function updateUser(
+	userId: string,
+	req: UserUpdateParams,
+	options?: {
+		signal?: AbortSignal;
+		onProgress?: (percent: number) => void;
+	}
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const formData = new FormData();
+
+		formData.append('firstName', req.firstName);
+		formData.append('lastName', req.lastName);
+		formData.append('email', req.email);
+		formData.append('role', req.role);
+
+		if (req.title) {
+			formData.append('title', req.title);
+		}
+
+		if (req.image) {
+			formData.append('image', req.image);
+		}
+
+		const xhr = new XMLHttpRequest();
+
+		// Progress
+		xhr.upload.onprogress = (e) => {
+			if (!e.lengthComputable) return;
+
+			options?.onProgress?.(Math.round((e.loaded / e.total) * 100));
+		};
+
+		// Success
+		xhr.onload = () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				resolve();
+			} else {
+				reject(new Error(`Update failed (${xhr.status})`));
+			}
+		};
+
+		// Failure
+		xhr.onerror = () => {
+			reject(new Error('Network error'));
+		};
+
+		// Abort
+		xhr.onabort = () => {
+			reject(new DOMException('Aborted', 'AbortError'));
+		};
+
+		// Connect AbortSignal -> xhr.abort()
+		if (options?.signal) {
+			if (options.signal.aborted) {
+				xhr.abort();
+				return;
+			}
+
+			options.signal.addEventListener('abort', () => xhr.abort(), { once: true });
+		}
+
+		xhr.open('PUT', `${BASE_URL}/users/${userId}`);
+
+		xhr.send(formData);
 	});
 }
 
