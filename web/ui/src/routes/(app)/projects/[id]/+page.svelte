@@ -33,7 +33,10 @@
 		}
 		projectAbort = new AbortController();
 
-		projectPromise = getProject(id, projectAbort.signal);
+		projectPromise = getProject(id, projectAbort.signal).then((p) => {
+			document.title = p.name + ' - View Project';
+			return p;
+		});
 	}
 
 	onMount(() => {
