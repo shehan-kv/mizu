@@ -495,6 +495,100 @@ func (s *Service) Deactivate(ctx context.Context, userID string, actorID string)
 	return s.iamRepo.Save(ctx, user)
 }
 
+func (s *Service) Update(ctx context.Context, params UpdateUserParams) error {
+	now := time.Now()
+
+	actorID, err := iam.NewUserID(params.ActorID)
+	if err != nil {
+		return err
+	}
+
+	userID, err := iam.NewUserID(params.UserID)
+	if err != nil {
+		return err
+	}
+
+	err = s.authzSrv.RequireAdministratorOrSelf(ctx, actorID, userID)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.iamRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	name, err := iam.NewName(params.FirstName, params.LastName)
+	if err != nil {
+		return err
+	}
+
+	email, err := iam.NewEmail(params.Email)
+	if err != nil {
+		return err
+	}
+
+	user.ChangeName(name, now)
+	user.ChangeEmail(email, now)
+
+	if params.Title != nil {
+		user.ChangeTitle(params.Title, now)
+	}
+
+	if actorID != userID {
+		role, err := iam.NewRole(params.Role)
+		if err != nil {
+			return err
+		}
+
+		user.AssignRole(role, now)
+	}
+
+	if params.Image != nil {
+
+		imageIDString, err := s.idGen.Generate()
+		if err != nil {
+			return err
+		}
+
+		imageName, err := iam.NewImageName(imageIDString)
+		if err != nil {
+			return err
+		}
+
+		mimeType, err := iam.NewMimeType(params.Image.MimeType)
+		if err != nil {
+			return err
+		}
+
+		img := iam.NewImage(imageName, mimeType)
+		prevImg := user.Image()
+		user.ChangeImage(&img, now)
+
+		if prevImg != nil {
+			if err := s.fileStore.Delete(ctx, prevImg.Name().String()); err != nil {
+				return err
+			}
+		}
+
+		if err := s.fileStore.Save(ctx, imageIDString, params.Image.Reader); err != nil {
+			return err
+		}
+
+	}
+
+	err = s.uow.Execute(ctx, func(ctx context.Context) error {
+		return s.iamRepo.Save(ctx, user)
+	})
+	if err != nil {
+		return err
+	}
+
+	s.publishEvents(ctx, user.PullEvents())
+
+	return nil
+}
+
 func (s *Service) Delete(ctx context.Context, userID string, actorID string) error {
 
 	uID, err := iam.NewUserID(userID)

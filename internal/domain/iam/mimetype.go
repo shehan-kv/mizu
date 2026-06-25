@@ -3,11 +3,19 @@ package iam
 type MimeType string
 
 func NewMimeType(mimeType string) (MimeType, error) {
-	if mimeType == "" {
-		return MimeType(""), ErrUserMimeTypeCannotBeEmpty
+	switch mimeType {
+	case
+		"image/jpeg",
+		"image/png",
+		"image/gif",
+		"image/webp",
+		"image/svg+xml",
+		"image/avif":
+		return MimeType(mimeType), nil
+	default:
+		return MimeType(""), ErrUserInvalidImageMimeType
 	}
 
-	return MimeType(mimeType), nil
 }
 
 func (n MimeType) String() string {

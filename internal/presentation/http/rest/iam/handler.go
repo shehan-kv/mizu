@@ -14,16 +14,30 @@ import (
 	"mizu/internal/presentation/http/rest/query"
 	"mizu/internal/presentation/http/rest/response"
 	"net/http"
+	"strings"
 )
 
 type IAMHandler struct {
 	iamSrv     *iam.Service
 	authCookie cookie.AuthCookie
 	log        logger.Logger
+
+	maxFileSizeMB int64
 }
 
-func NewIAMHandler(iamSrv *iam.Service, authCookie cookie.AuthCookie, log logger.Logger) *IAMHandler {
-	return &IAMHandler{iamSrv: iamSrv, authCookie: authCookie, log: log}
+func NewIAMHandler(
+	iamSrv *iam.Service,
+	authCookie cookie.AuthCookie,
+	log logger.Logger,
+	maxFileSizeMB int64,
+) *IAMHandler {
+
+	return &IAMHandler{
+		iamSrv:        iamSrv,
+		authCookie:    authCookie,
+		log:           log,
+		maxFileSizeMB: maxFileSizeMB,
+	}
 }
 
 func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *http.ServeMux {
@@ -39,6 +53,7 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	mux.Handle("PUT /users/{userID}/activate", authMiddleware(http.HandlerFunc(h.ActivateUser)))
 	mux.Handle("PUT /users/{userID}/deactivate", authMiddleware(http.HandlerFunc(h.DeactivateUser)))
 	mux.Handle("GET /users/{userID}", authMiddleware(http.HandlerFunc(h.GetUser)))
+	mux.Handle("PUT /users/{userID}", authMiddleware(http.HandlerFunc(h.UpdateUser)))
 	mux.Handle("DELETE /users/{userID}", authMiddleware(http.HandlerFunc(h.DeleteUser)))
 
 	// Auth routes are unauthenticated
@@ -268,6 +283,59 @@ func (h *IAMHandler) RegenerateVerification(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *IAMHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	actorID := middleware.ActorIDFromContext(r.Context())
+	userID := r.PathValue("userID")
+
+	r.Body = http.MaxBytesReader(w, r.Body, h.maxFileSizeMB<<20)
+
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid form data")
+		return
+	}
+
+	title := strings.TrimSpace(r.FormValue("title"))
+
+	params := iam.UpdateUserParams{
+		ActorID:   actorID,
+		UserID:    userID,
+		FirstName: r.FormValue("firstName"),
+		LastName:  r.FormValue("lastName"),
+		Email:     r.FormValue("email"),
+		Role:      r.FormValue("role"),
+	}
+
+	if title != "" {
+		params.Title = &title
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		if !errors.Is(err, http.ErrMissingFile) {
+			response.WriteError(w, http.StatusBadRequest, "invalid image upload")
+			return
+		}
+	} else {
+		defer file.Close()
+
+		params.Image = &iam.ProfileImageParams{
+			FileName: header.Filename,
+			MimeType: header.Header.Get("Content-Type"),
+			Size:     header.Size,
+			Reader:   file,
+		}
+	}
+
+	err = h.iamSrv.Update(r.Context(), params)
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *IAMHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	actorID := middleware.ActorIDFromContext(r.Context())
@@ -343,8 +411,8 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 	case errors.Is(err, domainiam.ErrUserImageNameCannotBeEmpty):
 		response.WriteError(w, http.StatusBadRequest, "invalid image")
 
-	case errors.Is(err, domainiam.ErrUserMimeTypeCannotBeEmpty):
-		response.WriteError(w, http.StatusBadRequest, "invalid mime-type")
+	case errors.Is(err, domainiam.ErrUserInvalidImageMimeType):
+		response.WriteError(w, http.StatusBadRequest, "invalid image type")
 
 	case errors.Is(err, domainverification.ErrVerificationIDCannotBeEmpty):
 		response.WriteError(w, http.StatusBadRequest, "verification id cannot be empty")

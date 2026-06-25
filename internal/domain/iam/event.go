@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	EventTypeUserCreated  common.EventType = "iam.user.created"
-	EventTypeUserVerified common.EventType = "iam.user.verified"
+	EventTypeUserCreated      common.EventType = "iam.user.created"
+	EventTypeUserVerified     common.EventType = "iam.user.verified"
+	EventTypeUserEmailChanged common.EventType = "iam.user.email.changed"
 )
 
 type UserCreatedEvent struct {
@@ -29,4 +30,14 @@ type UserVerifiedEvent struct {
 
 func (e UserVerifiedEvent) EventType() common.EventType {
 	return EventTypeUserVerified
+}
+
+type UserEmailChangedEvent struct {
+	UserID     UserID
+	NewEmail   Email
+	OccurredAt time.Time
+}
+
+func (e UserEmailChangedEvent) EventType() common.EventType {
+	return EventTypeUserEmailChanged
 }

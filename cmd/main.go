@@ -354,6 +354,7 @@ func main() {
 
 	verificationEmailEvtHdl := iamEvtHdl.NewSendVerificationEmail(mlr, iamRepo)
 	verifiedEmailEvtHdl := iamEvtHdl.NewSendVerifiedEmail(mlr, iamRepo)
+	emailChangedEvtHdl := iamEvtHdl.NewEmailChanged(mlr, idgen, verificationRepo)
 	contractCreatedEvtHdl := messageEvtHdl.NewAddContractCreatedMessage(systemMsgPub)
 	contractStatusEvtHdl := messageEvtHdl.NewAddContractStatusChangedMessage(iamRepo, systemMsgPub)
 	fileUploadEvtHdl := messageEvtHdl.NewAddFileUploadedMessage(messageRepo, channelRepo, iamRepo, extBus, idgen)
@@ -374,6 +375,7 @@ func main() {
 	intBus.Subscribe(billing.EventTypeInvoiceStatusChanged, invoiceStatusEvtHdl.Handle)
 	intBus.Subscribe(iam.EventTypeUserCreated, createDefaultChannelEvtHdl.Handle)
 	intBus.Subscribe(iam.EventTypeUserVerified, verifiedEmailEvtHdl.Handle)
+	intBus.Subscribe(iam.EventTypeUserEmailChanged, emailChangedEvtHdl.Handle)
 	intBus.Subscribe(project.EventTypeProjectCreated, createProjectChannelEvtHdl.Handle)
 
 	// Domain services
@@ -466,7 +468,7 @@ func main() {
 
 	// Handlers
 	// ----------------------------------------------------------------------------
-	iamHdl := iamHandler.NewIAMHandler(iamAppService, authCookie, log)
+	iamHdl := iamHandler.NewIAMHandler(iamAppService, authCookie, log, maxUploadSizeMB)
 	projectHdl := projectHandler.NewProjectHandler(projectAppService, log)
 	contractHdl := contractHandler.NewContractHandler(contractAppService, log)
 	billingHdl := billingHandler.NewBillingHandler(billingAppService, log)

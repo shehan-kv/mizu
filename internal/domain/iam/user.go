@@ -203,6 +203,42 @@ func (u *User) RecordSignIn(now time.Time) {
 	u.updatedAt = now
 }
 
+func (u *User) ChangeName(name Name, now time.Time) {
+	u.name = name
+	u.updatedAt = now
+}
+
+func (u *User) AssignRole(role Role, now time.Time) {
+	u.role = role
+	u.updatedAt = now
+}
+
+func (u *User) ChangeEmail(email Email, now time.Time) {
+	if u.email == email {
+		return
+	}
+
+	u.email = email
+	u.isVerified = false
+	u.updatedAt = now
+
+	u.events = append(u.events, UserEmailChangedEvent{
+		UserID:     u.id,
+		NewEmail:   email,
+		OccurredAt: now,
+	})
+}
+
+func (u *User) ChangeTitle(title *string, now time.Time) {
+	u.title = title
+	u.updatedAt = now
+}
+
+func (u *User) ChangeImage(image *Image, now time.Time) {
+	u.image = image
+	u.updatedAt = now
+}
+
 func (u *User) PullEvents() []common.Event {
 	events := u.events
 	u.events = nil
