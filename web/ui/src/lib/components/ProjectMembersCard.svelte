@@ -44,7 +44,8 @@
 			{#if res && res.length > 0}
 				{#each res as member (member.id)}
 					<UserCard
-						image={member.image}
+						id={member.id}
+						hasImage={member.hasImage}
 						role={member.role}
 						title={member.title}
 						name={`${member.firstName} ${member.lastName}`}
