@@ -385,7 +385,7 @@ func (r *FileRepository) ListByProject(ctx context.Context, f message.ProjectFil
 	ex := r.executor(ctx)
 
 	query := `
-        SELECT
+        SELECT DISTINCT
             f.id,
             f.channel_id,
             f.user_id,
@@ -396,12 +396,14 @@ func (r *FileRepository) ListByProject(ctx context.Context, f message.ProjectFil
             f.size,
             f.uploaded_at
         FROM files f
-        INNER JOIN channels c ON c.id = f.channel_id
-		WHERE c.project_id = ?
+    	INNER JOIN channels c ON c.id = f.channel_id
+    	INNER JOIN channel_members cm ON cm.channel_id = c.id
+    	WHERE c.project_id = ?
+      	AND cm.user_id = ?
     `
 
-	args := make([]any, 0, 5)
-	args = append(args, f.ProjectID.String())
+	args := make([]any, 0, 6)
+	args = append(args, f.ProjectID.String(), f.MemberID.String())
 
 	if f.Keyword != nil {
 		query += `

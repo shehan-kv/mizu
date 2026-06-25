@@ -350,25 +350,27 @@ func (r *FileRepository) ListByProject(ctx context.Context, f message.ProjectFil
 	var query strings.Builder
 	args := make([]any, 0, 6)
 
-	argPos := 1
-
 	query.WriteString(`
-        SELECT
-            f.id,
-            f.channel_id,
-            f.user_id,
-            f.original_name,
-            f.saved_name,
-            f.storage_key,
-            f.mime_type,
-            f.size,
-            f.uploaded_at
-        FROM files f
-        INNER JOIN channels c ON c.id = f.channel_id
-        WHERE c.project_id = $1
+	SELECT DISTINCT
+		f.id,
+		f.channel_id,
+		f.user_id,
+		f.original_name,
+		f.saved_name,
+		f.storage_key,
+		f.mime_type,
+		f.size,
+		f.uploaded_at
+	FROM files f
+    INNER JOIN channels c ON c.id = f.channel_id
+    INNER JOIN channel_members cm ON cm.channel_id = c.id
+    WHERE c.project_id = $1
+      AND cm.user_id = $2
     `)
 
-	args = append(args, f.ProjectID.String())
+	argPos := 2
+
+	args = append(args, f.ProjectID.String(), f.MemberID.String())
 	argPos++
 
 	if f.Keyword != nil {

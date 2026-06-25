@@ -707,6 +707,7 @@ func (s *Service) ListProjectFiles(ctx context.Context, params ListProjectFilesP
 	}
 
 	filter := message.ProjectFileFilter{
+		MemberID:  actor,
 		ProjectID: pID,
 		Keyword:   params.Keyword,
 	}
