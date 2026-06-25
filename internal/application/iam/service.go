@@ -530,10 +530,7 @@ func (s *Service) Update(ctx context.Context, params UpdateUserParams) error {
 
 	user.ChangeName(name, now)
 	user.ChangeEmail(email, now)
-
-	if params.Title != nil {
-		user.ChangeTitle(params.Title, now)
-	}
+	user.ChangeTitle(params.Title, now)
 
 	if actorID != userID {
 		role, err := iam.NewRole(params.Role)
