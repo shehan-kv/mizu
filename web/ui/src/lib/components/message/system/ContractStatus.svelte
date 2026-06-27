@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { toTitleCase } from '$lib/utils/toTitleCase';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import FileText from 'phosphor-svelte/lib/FileText';
 
 	export interface ContractStatusPayload {
@@ -32,13 +31,7 @@
 	</p>
 	<div class="flex items-center gap-1">
 		<FileText size={16} weight="fill" />
-		<p class="grow">Contract {toTitleCase(message.status)}</p>
-		<button
-			title="Download"
-			class="cursor-pointer p-1 text-neutral-500 hover:text-neutral-950 dark:hover:text-neutral-50"
-		>
-			<DownloadSimple size={16} />
-		</button>
+		<p>Contract {toTitleCase(message.status)}</p>
 	</div>
 
 	<div class="mt-3">
@@ -50,8 +43,7 @@
 			class="w-fit rounded bg-neutral-200
 				px-3 py-1.5 text-xs dark:bg-neutral-800"
 		>
-			{message.firstName}
-			{message.lastName}
+			{`${message.firstName} ${message.lastName}`}
 		</p>
 	</div>
 </div>

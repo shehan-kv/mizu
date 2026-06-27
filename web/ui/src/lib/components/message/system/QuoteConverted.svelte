@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { currencyFormatter } from '$lib/utils/currencyFormatter';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
 	import Invoice from 'phosphor-svelte/lib/Invoice';
 
 	export interface QuoteConvertedPayload {
@@ -29,13 +28,7 @@
 	</p>
 	<div class="flex items-center gap-1">
 		<Invoice size={16} />
-		<p class="grow">Quote Converted to Invoice</p>
-		<button
-			title="Download"
-			class="cursor-pointer p-1 text-neutral-500 hover:text-neutral-950 dark:hover:text-neutral-50"
-		>
-			<DownloadSimple size={16} />
-		</button>
+		<p>Quote Converted to Invoice</p>
 	</div>
 
 	<div class="mt-3">
