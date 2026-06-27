@@ -66,22 +66,21 @@ export interface Message {
 
 export async function getChannelMessages(
 	channelId: string,
-	page: number,
 	limit: number,
+	before?: string,
 	signal?: AbortSignal
 ) {
 	const params = new URLSearchParams();
 
-	params.set('page', page.toString());
+	if (before) {
+		params.set('before', before);
+	}
 	params.set('limit', limit.toString());
 
-	return apiFetch<PaginatedResponse<Message>>(
-		`messages/channels/${channelId}?${params.toString()}`,
-		{
-			method: 'GET',
-			signal
-		}
-	);
+	return apiFetch<Message[]>(`messages/channels/${channelId}?${params.toString()}`, {
+		method: 'GET',
+		signal
+	});
 }
 
 export interface ChannelFile {
