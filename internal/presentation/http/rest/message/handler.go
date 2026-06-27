@@ -10,6 +10,7 @@ import (
 	domainproject "mizu/internal/domain/project"
 	"mizu/internal/presentation/http/rest/middleware"
 	"mizu/internal/presentation/http/rest/page"
+	"mizu/internal/presentation/http/rest/query"
 	"mizu/internal/presentation/http/rest/response"
 	"net/http"
 	"strconv"
@@ -160,36 +161,42 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MessageHandler) ListChannelMessages(w http.ResponseWriter, r *http.Request) {
-	p, err := page.FromQuery(r)
+	limit, err := query.ExtractInt(r, "limit", 50)
 	if err != nil {
 		response.WriteError(w, http.StatusBadRequest, "invalid pagination parameters")
 		return
 	}
 
+	if limit > 100 {
+		limit = 100
+	}
+
 	actorID := middleware.ActorIDFromContext(r.Context())
 
+	before := r.URL.Query().Get("before")
+
+	var beforeID *string
+	if before != "" {
+		beforeID = &before
+	}
+
 	result, err := h.msgSrv.ListChannelMessages(r.Context(), message.ListChannelMessagesParams{
-		ActorID:   actorID,
-		ChannelID: r.PathValue("channelID"),
-		Limit:     p.Limit,
-		Offset:    p.Offset,
+		ActorID:         actorID,
+		ChannelID:       r.PathValue("channelID"),
+		Limit:           limit,
+		BeforeMessageID: beforeID,
 	})
 	if err != nil {
 		h.writeServiceError(w, r.Method, r.URL.Path, err)
 		return
 	}
 
-	messages := make([]MessageResponse, len(result.Items))
-	for i := range result.Items {
-		messages[i] = toMessageResponse(&result.Items[i])
+	messages := make([]MessageResponse, len(result))
+	for i := range result {
+		messages[i] = toMessageResponse(&result[i])
 	}
 
-	response.WriteJSON(w, http.StatusOK, page.PaginatedResponse[MessageResponse]{
-		Items:      messages,
-		TotalCount: result.TotalCount,
-		Page:       p.Page,
-		Limit:      p.Limit,
-	})
+	response.WriteJSON(w, http.StatusOK, messages)
 }
 
 func (h *MessageHandler) UploadFile(w http.ResponseWriter, r *http.Request) {

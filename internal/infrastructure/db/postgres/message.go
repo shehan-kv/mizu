@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"mizu/internal/domain/common"
 	"mizu/internal/domain/iam"
 	"mizu/internal/domain/message"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -148,33 +148,55 @@ func (r *MessageRepository) Get(ctx context.Context, messageID message.MessageID
 	), nil
 }
 
-func (r *MessageRepository) ListByChannel(ctx context.Context, channelID message.ChannelID, page common.Page) ([]*message.Message, error) {
+func (r *MessageRepository) ListByChannel(
+	ctx context.Context,
+	channelID message.ChannelID,
+	before *message.MessageID,
+	limit int,
+) ([]*message.Message, error) {
+
 	ex := r.executor(ctx)
 
 	var query strings.Builder
+	query.WriteString(`
+	SELECT
+		id,
+		channel_id,
+		sender_id,
+		is_system,
+		content,
+		created_at
+	FROM messages
+	WHERE channel_id = $1
+	`)
+
+	args := []any{channelID.String()}
+	argPos := 2
+
+	if before != nil {
+		query.WriteString(`
+		AND id < $
+	`)
+		query.WriteString(strconv.Itoa(argPos))
+		args = append(args, before.String())
+		argPos++
+	}
 
 	query.WriteString(`
-        SELECT
-            id,
-            channel_id,
-            sender_id,
-            is_system,
-            content,
-            created_at
-        FROM messages
-        WHERE channel_id = $1
-        ORDER BY created_at ASC
-        LIMIT $2
-        OFFSET $3
-    `)
+	ORDER BY id DESC
+	LIMIT $
+	`)
+	query.WriteString(strconv.Itoa(argPos))
+	args = append(args, limit)
 
-	rows, err := ex.QueryContext(ctx, query.String(), channelID.String(), page.Limit(), page.Offset())
+	rows, err := ex.QueryContext(ctx, query.String(), args...)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"message.MessageRepository.ListByChannel: %w",
 			err,
 		)
 	}
+
 	defer rows.Close()
 
 	messages := make([]*message.Message, 0)
@@ -258,28 +280,4 @@ func (r *MessageRepository) ListByChannel(ctx context.Context, channelID message
 	}
 
 	return messages, nil
-}
-
-func (r *MessageRepository) CountByChannel(ctx context.Context, channelID message.ChannelID) (int, error) {
-	ex := r.executor(ctx)
-
-	row := ex.QueryRowContext(
-		ctx,
-		`SELECT COUNT(*)
-		FROM messages
-		WHERE channel_id = $1`,
-		channelID.String(),
-	)
-
-	var count int
-
-	err := row.Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf(
-			"message.MessageRepository.CountByChannel: %w",
-			err,
-		)
-	}
-
-	return count, nil
 }

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"mizu/internal/domain/common"
 	"mizu/internal/domain/iam"
 	"mizu/internal/domain/message"
+	"strings"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -156,27 +156,45 @@ func (r *MessageRepository) Get(ctx context.Context, messageID message.MessageID
 	), nil
 }
 
-func (r *MessageRepository) ListByChannel(ctx context.Context, channelID message.ChannelID, page common.Page) ([]*message.Message, error) {
+func (r *MessageRepository) ListByChannel(
+	ctx context.Context,
+	channelID message.ChannelID,
+	before *message.MessageID,
+	limit int,
+) ([]*message.Message, error) {
+
 	ex := r.executor(ctx)
 
-	rows, err := ex.QueryContext(
-		ctx,
-		`SELECT
-            id,
-            channel_id,
-            sender_id,
-            is_system,
-            content,
-            created_at
-        FROM messages
-        WHERE channel_id = ?
-        ORDER BY created_at ASC
-        LIMIT ?
-        OFFSET ?`,
-		channelID.String(),
-		page.Limit(),
-		page.Offset(),
-	)
+	var query strings.Builder
+
+	query.WriteString(`
+    SELECT
+        id,
+        channel_id,
+        sender_id,
+        is_system,
+        content,
+        created_at
+    FROM messages
+    WHERE channel_id = ?
+	`)
+
+	args := []any{channelID.String()}
+
+	if before != nil {
+		query.WriteString(`
+        AND id < ?
+    `)
+		args = append(args, before.String())
+	}
+
+	query.WriteString(`
+    ORDER BY id DESC
+    LIMIT ?
+	`)
+	args = append(args, limit)
+
+	rows, err := ex.QueryContext(ctx, query.String(), args...)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"message.MessageRepository.ListByChannel: %w",
@@ -266,28 +284,4 @@ func (r *MessageRepository) ListByChannel(ctx context.Context, channelID message
 	}
 
 	return messages, nil
-}
-
-func (r *MessageRepository) CountByChannel(ctx context.Context, channelID message.ChannelID) (int, error) {
-	ex := r.executor(ctx)
-
-	row := ex.QueryRowContext(
-		ctx,
-		`SELECT COUNT(*)
-        FROM messages
-        WHERE channel_id = ?`,
-		channelID.String(),
-	)
-
-	var count int
-
-	err := row.Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf(
-			"message.MessageRepository.CountByChannel: %w",
-			err,
-		)
-	}
-
-	return count, nil
 }

@@ -393,35 +393,42 @@ func (s *Service) CreateMessage(ctx context.Context, params CreateMessageParams)
 	return nil
 }
 
-func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMessagesParams) (shared.Collection[MessageDTO], error) {
+func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMessagesParams) ([]MessageDTO, error) {
 
 	actor, err := iam.NewUserID(params.ActorID)
 	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
+		return nil, err
 	}
 
 	channelID, err := message.NewChannelID(params.ChannelID)
 	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
+		return nil, err
 	}
 
-	page, err := common.NewPage(params.Limit, params.Offset)
-	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
+	var beforeID *message.MessageID
+	if params.BeforeMessageID != nil {
+		id, err := message.NewMessageID(*params.BeforeMessageID)
+		if err != nil {
+			return nil, err
+		}
+
+		beforeID = &id
 	}
 
 	channel, err := s.channelRepo.Get(ctx, channelID)
 	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
+		return nil, err
 	}
 	if !channel.HasMember(actor) {
-		return shared.Collection[MessageDTO]{}, message.ErrNotChannelMember
+		return nil, message.ErrNotChannelMember
 	}
 
-	messages, err := s.messageRepo.ListByChannel(ctx, channelID, page)
+	messages, err := s.messageRepo.ListByChannel(ctx, channelID, beforeID, params.Limit)
 	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
+		return nil, err
 	}
+
+	slices.Reverse(messages)
 
 	seen := make(map[iam.UserID]struct{})
 	senderIDs := make([]iam.UserID, 0)
@@ -437,7 +444,7 @@ func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMes
 
 	users, err := s.iamRepo.ListByIDs(ctx, senderIDs, iam.UserFilter{})
 	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
+		return nil, err
 	}
 
 	userMap := make(map[iam.UserID]iam.User, len(users))
@@ -475,12 +482,7 @@ func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMes
 		dtos[i] = dto
 	}
 
-	count, err := s.messageRepo.CountByChannel(ctx, channelID)
-	if err != nil {
-		return shared.Collection[MessageDTO]{}, err
-	}
-
-	return shared.Collection[MessageDTO]{Items: dtos, TotalCount: count}, nil
+	return dtos, nil
 }
 
 func (s *Service) UploadFile(ctx context.Context, params UploadFileParams) error {
