@@ -184,6 +184,8 @@ func main() {
 		}
 	}
 
+	initCtx := context.Background()
+
 	// FileStore
 	// ----------------------------------------------------------------------------
 	var fileStore filestore.Store
@@ -191,10 +193,24 @@ func main() {
 	case "disk":
 		localStore, err := filestoreInfra.NewLocalStore()
 		if err != nil {
-			log.Fatal("write error message here", "err", err)
+			log.Fatal("failed to initialize disk filestore", "err", err)
 		}
 		fileStore = localStore
 
+	case "s3":
+		config := filestoreInfra.S3Config{
+			Endpoint:  env("S3_ENDPOINT"),
+			Region:    requireEnv(log, "S3_REGION"),
+			Bucket:    requireEnv(log, "S3_BUCKET"),
+			AccessKey: requireEnv(log, "S3_ACCESS_KEY"),
+			SecretKey: requireEnv(log, "S3_SECRET_KEY"),
+		}
+		s3Store, err := filestoreInfra.NewS3Store(initCtx, config)
+		if err != nil {
+			log.Fatal("failed to initialize s3 filestore", "err", err)
+		}
+
+		fileStore = s3Store
 	default:
 		log.Fatal("unsupported file storage driver", "driver", fileStorageDriver)
 	}
@@ -234,7 +250,7 @@ func main() {
 
 		client := redis.NewClient(opts)
 
-		if err := client.Ping(context.Background()).Err(); err != nil {
+		if err := client.Ping(initCtx).Err(); err != nil {
 			log.Fatal("redis connection failed", "err", err)
 		}
 
@@ -328,7 +344,7 @@ func main() {
 
 		client := redis.NewClient(opts)
 
-		if err := client.Ping(context.Background()).Err(); err != nil {
+		if err := client.Ping(initCtx).Err(); err != nil {
 			log.Fatal("redis message bus connection failed", "err", err)
 		}
 
