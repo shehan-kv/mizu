@@ -16,7 +16,11 @@
 	import { toast } from 'svelte-sonner';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 
-	let { openMobileMenu }: { openMobileMenu: () => void } = $props();
+	interface Props {
+		openMobileMenu: () => void;
+		openProfileSettings: () => void;
+	}
+	let { openMobileMenu, openProfileSettings }: Props = $props();
 
 	let signoutLoading = $state(false);
 
@@ -79,7 +83,7 @@
 						Sign Out
 					</button>
 				</DropdownMenu.Item>
-				<DropdownMenu.Item class="py-2">
+				<DropdownMenu.Item class="py-2" onclick={openProfileSettings}>
 					<span class="flex items-center gap-3">
 						<UserGear />Profile Settings
 					</span>
