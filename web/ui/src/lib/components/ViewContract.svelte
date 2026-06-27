@@ -129,7 +129,9 @@
 				{#if contract.signatories.length > 0}
 					{#each contract.signatories as signatory (signatory.id)}
 						<div class="flex gap-1.5">
-							<div class="size-10 rounded-full bg-neutral-200/80 dark:bg-neutral-800">
+							<div
+								class="size-10 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-neutral-800"
+							>
 								{#if signatory.hasImage}
 									<img
 										src={`${BASE_URL}users/profile-images/${signatory.id}`}

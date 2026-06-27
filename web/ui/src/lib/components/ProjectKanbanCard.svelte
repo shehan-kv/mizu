@@ -17,7 +17,7 @@
 			<ArrowRight />
 		</a>
 	</div>
-	<div class="grid grid-cols-3 gap-2 overflow-scroll px-6 py-2">
+	<div class="grid grid-cols-3 gap-2 overflow-auto px-6 py-2">
 		<div class="grid grid-rows-[min-content_1fr] overflow-hidden">
 			<p class="py-3 text-center text-sm">Backlog</p>
 			<div class="overflow-scroll">

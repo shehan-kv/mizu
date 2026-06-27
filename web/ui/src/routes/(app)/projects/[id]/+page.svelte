@@ -143,9 +143,9 @@
 					{#if auth.role == 'administrator'}
 						<button
 							onclick={projectDeleteDialog.open}
-							class="cursor-pointer rounded bg-red-700 px-4 py-2 text-xs text-red-50 transition
-						hover:bg-red-600 dark:bg-red-400 dark:text-red-950
-						dark:hover:bg-red-500"
+							class="cursor-pointer rounded bg-red-500 px-4 py-2 text-xs text-red-50 transition
+							hover:bg-red-600 dark:bg-red-900 dark:text-red-50
+							dark:hover:bg-red-800"
 						>
 							Delete
 						</button>
@@ -239,7 +239,7 @@
 			<ProjectTasksCompletedChartCard bind:this={completedTasks} projectId={id} />
 		</div>
 
-		<div class="col-span-2 rounded bg-neutral-50 dark:bg-neutral-950">
+		<div class="col-span-2 min-h-full rounded bg-neutral-50 dark:bg-neutral-950">
 			<ProjectFilesListCard projectId={id} />
 		</div>
 	</div>

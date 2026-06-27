@@ -13,7 +13,7 @@
 </script>
 
 <div class="flex gap-2">
-	<div class="size-10 overflow-hidden rounded-full bg-neutral-300 dark:bg-neutral-800">
+	<div class="size-10 shrink-0 overflow-hidden rounded-full bg-neutral-300 dark:bg-neutral-800">
 		{#if hasImage}
 			<img
 				src={`${BASE_URL}users/profile-images/${id}`}

@@ -37,7 +37,7 @@
 		<p class="text-sm">Members</p>
 	</div>
 
-	<div class="space-y-2 overflow-scroll px-6 py-4">
+	<div class="space-y-2 overflow-auto px-6 py-4">
 		{#await members}
 			<Spinner />
 		{:then res}

@@ -34,7 +34,7 @@
 </script>
 
 <DashboardCard title="Recent Projects" class={className}>
-	<div class="overflow-scroll px-6 py-2">
+	<div class="overflow-auto px-6 py-2">
 		{#await promise}
 			<Spinner />
 		{:then res}

@@ -20,6 +20,31 @@
 	src: url('/assets/Manrope-Bold.ttf') format('truetype');
 }
 
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(115 115 115 / 0.5) transparent;
+}
+
+/* Scrollbar fallback*/
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(115 115 115 / 0.5); /* neutral-500-ish */
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(115 115 115 / 0.8);
+}
+
 :root {
 	--radius: 0.625rem;
 	--background: oklch(1 0 0);
