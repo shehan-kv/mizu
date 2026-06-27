@@ -7,9 +7,11 @@ type MessageState = {
 
 	unreadCounts: Record<string, number>;
 
-	oldestLoadedPage: number;
+	oldestMessageId: string | null;
 
 	pageSize: number;
+
+	hasMoreOlderMessages: boolean;
 };
 
 const state = $state<MessageState>({
@@ -19,9 +21,11 @@ const state = $state<MessageState>({
 
 	unreadCounts: {},
 
-	oldestLoadedPage: 1,
+	oldestMessageId: null,
 
-	pageSize: 100
+	pageSize: 100,
+
+	hasMoreOlderMessages: true
 });
 
 function setActiveChannel(channelId: string) {
@@ -32,18 +36,39 @@ function setActiveChannel(channelId: string) {
 
 function replaceMessages(messages: Message[]) {
 	state.messages = messages;
+
+	state.hasMoreOlderMessages = true;
+
+	if (messages.length > 0) {
+		state.oldestMessageId = messages[0].id;
+	} else {
+		state.oldestMessageId = null;
+	}
 }
 
 function prependMessages(messages: Message[]) {
 	state.messages = [...messages, ...state.messages];
+
+	if (state.messages.length > 0) {
+		state.oldestMessageId = state.messages[0].id;
+	} else {
+		state.oldestMessageId = null;
+	}
 }
 
 function appendMessage(message: Message) {
-	const exists = state.messages.some((m) => m.id === message.id);
+	const last = state.messages[state.messages.length - 1];
 
-	if (exists) return;
+	// prevent duplicates
+	if (state.messages.some((m) => m.id === message.id)) return;
 
-	state.messages.push(message);
+	if (!last || new Date(message.createdAt) >= new Date(last.createdAt)) {
+		state.messages.push(message);
+	} else {
+		state.messages = [...state.messages, message].sort(
+			(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+		);
+	}
 }
 
 function incrementUnread(channelId: string) {
@@ -57,15 +82,8 @@ function clearUnread(channelId: string) {
 function resetMessages() {
 	state.activeChannelId = null;
 	state.messages = [];
-}
-
-function resetPagination(pageSize = 100) {
-	state.oldestLoadedPage = 1;
-	state.pageSize = pageSize;
-}
-
-function incrementLoadedPage() {
-	state.oldestLoadedPage++;
+	state.oldestMessageId = null;
+	state.hasMoreOlderMessages = true;
 }
 
 export const messageStore = {
@@ -77,7 +95,5 @@ export const messageStore = {
 	appendMessage,
 	incrementUnread,
 	clearUnread,
-	resetPagination,
-	incrementLoadedPage,
 	resetMessages
 };

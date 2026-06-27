@@ -119,9 +119,8 @@
 		try {
 			loading.messages = true;
 
-			const messages = await getChannelMessages(channelId, 1, 100, messageAbort.signal);
-			messageStore.replaceMessages(messages.items);
-			messageStore.resetPagination(100);
+			const messages = await getChannelMessages(channelId, 100, undefined, messageAbort.signal);
+			messageStore.replaceMessages(messages);
 		} catch (err) {
 			if (err instanceof ApiError) {
 				errors.messages = err.message;
@@ -132,6 +131,63 @@
 			loading.messages = false;
 			await tick();
 			scrollToBottom(true);
+		}
+	}
+
+	let loadingOlder = $state(false);
+	let olderAbort: AbortController | null = null;
+	async function loadOlderMessages() {
+		if (!messageStore.state.activeChannelId) return;
+		if (!messageStore.state.oldestMessageId) return;
+		if (!messageStore.state.hasMoreOlderMessages) return;
+		if (!chatWindow) return;
+		if (loadingOlder) return;
+
+		olderAbort?.abort();
+		olderAbort = new AbortController();
+
+		loadingOlder = true;
+
+		const previousHeight = chatWindow.scrollHeight;
+
+		try {
+			const messages = await getChannelMessages(
+				messageStore.state.activeChannelId,
+				100,
+				messageStore.state.oldestMessageId,
+				olderAbort.signal
+			);
+
+			if (messages.length < messageStore.state.pageSize) {
+				messageStore.state.hasMoreOlderMessages = false;
+			}
+
+			if (messages.length > 0) {
+				messageStore.prependMessages(messages);
+
+				await tick();
+
+				const newHeight = chatWindow.scrollHeight;
+				chatWindow.scrollTop += newHeight - previousHeight;
+			}
+		} catch (err) {
+			if (err instanceof ApiError) {
+				toast.error(toTitleCase(err.message));
+			} else {
+				toast.error('Failed To Load Older Messages');
+			}
+		} finally {
+			loadingOlder = false;
+		}
+	}
+
+	function handleMessageScroll() {
+		if (!chatWindow) return;
+
+		const threshold = 10;
+
+		if (chatWindow.scrollTop <= threshold) {
+			loadOlderMessages();
 		}
 	}
 
@@ -325,7 +381,17 @@
 		{:else if !loading.messages && selectedChannel}
 			<div class="grid auto-rows-[1fr_min-content] overflow-y-auto px-4 pb-4">
 				{#if messageStore.state.messages.length > 0}
-					<div class="grow overflow-y-auto pb-8 whitespace-pre-line" bind:this={chatWindow}>
+					<div
+						class="grow overflow-y-auto pb-8 whitespace-pre-line"
+						bind:this={chatWindow}
+						onscroll={handleMessageScroll}
+					>
+						{#if loadingOlder}
+							<div class="py-2">
+								<Spinner />
+							</div>
+						{/if}
+
 						{#each messageStore.state.messages as message (message.id)}
 							{#if !message.isSystem}
 								<Message.User
