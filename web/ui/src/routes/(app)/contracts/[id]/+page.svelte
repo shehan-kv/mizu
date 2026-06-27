@@ -75,7 +75,7 @@
 		<Spinner />
 	{:then res}
 		{#if res}
-			<ViewContract contract={res} />
+			<ViewContract contract={res} refresh={loadContract} />
 		{:else}
 			<ErrorMessage variant="info" text="Contract Not Found" />
 		{/if}
