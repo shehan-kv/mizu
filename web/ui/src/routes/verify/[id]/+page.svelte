@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { ApiError } from '$lib/api/client';
 	import { verifyUser } from '$lib/api/users';
 	import FullScreenErrorMessage from '$lib/components/FullScreenErrorMessage.svelte';
@@ -16,23 +15,21 @@
 
 	let { data } = $props();
 
-	let id = page.params.id || '';
-
 	let isLoading = $state(false);
 	let verifyForm = $state({
 		password: '',
 		confirmPassword: ''
 	});
 
-	let submitAbort: AbortController | null = null;
+	let abort: AbortController | null = null;
 	function onSubmit(e: SubmitEvent) {
 		e.preventDefault();
 
-		submitAbort?.abort();
-		submitAbort = new AbortController();
+		abort?.abort();
+		abort = new AbortController();
 
 		isLoading = true;
-		verifyUser(id, verifyForm, submitAbort.signal)
+		verifyUser(data.id, verifyForm, abort.signal)
 			.then(() => {
 				goto(resolve('/sign-in'));
 			})
