@@ -261,7 +261,7 @@ func (h *IAMHandler) ConfirmRecovery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.iamSrv.VerifyAccount(r.Context(), r.PathValue("verificationID"), req.Password)
+	err := h.iamSrv.ConfirmRecovery(r.Context(), r.PathValue("recoveryToken"), req.Password)
 	if err != nil {
 		h.writeServiceError(w, r.Method, r.URL.Path, err)
 		return
