@@ -15,7 +15,7 @@ import (
 )
 
 type Service struct {
-	iamRepo     iam.Repository
+	userRepo    iam.UserRepository
 	billingRepo billing.Repository
 	projectRepo project.Repository
 
@@ -30,7 +30,7 @@ type Service struct {
 }
 
 func NewService(
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	billingRepo billing.Repository,
 	projectRepo project.Repository,
 	authzSrv *authz.Service,
@@ -40,7 +40,7 @@ func NewService(
 	logger logger.Logger,
 ) *Service {
 	return &Service{
-		iamRepo:     iamRepo,
+		userRepo:    userRepo,
 		billingRepo: billingRepo,
 		projectRepo: projectRepo,
 		authzSrv:    authzSrv,
@@ -417,7 +417,7 @@ func (s *Service) EmailInvoice(ctx context.Context, invoiceID string, actorID st
 		return err
 	}
 
-	m, err := s.iamRepo.GetByID(ctx, member)
+	m, err := s.userRepo.GetByID(ctx, member)
 	if err != nil {
 		return err
 	}

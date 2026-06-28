@@ -13,24 +13,24 @@ import (
 	"github.com/mattn/go-sqlite3"
 )
 
-type IAMRepository struct {
+type UserRepository struct {
 	db *sql.DB
 }
 
-func NewIAMRepository(db *sql.DB) *IAMRepository {
-	return &IAMRepository{
+func NewUserRepository(db *sql.DB) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
-func (r *IAMRepository) executor(ctx context.Context) executor {
+func (r *UserRepository) executor(ctx context.Context) executor {
 	if tx, ok := txFromContext(ctx); ok {
 		return tx
 	}
 	return r.db
 }
 
-func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
+func (r *UserRepository) Add(ctx context.Context, user *iam.User) error {
 	ex := r.executor(ctx)
 
 	query := `
@@ -83,19 +83,19 @@ func (r *IAMRepository) Add(ctx context.Context, user *iam.User) error {
 	if err != nil {
 		if sqlite3Err, ok := errors.AsType[sqlite3.Error](err); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
-				return fmt.Errorf("iam.IAMRepository.Add: duplicate user id: %w", err)
+				return fmt.Errorf("iam.UserRepository.Add: duplicate user id: %w", err)
 			}
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintUnique {
 				return fmt.Errorf("%w: %w", iam.ErrUserEmailAlreadyExists, err)
 			}
 		}
-		return fmt.Errorf("iam.IAMRepository.Add: %w", err)
+		return fmt.Errorf("iam.UserRepository.Add: %w", err)
 	}
 
 	return nil
 }
 
-func (r *IAMRepository) Exists(ctx context.Context, id iam.UserID) (bool, error) {
+func (r *UserRepository) Exists(ctx context.Context, id iam.UserID) (bool, error) {
 	ex := r.executor(ctx)
 
 	query := `
@@ -107,13 +107,13 @@ func (r *IAMRepository) Exists(ctx context.Context, id iam.UserID) (bool, error)
 	var exists bool
 	err := ex.QueryRowContext(ctx, query, id.String()).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("iam.IAMRepository.Exists: %w", err)
+		return false, fmt.Errorf("iam.UserRepository.Exists: %w", err)
 	}
 
 	return exists, nil
 }
 
-func (r *IAMRepository) ExistsAll(ctx context.Context, ids []iam.UserID) (bool, error) {
+func (r *UserRepository) ExistsAll(ctx context.Context, ids []iam.UserID) (bool, error) {
 	ex := r.executor(ctx)
 
 	if len(ids) == 0 {
@@ -142,13 +142,13 @@ func (r *IAMRepository) ExistsAll(ctx context.Context, ids []iam.UserID) (bool, 
 	var count int
 	err := ex.QueryRowContext(ctx, sb.String(), args...).Scan(&count)
 	if err != nil {
-		return false, fmt.Errorf("iam.IAMRepository.ExistsAll: %w", err)
+		return false, fmt.Errorf("iam.UserRepository.ExistsAll: %w", err)
 	}
 
 	return count == len(seen), nil
 }
 
-func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, error) {
 	ex := r.executor(ctx)
 
 	query := `
@@ -209,39 +209,39 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: %w", iam.ErrUserNotFound, err)
 		}
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	userID, err := iam.NewUserID(rawID)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	emailVO, err := iam.NewEmail(email)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	name, err := iam.NewName(firstName, lastName)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	roleVO, err := iam.NewRole(role)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	var imageVO *iam.Image
 	if image != nil && imageMime != nil {
 		imgName, err := iam.NewImageName(*image)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 		}
 
 		imgMime, err := iam.NewMimeType(*imageMime)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.GetByID: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 		}
 
 		img := iam.NewImage(imgName, imgMime)
@@ -266,7 +266,7 @@ func (r *IAMRepository) GetByID(ctx context.Context, id iam.UserID) (*iam.User, 
 	return user, nil
 }
 
-func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Email) (*iam.UserCredentials, error) {
+func (r *UserRepository) GetByEmail(ctx context.Context, e iam.Email) (*iam.User, error) {
 	ex := r.executor(ctx)
 
 	query := `
@@ -276,8 +276,8 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		last_name, 
 		role, 
 		title, 
-		password, 
-		image, 
+		email, 
+		image,
 		image_mime, 
 		is_active, 
 		is_verified, 
@@ -288,7 +288,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
     FROM users
     WHERE email = ?
     `
-	row := ex.QueryRowContext(ctx, query, email.String())
+	row := ex.QueryRowContext(ctx, query, e.String())
 
 	var (
 		rawID        string
@@ -296,7 +296,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		lastName     string
 		role         string
 		title        *string
-		password     string
+		email        string
 		image        *string
 		imageMime    *string
 		isActive     bool
@@ -313,7 +313,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		&lastName,
 		&role,
 		&title,
-		&password,
+		&email,
 		&image,
 		&imageMime,
 		&isActive,
@@ -327,34 +327,39 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w: %w", iam.ErrUserNotFound, err)
 		}
-		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	userID, err := iam.NewUserID(rawID)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
+	}
+
+	emailVO, err := iam.NewEmail(email)
+	if err != nil {
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	name, err := iam.NewName(firstName, lastName)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	roleVO, err := iam.NewRole(role)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 	}
 
 	var imageVO *iam.Image
 	if image != nil && imageMime != nil {
 		imgName, err := iam.NewImageName(*image)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 		}
 
 		imgMime, err := iam.NewMimeType(*imageMime)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.GetCredentialsByEmail: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.GetByID: %w", err)
 		}
 
 		img := iam.NewImage(imgName, imgMime)
@@ -364,7 +369,7 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 	user := iam.RestoreUser(
 		userID,
 		name,
-		email,
+		emailVO,
 		title,
 		roleVO,
 		imageVO,
@@ -376,10 +381,10 @@ func (r *IAMRepository) GetCredentialsByEmail(ctx context.Context, email iam.Ema
 		updatedAt,
 	)
 
-	return iam.NewUserCredentials(user, password), nil
+	return user, nil
 }
 
-func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page common.Page) ([]*iam.User, error) {
+func (r *UserRepository) List(ctx context.Context, filter iam.UserFilter, page common.Page) ([]*iam.User, error) {
 	ex := r.executor(ctx)
 
 	var sb strings.Builder
@@ -431,7 +436,7 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 
 	rows, err := ex.QueryContext(ctx, sb.String(), args...)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 	}
 	defer rows.Close()
 
@@ -471,39 +476,39 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 			&updatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 		}
 
 		userID, err := iam.NewUserID(rawID)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 		}
 
 		emailVO, err := iam.NewEmail(email)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 		}
 
 		name, err := iam.NewName(firstName, lastName)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 		}
 
 		roleVO, err := iam.NewRole(role)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 		}
 
 		var imageVO *iam.Image
 		if image != nil && imageMime != nil {
 			imgName, err := iam.NewImageName(*image)
 			if err != nil {
-				return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+				return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 			}
 
 			imgMime, err := iam.NewMimeType(*imageMime)
 			if err != nil {
-				return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+				return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 			}
 
 			img := iam.NewImage(imgName, imgMime)
@@ -528,13 +533,13 @@ func (r *IAMRepository) List(ctx context.Context, filter iam.UserFilter, page co
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.List: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.List: %w", err)
 	}
 
 	return users, nil
 }
 
-func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.UserFilter) ([]*iam.User, error) {
+func (r *UserRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.UserFilter) ([]*iam.User, error) {
 	ex := r.executor(ctx)
 
 	if len(ids) == 0 {
@@ -599,7 +604,7 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 
 	rows, err := ex.QueryContext(ctx, sb.String(), args...)
 	if err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 	}
 	defer rows.Close()
 
@@ -640,39 +645,39 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 			&updatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 		}
 
 		userID, err := iam.NewUserID(rawID)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 		}
 
 		emailVO, err := iam.NewEmail(email)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 		}
 
 		name, err := iam.NewName(firstName, lastName)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 		}
 
 		roleVO, err := iam.NewRole(role)
 		if err != nil {
-			return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+			return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 		}
 
 		var imageVO *iam.Image
 		if image != nil && imageMime != nil {
 			imgName, err := iam.NewImageName(*image)
 			if err != nil {
-				return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+				return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 			}
 
 			imgMime, err := iam.NewMimeType(*imageMime)
 			if err != nil {
-				return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+				return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 			}
 
 			img := iam.NewImage(imgName, imgMime)
@@ -696,13 +701,13 @@ func (r *IAMRepository) ListByIDs(ctx context.Context, ids []iam.UserID, f iam.U
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iam.IAMRepository.ListByIDs: %w", err)
+		return nil, fmt.Errorf("iam.UserRepository.ListByIDs: %w", err)
 	}
 
 	return users, nil
 }
 
-func (r *IAMRepository) IsAnyAdministrator(ctx context.Context, ids []iam.UserID) (bool, error) {
+func (r *UserRepository) IsAnyAdministrator(ctx context.Context, ids []iam.UserID) (bool, error) {
 	ex := r.executor(ctx)
 
 	if len(ids) == 0 {
@@ -731,13 +736,13 @@ func (r *IAMRepository) IsAnyAdministrator(ctx context.Context, ids []iam.UserID
 	var exists bool
 	err := ex.QueryRowContext(ctx, sb.String(), args...).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("iam.IAMRepository.IsAnyAdministrator: %w", err)
+		return false, fmt.Errorf("iam.UserRepository.IsAnyAdministrator: %w", err)
 	}
 
 	return exists, nil
 }
 
-func (r *IAMRepository) HasAdministrator(ctx context.Context) (bool, error) {
+func (r *UserRepository) HasAdministrator(ctx context.Context) (bool, error) {
 	ex := r.executor(ctx)
 
 	query := `
@@ -752,39 +757,13 @@ func (r *IAMRepository) HasAdministrator(ctx context.Context) (bool, error) {
 	var exists bool
 	err := ex.QueryRowContext(ctx, query, iam.RoleAdministrator.String()).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("iam.IAMRepository.HasAdministrator: %w", err)
+		return false, fmt.Errorf("iam.UserRepository.HasAdministrator: %w", err)
 	}
 
 	return exists, nil
 }
 
-func (r *IAMRepository) SetPassword(ctx context.Context, user *iam.User, hash string) error {
-	ex := r.executor(ctx)
-
-	query := `
-		UPDATE users
-		SET password = ?, version = version + 1
-		WHERE id = ? AND version = ?
-	`
-
-	result, err := ex.ExecContext(ctx, query, hash, user.ID().String(), user.Version())
-	if err != nil {
-		return fmt.Errorf("iam.IAMRepository.SetPassword: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("iam.IAMRepository.SetPassword: %w", err)
-	}
-
-	if rows == 0 {
-		return fmt.Errorf("%w: user id %s not found or version mismatch", iam.ErrUserNotFound, user.ID())
-	}
-
-	return nil
-}
-
-func (r *IAMRepository) Count(ctx context.Context, f iam.UserFilter) (int, error) {
+func (r *UserRepository) Count(ctx context.Context, f iam.UserFilter) (int, error) {
 	ex := r.executor(ctx)
 
 	var sb strings.Builder
@@ -816,13 +795,13 @@ func (r *IAMRepository) Count(ctx context.Context, f iam.UserFilter) (int, error
 
 	err := ex.QueryRowContext(ctx, sb.String(), args...).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("iam.IAMRepository.Count: %w", err)
+		return 0, fmt.Errorf("iam.UserRepository.Count: %w", err)
 	}
 
 	return count, nil
 }
 
-func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
+func (r *UserRepository) Save(ctx context.Context, user *iam.User) error {
 	ex := r.executor(ctx)
 
 	const query = `
@@ -872,12 +851,12 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 		user.Version(),
 	)
 	if err != nil {
-		return fmt.Errorf("iam.IAMRepository.Save: %w", err)
+		return fmt.Errorf("iam.UserRepository.Save: %w", err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("iam.IAMRepository.Save: %w", err)
+		return fmt.Errorf("iam.UserRepository.Save: %w", err)
 	}
 
 	if rows == 0 {
@@ -888,7 +867,7 @@ func (r *IAMRepository) Save(ctx context.Context, user *iam.User) error {
 
 }
 
-func (r *IAMRepository) Remove(ctx context.Context, user *iam.User) error {
+func (r *UserRepository) Remove(ctx context.Context, user *iam.User) error {
 	ex := r.executor(ctx)
 
 	query := `
@@ -903,12 +882,12 @@ func (r *IAMRepository) Remove(ctx context.Context, user *iam.User) error {
 		user.Version(),
 	)
 	if err != nil {
-		return fmt.Errorf("iam.IAMRepository.Remove: %w", err)
+		return fmt.Errorf("iam.UserRepository.Remove: %w", err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("iam.IAMRepository.Remove: %w", err)
+		return fmt.Errorf("iam.UserRepository.Remove: %w", err)
 	}
 
 	if rows == 0 {

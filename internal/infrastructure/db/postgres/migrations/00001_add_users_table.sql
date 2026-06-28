@@ -6,7 +6,6 @@ CREATE TABLE users (
     title TEXT,
     email TEXT NOT NULL,
     role TEXT NOT NULL,
-    password TEXT,
     image TEXT,
     image_mime TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,

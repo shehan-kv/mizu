@@ -47,8 +47,11 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	mux.Handle("GET /users", authMiddleware(http.HandlerFunc(h.ListUsers)))
 	mux.Handle("GET /users/me", authMiddleware(http.HandlerFunc(h.GetMe)))
 	mux.Handle("GET /users/profile-images/{userID}", authMiddleware(http.HandlerFunc(h.GetProfileImage)))
+
+	// Verify routes are unauthenticated
 	mux.Handle("GET /users/verifications/{verificationID}", http.HandlerFunc(h.ValidateVerification))
 	mux.Handle("POST /users/verifications/{verificationID}/confirm", http.HandlerFunc(h.VerifyAccount))
+
 	mux.Handle("POST /users/verifications/{userID}/regenerate-verification", authMiddleware(http.HandlerFunc(h.RegenerateVerification)))
 	mux.Handle("PUT /users/{userID}/activate", authMiddleware(http.HandlerFunc(h.ActivateUser)))
 	mux.Handle("PUT /users/{userID}/deactivate", authMiddleware(http.HandlerFunc(h.DeactivateUser)))

@@ -6,7 +6,6 @@ CREATE TABLE users (
     title TEXT,
     email TEXT NOT NULL UNIQUE,
     role TEXT NOT NULL,
-    password TEXT,
     image TEXT,
     image_mime TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,

@@ -264,7 +264,8 @@ func main() {
 
 	// Repositories
 	// ----------------------------------------------------------------------------
-	var iamRepo iam.Repository
+	var userRepo iam.UserRepository
+	var credsRepo iam.CredentialRepository
 	var verificationRepo verification.Repository
 	var projectRepo project.Repository
 	var taskRepo task.Repository
@@ -289,7 +290,8 @@ func main() {
 
 		defer db.Close()
 
-		iamRepo = sqlite.NewIAMRepository(db)
+		userRepo = sqlite.NewUserRepository(db)
+		credsRepo = sqlite.NewCredentialRepository(db)
 		verificationRepo = sqlite.NewVerificationRepository(db)
 		projectRepo = sqlite.NewProjectRepository(db)
 		taskRepo = sqlite.NewTaskRepository(db)
@@ -313,7 +315,8 @@ func main() {
 
 		defer db.Close()
 
-		iamRepo = postgres.NewIAMRepository(db)
+		userRepo = postgres.NewUserRepository(db)
+		credsRepo = postgres.NewCredentialRepository(db)
 		verificationRepo = postgres.NewVerificationRepository(db)
 		projectRepo = postgres.NewProjectRepository(db)
 		taskRepo = postgres.NewTaskRepository(db)
@@ -368,12 +371,12 @@ func main() {
 
 	systemMsgPub := messageEvtHdl.NewSystemMessagePublisher(channelRepo, messageRepo, extBus, uow, idgen)
 
-	verificationEmailEvtHdl := iamEvtHdl.NewSendVerificationEmail(mlr, iamRepo)
-	verifiedEmailEvtHdl := iamEvtHdl.NewSendVerifiedEmail(mlr, iamRepo)
+	verificationEmailEvtHdl := iamEvtHdl.NewSendVerificationEmail(mlr, userRepo)
+	verifiedEmailEvtHdl := iamEvtHdl.NewSendVerifiedEmail(mlr, userRepo)
 	emailChangedEvtHdl := iamEvtHdl.NewEmailChanged(mlr, idgen, verificationRepo)
 	contractCreatedEvtHdl := messageEvtHdl.NewAddContractCreatedMessage(systemMsgPub)
-	contractStatusEvtHdl := messageEvtHdl.NewAddContractStatusChangedMessage(iamRepo, systemMsgPub)
-	fileUploadEvtHdl := messageEvtHdl.NewAddFileUploadedMessage(messageRepo, channelRepo, iamRepo, extBus, idgen)
+	contractStatusEvtHdl := messageEvtHdl.NewAddContractStatusChangedMessage(userRepo, systemMsgPub)
+	fileUploadEvtHdl := messageEvtHdl.NewAddFileUploadedMessage(messageRepo, channelRepo, userRepo, extBus, idgen)
 	invoiceConvertedEvtHdl := messageEvtHdl.NewAddInvoiceConvertedMessage(systemMsgPub)
 	invoiceCreatedEvtHdl := messageEvtHdl.NewAddInvoiceCreatedMessage(systemMsgPub)
 	invoiceStatusEvtHdl := messageEvtHdl.NewAddInvoiceStatusChangedMessage(systemMsgPub)
@@ -396,17 +399,17 @@ func main() {
 
 	// Domain services
 	// ----------------------------------------------------------------------------
-	iamService := iam.NewService(pwHasher, iamRepo)
-	projectService := project.NewService(iamRepo, projectRepo)
-	taskService := task.NewService(iamRepo, projectRepo)
+	iamService := iam.NewService(pwHasher, credsRepo)
+	projectService := project.NewService(userRepo, projectRepo)
+	taskService := task.NewService(userRepo, projectRepo)
 	contractService := contract.NewService()
 	messageService := message.NewService()
 
 	// Services
 	// ----------------------------------------------------------------------------
-	authzAppService := authzApp.NewService(iamRepo)
+	authzAppService := authzApp.NewService(userRepo)
 	iamAppService := iamApp.NewService(
-		iamRepo,
+		userRepo,
 		verificationRepo,
 		projectRepo,
 		uow,
@@ -422,7 +425,7 @@ func main() {
 		pwHasher,
 	)
 	projectAppService := projectApp.NewService(
-		iamRepo,
+		userRepo,
 		projectRepo,
 		taskRepo,
 		billingRepo,
@@ -436,7 +439,7 @@ func main() {
 		log,
 	)
 	taskAppService := taskApp.NewService(
-		iamRepo,
+		userRepo,
 		taskRepo,
 		projectRepo,
 		taskService,
@@ -446,7 +449,7 @@ func main() {
 		log,
 	)
 	billingAppService := billingApp.NewService(
-		iamRepo,
+		userRepo,
 		billingRepo,
 		projectRepo,
 		authzAppService,
@@ -456,7 +459,7 @@ func main() {
 		log,
 	)
 	contractAppService := contractApp.NewService(
-		iamRepo,
+		userRepo,
 		contractRepo,
 		projectRepo,
 		contractService,
@@ -467,7 +470,7 @@ func main() {
 		log,
 	)
 	messageAppService := messageApp.NewService(
-		iamRepo,
+		userRepo,
 		channelRepo,
 		messageRepo,
 		fileRepo,

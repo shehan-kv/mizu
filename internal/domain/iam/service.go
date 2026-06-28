@@ -2,36 +2,31 @@ package iam
 
 import (
 	"context"
-	"errors"
 )
 
 type Service struct {
-	pwHasher PasswordHasher
-	iamRepo  Repository
+	pwHasher  PasswordHasher
+	credsRepo CredentialRepository
 }
 
-func NewService(pwHasher PasswordHasher, iamRepo Repository) *Service {
-	return &Service{pwHasher: pwHasher, iamRepo: iamRepo}
+func NewService(pwHasher PasswordHasher, credsRepo CredentialRepository) *Service {
+	return &Service{pwHasher: pwHasher, credsRepo: credsRepo}
 }
 
-func (s *Service) Authenticate(ctx context.Context, email Email, password PlainPassword) (*User, error) {
+func (s *Service) Authenticate(ctx context.Context, u *User, p PlainPassword) error {
 
-	creds, err := s.iamRepo.GetCredentialsByEmail(ctx, email)
+	creds, err := s.credsRepo.GetByUser(ctx, u.ID())
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return nil, ErrUserInvalidCredentials
-		}
-		return nil, err
+		return err
 	}
 
-	if !s.pwHasher.Verify(creds.hashedPassword, password) {
-		return nil, ErrUserInvalidCredentials
+	if !s.pwHasher.Verify(creds.Hash(), p) {
+		return ErrUserInvalidCredentials
 	}
 
-	if !creds.user.IsActive() {
-		return nil, ErrUserInactive
+	if !u.IsActive() {
+		return ErrUserInactive
 	}
 
-	return creds.user, nil
-
+	return nil
 }

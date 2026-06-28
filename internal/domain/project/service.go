@@ -7,17 +7,17 @@ import (
 )
 
 type Service struct {
-	iamRepo     iam.Repository
+	userRepo    iam.UserRepository
 	projectRepo Repository
 }
 
-func NewService(iamRepo iam.Repository, projectRepo Repository) *Service {
-	return &Service{iamRepo: iamRepo, projectRepo: projectRepo}
+func NewService(userRepo iam.UserRepository, projectRepo Repository) *Service {
+	return &Service{userRepo: userRepo, projectRepo: projectRepo}
 }
 
 func (s *Service) EnsureHasAdministrator(ctx context.Context, project *Project) error {
 
-	ok, err := s.iamRepo.IsAnyAdministrator(ctx, project.Members())
+	ok, err := s.userRepo.IsAnyAdministrator(ctx, project.Members())
 	if err != nil {
 		return err
 	}

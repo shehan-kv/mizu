@@ -6,15 +6,15 @@ import (
 )
 
 type Service struct {
-	iamRepo iam.Repository
+	userRepo iam.UserRepository
 }
 
-func NewService(iamRepo iam.Repository) *Service {
-	return &Service{iamRepo: iamRepo}
+func NewService(userRepo iam.UserRepository) *Service {
+	return &Service{userRepo: userRepo}
 }
 
 func (s *Service) RequireAdministrator(ctx context.Context, actorID iam.UserID) error {
-	actor, err := s.iamRepo.GetByID(ctx, actorID)
+	actor, err := s.userRepo.GetByID(ctx, actorID)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (s *Service) RequireAdministratorOrSelf(ctx context.Context, actorID iam.Us
 }
 
 func (s *Service) RequireAdministratorOrStaff(ctx context.Context, actorID iam.UserID) error {
-	actor, err := s.iamRepo.GetByID(ctx, actorID)
+	actor, err := s.userRepo.GetByID(ctx, actorID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (s *Service) RequireAdministratorStaffOrSelf(ctx context.Context, actorID i
 }
 
 func (s *Service) RequireClient(ctx context.Context, actorID iam.UserID) error {
-	actor, err := s.iamRepo.GetByID(ctx, actorID)
+	actor, err := s.userRepo.GetByID(ctx, actorID)
 	if err != nil {
 		return err
 	}

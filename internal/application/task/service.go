@@ -14,7 +14,7 @@ import (
 )
 
 type Service struct {
-	iamRepo     iam.Repository
+	userRepo    iam.UserRepository
 	taskRepo    task.Repository
 	projectRepo project.Repository
 
@@ -29,7 +29,7 @@ type Service struct {
 }
 
 func NewService(
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	taskRepo task.Repository,
 	projectRepo project.Repository,
 	taskSrv *task.Service,
@@ -39,7 +39,7 @@ func NewService(
 	logger logger.Logger,
 ) *Service {
 	return &Service{
-		iamRepo:     iamRepo,
+		userRepo:    userRepo,
 		taskRepo:    taskRepo,
 		projectRepo: projectRepo,
 		taskSrv:     taskSrv,
@@ -331,7 +331,7 @@ func (s *Service) ListTasks(ctx context.Context, params ListTaskParams) (*shared
 		assigneeIDs = append(assigneeIDs, id)
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, assigneeIDs, iam.UserFilter{})
+	users, err := s.userRepo.ListByIDs(ctx, assigneeIDs, iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +450,7 @@ func (s *Service) ListAssignees(ctx context.Context, taskID string, actorID stri
 		return nil, project.ErrNotProjectMember
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, t.Assignees(), iam.UserFilter{})
+	users, err := s.userRepo.ListByIDs(ctx, t.Assignees(), iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}

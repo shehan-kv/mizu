@@ -21,4 +21,7 @@ var (
 	ErrUserInvalidRole            = errors.New("user invalid role")
 	ErrUserNotFound               = errors.New("user not found")
 	ErrUserInactive               = errors.New("user is inactive")
+
+	ErrCredentialConcurrentModification = errors.New("credential concurrent modification")
+	ErrCredentialNotFound               = errors.New("credential not found")
 )

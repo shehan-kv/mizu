@@ -18,7 +18,8 @@ import (
 )
 
 type Service struct {
-	iamRepo          iam.Repository
+	userRepo         iam.UserRepository
+	credRepo         iam.CredentialRepository
 	verificationRepo verification.Repository
 	projectRepo      project.Repository
 
@@ -39,7 +40,7 @@ type Service struct {
 }
 
 func NewService(
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	verificationRepo verification.Repository,
 	projectRepo project.Repository,
 	uow uow.UnitOfWork,
@@ -56,7 +57,7 @@ func NewService(
 ) *Service {
 
 	return &Service{
-		iamRepo:          iamRepo,
+		userRepo:         userRepo,
 		verificationRepo: verificationRepo,
 		projectRepo:      projectRepo,
 		uow:              uow,
@@ -77,7 +78,7 @@ func (s Service) EnsureDefaultAdminExists(ctx context.Context) error {
 
 	now := time.Now()
 
-	exists, err := s.iamRepo.HasAdministrator(ctx)
+	exists, err := s.userRepo.HasAdministrator(ctx)
 	if err != nil {
 		return err
 	}
@@ -115,13 +116,15 @@ func (s Service) EnsureDefaultAdminExists(ctx context.Context) error {
 		return err
 	}
 
+	cred := iam.NewCredential(userID, pwHash)
+
 	admin := iam.NewSystemUser(userID, name, email, nil, iam.RoleAdministrator, true, now)
 
 	return s.uow.Execute(ctx, func(ctx context.Context) error {
-		if err := s.iamRepo.Add(ctx, admin); err != nil {
+		if err := s.userRepo.Add(ctx, admin); err != nil {
 			return err
 		}
-		return s.iamRepo.SetPassword(ctx, admin, pwHash)
+		return s.credRepo.Add(ctx, cred)
 	})
 }
 
@@ -141,7 +144,12 @@ func (s Service) SignIn(
 		return SessionDTO{}, err
 	}
 
-	user, err := s.iamSrv.Authenticate(ctx, parsedEmail, plainPw)
+	user, err := s.userRepo.GetByEmail(ctx, parsedEmail)
+	if err != nil {
+		return SessionDTO{}, err
+	}
+
+	err = s.iamSrv.Authenticate(ctx, user, plainPw)
 	if err != nil {
 		return SessionDTO{}, err
 	}
@@ -175,7 +183,7 @@ func (s Service) SignIn(
 
 	user.RecordSignIn(time.Now())
 
-	if err := s.iamRepo.Save(ctx, user); err != nil {
+	if err := s.userRepo.Save(ctx, user); err != nil {
 		s.logger.Error("failed to record last sign in",
 			"userID", user.ID(),
 			"err", err,
@@ -286,7 +294,7 @@ func (s Service) CreateUser(ctx context.Context, params CreateUserParams) error 
 	}
 
 	err = s.uow.Execute(ctx, func(ctx context.Context) error {
-		if err := s.iamRepo.Add(ctx, user); err != nil {
+		if err := s.userRepo.Add(ctx, user); err != nil {
 			return err
 		}
 		if err := s.verificationRepo.Add(ctx, verificationReq); err != nil {
@@ -322,7 +330,7 @@ func (s *Service) RegenerateVerification(ctx context.Context, userID string, act
 		return err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, uID)
+	user, err := s.userRepo.GetByID(ctx, uID)
 	if err != nil {
 		return err
 	}
@@ -373,7 +381,7 @@ func (s *Service) VerifyAccount(ctx context.Context, verificationID string, pass
 		return err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, verification.UserID())
+	user, err := s.userRepo.GetByID(ctx, verification.UserID())
 	if err != nil {
 		return err
 	}
@@ -392,13 +400,15 @@ func (s *Service) VerifyAccount(ctx context.Context, verificationID string, pass
 		return err
 	}
 
+	cred := iam.NewCredential(user.ID(), hash)
+
 	user.Verify(now)
 
 	err = s.uow.Execute(ctx, func(ctx context.Context) error {
-		if err := s.iamRepo.Save(ctx, user); err != nil {
+		if err := s.userRepo.Save(ctx, user); err != nil {
 			return err
 		}
-		if err := s.iamRepo.SetPassword(ctx, user, hash); err != nil {
+		if err := s.credRepo.Add(ctx, cred); err != nil {
 			return err
 		}
 		return s.verificationRepo.Remove(ctx, verification)
@@ -445,7 +455,7 @@ func (s *Service) Activate(ctx context.Context, userID string, actorID string) e
 		return err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, uID)
+	user, err := s.userRepo.GetByID(ctx, uID)
 	if err != nil {
 		return err
 	}
@@ -456,7 +466,7 @@ func (s *Service) Activate(ctx context.Context, userID string, actorID string) e
 
 	user.Activate(now)
 
-	return s.iamRepo.Save(ctx, user)
+	return s.userRepo.Save(ctx, user)
 }
 
 func (s *Service) Deactivate(ctx context.Context, userID string, actorID string) error {
@@ -481,7 +491,7 @@ func (s *Service) Deactivate(ctx context.Context, userID string, actorID string)
 		return err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, uID)
+	user, err := s.userRepo.GetByID(ctx, uID)
 	if err != nil {
 		return err
 	}
@@ -492,7 +502,7 @@ func (s *Service) Deactivate(ctx context.Context, userID string, actorID string)
 
 	user.Deactivate(now)
 
-	return s.iamRepo.Save(ctx, user)
+	return s.userRepo.Save(ctx, user)
 }
 
 func (s *Service) Update(ctx context.Context, params UpdateUserParams) error {
@@ -513,7 +523,7 @@ func (s *Service) Update(ctx context.Context, params UpdateUserParams) error {
 		return err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -575,7 +585,7 @@ func (s *Service) Update(ctx context.Context, params UpdateUserParams) error {
 	}
 
 	err = s.uow.Execute(ctx, func(ctx context.Context) error {
-		return s.iamRepo.Save(ctx, user)
+		return s.userRepo.Save(ctx, user)
 	})
 	if err != nil {
 		return err
@@ -606,12 +616,12 @@ func (s *Service) Delete(ctx context.Context, userID string, actorID string) err
 		return err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, uID)
+	user, err := s.userRepo.GetByID(ctx, uID)
 	if err != nil {
 		return err
 	}
 
-	return s.iamRepo.Remove(ctx, user)
+	return s.userRepo.Remove(ctx, user)
 }
 
 func (s *Service) GetUser(ctx context.Context, actorID string, userID string) (*UserDTO, error) {
@@ -630,7 +640,7 @@ func (s *Service) GetUser(ctx context.Context, actorID string, userID string) (*
 		return nil, err
 	}
 
-	user, err := s.iamRepo.GetByID(ctx, uID)
+	user, err := s.userRepo.GetByID(ctx, uID)
 	if err != nil {
 		return nil, err
 	}
@@ -647,7 +657,7 @@ func (s *Service) GetProfileImage(ctx context.Context, userID string) (*ProfileI
 		return nil, err
 	}
 
-	u, err := s.iamRepo.GetByID(ctx, uID)
+	u, err := s.userRepo.GetByID(ctx, uID)
 	if err != nil {
 		return nil, err
 	}
@@ -700,12 +710,12 @@ func (s *Service) ListUsers(ctx context.Context, params ListUsersParams) (*share
 		filter.Role = &role
 	}
 
-	users, err := s.iamRepo.List(ctx, filter, page)
+	users, err := s.userRepo.List(ctx, filter, page)
 	if err != nil {
 		return nil, err
 	}
 
-	count, err := s.iamRepo.Count(ctx, filter)
+	count, err := s.userRepo.Count(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

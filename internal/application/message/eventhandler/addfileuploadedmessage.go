@@ -13,7 +13,7 @@ import (
 type AddFileUploadedMessage struct {
 	messageRepo message.MessageRepository
 	channelRepo message.ChannelRepository
-	iamRepo     iam.Repository
+	userRepo    iam.UserRepository
 
 	externalBus eventbus.ExternalBus
 
@@ -23,7 +23,7 @@ type AddFileUploadedMessage struct {
 func NewAddFileUploadedMessage(
 	messageRepo message.MessageRepository,
 	channelRepo message.ChannelRepository,
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	externalBus eventbus.ExternalBus,
 	idGen common.IDGenerator,
 ) *AddFileUploadedMessage {
@@ -31,7 +31,7 @@ func NewAddFileUploadedMessage(
 	return &AddFileUploadedMessage{
 		messageRepo: messageRepo,
 		channelRepo: channelRepo,
-		iamRepo:     iamRepo,
+		userRepo:    userRepo,
 		externalBus: externalBus,
 		idGen:       idGen,
 	}
@@ -44,7 +44,7 @@ func (h *AddFileUploadedMessage) Handle(ctx context.Context, event common.Event)
 		return nil
 	}
 
-	u, err := h.iamRepo.GetByID(ctx, e.UserID)
+	u, err := h.userRepo.GetByID(ctx, e.UserID)
 	if err != nil {
 		return err
 	}

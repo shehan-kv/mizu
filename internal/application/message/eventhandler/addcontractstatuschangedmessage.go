@@ -11,18 +11,18 @@ import (
 )
 
 type AddContractStatusChangedMessage struct {
-	iamRepo iam.Repository
+	userRepo iam.UserRepository
 
 	publisher *SystemMessagePublisher
 }
 
 func NewAddContractStatusChangedMessage(
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	publisher *SystemMessagePublisher,
 ) *AddContractStatusChangedMessage {
 
 	return &AddContractStatusChangedMessage{
-		iamRepo:   iamRepo,
+		userRepo:  userRepo,
 		publisher: publisher,
 	}
 }
@@ -33,7 +33,7 @@ func (h *AddContractStatusChangedMessage) Handle(ctx context.Context, event comm
 		return nil
 	}
 
-	u, err := h.iamRepo.GetByID(ctx, e.Signatory.UserID())
+	u, err := h.userRepo.GetByID(ctx, e.Signatory.UserID())
 	if err != nil {
 		return err
 	}

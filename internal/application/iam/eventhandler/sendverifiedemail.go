@@ -9,12 +9,12 @@ import (
 )
 
 type SendVerifiedEmail struct {
-	mailer  mailer.Mailer
-	iamRepo iam.Repository
+	mailer   mailer.Mailer
+	userRepo iam.UserRepository
 }
 
-func NewSendVerifiedEmail(mailer mailer.Mailer, iamRepo iam.Repository) *SendVerifiedEmail {
-	return &SendVerifiedEmail{mailer: mailer, iamRepo: iamRepo}
+func NewSendVerifiedEmail(mailer mailer.Mailer, userRepo iam.UserRepository) *SendVerifiedEmail {
+	return &SendVerifiedEmail{mailer: mailer, userRepo: userRepo}
 }
 
 func (h *SendVerifiedEmail) Handle(ctx context.Context, event common.Event) error {
@@ -24,7 +24,7 @@ func (h *SendVerifiedEmail) Handle(ctx context.Context, event common.Event) erro
 		return nil
 	}
 
-	u, err := h.iamRepo.GetByID(ctx, e.UserID)
+	u, err := h.userRepo.GetByID(ctx, e.UserID)
 	if err != nil {
 		return err
 	}

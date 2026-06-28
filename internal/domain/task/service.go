@@ -7,12 +7,12 @@ import (
 )
 
 type Service struct {
-	iamRepo     iam.Repository
+	userRepo    iam.UserRepository
 	projectRepo project.Repository
 }
 
-func NewService(iamRepo iam.Repository, projectRepo project.Repository) *Service {
-	return &Service{iamRepo: iamRepo, projectRepo: projectRepo}
+func NewService(userRepo iam.UserRepository, projectRepo project.Repository) *Service {
+	return &Service{userRepo: userRepo, projectRepo: projectRepo}
 }
 
 func (s *Service) EnsureValidAssignees(
@@ -20,7 +20,7 @@ func (s *Service) EnsureValidAssignees(
 	assignees []iam.UserID,
 	project *project.Project) error {
 
-	allExist, err := s.iamRepo.ExistsAll(ctx, assignees)
+	allExist, err := s.userRepo.ExistsAll(ctx, assignees)
 	if err != nil {
 		return err
 	}

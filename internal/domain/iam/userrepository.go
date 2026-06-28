@@ -5,20 +5,19 @@ import (
 	"mizu/internal/domain/common"
 )
 
-type Repository interface {
+type UserRepository interface {
 	Add(ctx context.Context, user *User) error
 
 	Exists(ctx context.Context, id UserID) (bool, error)
 	ExistsAll(ctx context.Context, ids []UserID) (bool, error)
 
 	GetByID(ctx context.Context, id UserID) (*User, error)
-	GetCredentialsByEmail(ctx context.Context, email Email) (*UserCredentials, error)
+	GetByEmail(ctx context.Context, e Email) (*User, error)
 	List(ctx context.Context, filter UserFilter, page common.Page) ([]*User, error)
 	ListByIDs(ctx context.Context, ids []UserID, f UserFilter) ([]*User, error)
 
 	IsAnyAdministrator(ctx context.Context, ids []UserID) (bool, error)
 	HasAdministrator(ctx context.Context) (bool, error)
-	SetPassword(ctx context.Context, user *User, hash string) error
 
 	Count(ctx context.Context, filter UserFilter) (int, error)
 

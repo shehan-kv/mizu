@@ -18,7 +18,7 @@ import (
 )
 
 type Service struct {
-	iamRepo     iam.Repository
+	userRepo    iam.UserRepository
 	channelRepo message.ChannelRepository
 	messageRepo message.MessageRepository
 	fileRepo    message.FileRepository
@@ -40,7 +40,7 @@ type Service struct {
 }
 
 func NewService(
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	channelRepo message.ChannelRepository,
 	messageRepo message.MessageRepository,
 	fileRepo message.FileRepository,
@@ -56,7 +56,7 @@ func NewService(
 ) *Service {
 
 	return &Service{
-		iamRepo:     iamRepo,
+		userRepo:    userRepo,
 		channelRepo: channelRepo,
 		messageRepo: messageRepo,
 		fileRepo:    fileRepo,
@@ -112,7 +112,7 @@ func (s *Service) ReplaceChannelMembers(ctx context.Context, channelID string, m
 		ids = append(ids, actor)
 	}
 
-	allExist, err := s.iamRepo.ExistsAll(ctx, ids)
+	allExist, err := s.userRepo.ExistsAll(ctx, ids)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (s *Service) CreateChannel(ctx context.Context, params CreateChannelParams)
 		}
 		projectID = &pID
 
-		exists, err := s.iamRepo.ExistsAll(ctx, memberIDs)
+		exists, err := s.userRepo.ExistsAll(ctx, memberIDs)
 		if err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func (s *Service) CreateChannel(ctx context.Context, params CreateChannelParams)
 	}
 
 	if params.ProjectID == nil {
-		users, err := s.iamRepo.ListByIDs(ctx, memberIDs, iam.UserFilter{})
+		users, err := s.userRepo.ListByIDs(ctx, memberIDs, iam.UserFilter{})
 		if err != nil {
 			return err
 		}
@@ -281,7 +281,7 @@ func (s *Service) ListChannelMembers(ctx context.Context, actorID string, channe
 		return nil, project.ErrNotProjectMember
 	}
 
-	m, err := s.iamRepo.ListByIDs(ctx, c.Members(), iam.UserFilter{})
+	m, err := s.userRepo.ListByIDs(ctx, c.Members(), iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +321,7 @@ func (s *Service) CreateMessage(ctx context.Context, params CreateMessageParams)
 		return err
 	}
 
-	actor, err := s.iamRepo.GetByID(ctx, actorID)
+	actor, err := s.userRepo.GetByID(ctx, actorID)
 	if err != nil {
 		return err
 	}
@@ -442,7 +442,7 @@ func (s *Service) ListChannelMessages(ctx context.Context, params ListChannelMes
 		}
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, senderIDs, iam.UserFilter{})
+	users, err := s.userRepo.ListByIDs(ctx, senderIDs, iam.UserFilter{})
 	if err != nil {
 		return nil, err
 	}
@@ -637,7 +637,7 @@ func (s *Service) ListChannelFiles(ctx context.Context, params ListChannelFilesP
 		}
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
+	users, err := s.userRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
 	if err != nil {
 		return shared.Collection[FileDTO]{}, err
 	}
@@ -738,7 +738,7 @@ func (s *Service) ListProjectFiles(ctx context.Context, params ListProjectFilesP
 		}
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
+	users, err := s.userRepo.ListByIDs(ctx, userIDs, iam.UserFilter{})
 	if err != nil {
 		return shared.Collection[FileDTO]{}, err
 	}

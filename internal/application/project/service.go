@@ -18,7 +18,7 @@ import (
 )
 
 type Service struct {
-	iamRepo      iam.Repository
+	userRepo     iam.UserRepository
 	projectRepo  project.Repository
 	taskRepo     task.Repository
 	billingRepo  billing.Repository
@@ -37,7 +37,7 @@ type Service struct {
 }
 
 func NewService(
-	iamRepo iam.Repository,
+	userRepo iam.UserRepository,
 	projectRepo project.Repository,
 	taskRepo task.Repository,
 	billingRepo billing.Repository,
@@ -51,7 +51,7 @@ func NewService(
 	logger logger.Logger,
 ) *Service {
 	return &Service{
-		iamRepo:      iamRepo,
+		userRepo:     userRepo,
 		projectRepo:  projectRepo,
 		taskRepo:     taskRepo,
 		billingRepo:  billingRepo,
@@ -85,7 +85,7 @@ func (s *Service) ReplaceMemberProjects(ctx context.Context, memberID string, ac
 		return err
 	}
 
-	exists, err := s.iamRepo.Exists(ctx, mID)
+	exists, err := s.userRepo.Exists(ctx, mID)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (s *Service) CreateProject(ctx context.Context, params CreateProjectParams)
 
 	}
 
-	allExist, err := s.iamRepo.ExistsAll(ctx, memIDs)
+	allExist, err := s.userRepo.ExistsAll(ctx, memIDs)
 	if err != nil {
 		return err
 	}
@@ -405,7 +405,7 @@ func (s *Service) GetProjectOverview(ctx context.Context, projectID string, acto
 		return ProjectOverviewDTO{}, err
 	}
 
-	users, err := s.iamRepo.ListByIDs(ctx, p.Members(), iam.UserFilter{})
+	users, err := s.userRepo.ListByIDs(ctx, p.Members(), iam.UserFilter{})
 	if err != nil {
 		return ProjectOverviewDTO{}, err
 	}
@@ -483,7 +483,7 @@ func (s *Service) ListMembers(ctx context.Context, params ListMembersParams) ([]
 		return nil, project.ErrNotProjectMember
 	}
 
-	members, err := s.iamRepo.ListByIDs(ctx, p.Members(), iam.UserFilter{
+	members, err := s.userRepo.ListByIDs(ctx, p.Members(), iam.UserFilter{
 		Keyword: params.Keyword,
 	})
 	if err != nil {
@@ -544,7 +544,7 @@ func (s *Service) ReplaceMembers(ctx context.Context, projectID string, memberID
 		ids[i] = id
 	}
 
-	allExist, err := s.iamRepo.ExistsAll(ctx, ids)
+	allExist, err := s.userRepo.ExistsAll(ctx, ids)
 	if err != nil {
 		return err
 	}
