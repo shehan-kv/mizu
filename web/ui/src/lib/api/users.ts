@@ -141,6 +141,40 @@ export async function validateUserVerification(verificationId: string, signal?: 
 	});
 }
 
+export interface CreateRecoveryParams {
+	email: string;
+}
+export async function createRecovery(req: CreateRecoveryParams, signal?: AbortSignal) {
+	return apiFetch<void>(`users/recovery`, {
+		method: 'POST',
+		body: JSON.stringify(req),
+		signal
+	});
+}
+
+export async function validateRecovery(token: string, signal?: AbortSignal) {
+	return apiFetch<void>(`users/recovery/${token}`, {
+		method: 'GET',
+		signal
+	});
+}
+
+export interface ConfirmRecoveryParams {
+	password: string;
+	confirmPassword: string;
+}
+export async function confirmRecovery(
+	token: string,
+	req: ConfirmRecoveryParams,
+	signal?: AbortSignal
+) {
+	return apiFetch<void>(`users/recovery/${token}/confirm`, {
+		method: 'POST',
+		body: JSON.stringify(req),
+		signal
+	});
+}
+
 export interface UserUpdateParams {
 	firstName: string;
 	lastName: string;
