@@ -153,7 +153,7 @@
 			</form>
 
 			<a
-				href={resolve('/')}
+				href={resolve('/forgot-password')}
 				class="mt-4 block text-sm text-neutral-700 transition hover:text-neutral-950
 			dark:text-neutral-400 dark:hover:text-neutral-50"
 			>
