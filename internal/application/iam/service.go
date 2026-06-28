@@ -41,6 +41,7 @@ type Service struct {
 
 func NewService(
 	userRepo iam.UserRepository,
+	credRepo iam.CredentialRepository,
 	verificationRepo verification.Repository,
 	projectRepo project.Repository,
 	uow uow.UnitOfWork,
@@ -58,6 +59,7 @@ func NewService(
 
 	return &Service{
 		userRepo:         userRepo,
+		credRepo:         credRepo,
 		verificationRepo: verificationRepo,
 		projectRepo:      projectRepo,
 		uow:              uow,

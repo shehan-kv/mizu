@@ -410,6 +410,7 @@ func main() {
 	authzAppService := authzApp.NewService(userRepo)
 	iamAppService := iamApp.NewService(
 		userRepo,
+		credsRepo,
 		verificationRepo,
 		projectRepo,
 		uow,
