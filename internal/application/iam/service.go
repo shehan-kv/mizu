@@ -2,6 +2,7 @@ package iam
 
 import (
 	"context"
+	"errors"
 	"mizu/internal/application/authz"
 	"mizu/internal/application/eventbus"
 	"mizu/internal/application/filestore"
@@ -425,6 +426,49 @@ func (s *Service) VerifyAccount(ctx context.Context, verificationID string, pass
 	s.publishEvents(ctx, user.PullEvents())
 
 	return nil
+}
+
+func (s *Service) ConfirmRecovery(ctx context.Context, token string, password string) error {
+
+	t, err := iam.NewRecoveryToken(token)
+	if err != nil {
+		return err
+	}
+
+	r, err := s.recoveryRepo.GetByToken(ctx, t)
+	if err != nil {
+		return err
+	}
+
+	plainPw, err := iam.NewPlainPassword(password)
+	if err != nil {
+		return err
+	}
+
+	hash, err := s.pwHasher.Hash(plainPw)
+	if err != nil {
+		return err
+	}
+
+	return s.uow.Execute(ctx, func(ctx context.Context) error {
+		existingCred, err := s.credRepo.GetByUser(ctx, r.UserID())
+
+		if err != nil {
+			// Only treat "not found" as insert case
+			if errors.Is(err, iam.ErrCredentialNotFound) {
+				cred := iam.NewCredential(r.UserID(), hash)
+				return s.credRepo.Add(ctx, cred)
+			}
+
+			return err
+		}
+
+		// Update existing credential
+		existingCred.UpdateHash(hash)
+
+		return s.credRepo.Save(ctx, existingCred)
+	})
+
 }
 
 func (s *Service) VerificationExists(ctx context.Context, verificationID string) error {

@@ -30,6 +30,10 @@ func (c *Credential) Hash() string {
 	return c.hash
 }
 
+func (c *Credential) UpdateHash(hash string) {
+	c.hash = hash
+}
+
 func (c *Credential) Version() int {
 	return c.version
 }

@@ -55,6 +55,7 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	// Unauthenticated
 	mux.Handle("POST /users/recovery", http.HandlerFunc(h.GenerateRecovery))
 	mux.Handle("GET /users/recovery/{recoveryToken}", http.HandlerFunc(h.ValidateRecovery))
+	mux.Handle("POST /users/recovery/{recoveryToken}/confirm", http.HandlerFunc(h.ConfirmRecovery))
 
 	mux.Handle("POST /users/verifications/{userID}/regenerate-verification", authMiddleware(http.HandlerFunc(h.RegenerateVerification)))
 	mux.Handle("PUT /users/{userID}/activate", authMiddleware(http.HandlerFunc(h.ActivateUser)))
@@ -228,6 +229,28 @@ func (h *IAMHandler) ValidateVerification(w http.ResponseWriter, r *http.Request
 func (h *IAMHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 
 	var req VerifyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.Password != req.ConfirmPassword {
+		response.WriteError(w, http.StatusBadRequest, "passwords do not match")
+		return
+	}
+
+	err := h.iamSrv.VerifyAccount(r.Context(), r.PathValue("verificationID"), req.Password)
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *IAMHandler) ConfirmRecovery(w http.ResponseWriter, r *http.Request) {
+
+	var req ConfirmRecoveryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
