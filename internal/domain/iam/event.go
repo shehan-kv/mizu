@@ -51,5 +51,5 @@ type RecoveryCreatedEvent struct {
 }
 
 func (e RecoveryCreatedEvent) EventType() common.EventType {
-	return EventTypeUserEmailChanged
+	return EventTypeRecoveryCreated
 }
