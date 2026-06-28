@@ -1,11 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    
+<body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial, Helvetica, sans-serif;">
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff;">
+<tr>
+<td align="center" style="padding:64px 20px;">
+
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px;">
+
+<tr>
+    <td style="padding-bottom:40px;">
+        <img
+            src="{{ .BaseURL }}/assets/logo-dark.svg"
+            width="100"
+            alt="Logo"
+            style="display:block;"
+        >
+    </td>
+</tr>
+
+<tr>
+    <td>
+
+        <h1 style="margin:0; font-size:22px; font-weight:600; color:#333333;">
+            #{{ .FormattedInvoiceID }} - {{ .Status }}
+        </h1>
+
+        <p style="margin:8px 0 0; font-size:16px; color:#666666;">
+            {{ .ProjectName }}
+        </p>
+
+        <p style="margin:16px 0 0; font-size:15px; color:#333333;">
+            {{ .CurrencyName }} ({{ .CurrencyCode }})
+        </p>
+
+        {{ if .DueAt }}
+        <p style="margin:8px 0 0; font-size:15px; color:#333333;">
+            Due On {{ .DueAt }}
+        </p>
+        {{ end }}
+
+    </td>
+</tr>
+
+<tr>
+<td style="padding-top:56px;">
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="8" border="0" style="border-collapse:collapse;">
+
+<tr style="border-bottom:1px solid #dddddd;">
+    <th align="right" style="font-size:14px; color:#666666;">Qty</th>
+    <th align="right" style="font-size:14px; color:#666666;">Unit</th>
+    <th align="right" style="font-size:14px; color:#666666;">Discount</th>
+    <th align="right" style="font-size:14px; color:#666666;">Tax</th>
+    <th align="right" style="font-size:14px; color:#666666;">Gross</th>
+    <th align="right" style="font-size:14px; color:#666666;">Disc.</th>
+    <th align="right" style="font-size:14px; color:#666666;">Tax</th>
+    <th align="right" style="font-size:14px; color:#666666;">Subtotal</th>
+</tr>
+
+{{ range .Items }}
+<tr style="border-bottom:1px solid #eeeeee;">
+    <td colspan="8" style="font-size:15px; color:#333333;">{{ .Description }}</td>
+</tr>
+<tr>
+    <td align="right">{{ .Qty }}</td>
+    <td align="right">{{ .UnitPrice }}</td>
+    <td align="right">{{ .DiscountRate }}</td>
+    <td align="right">{{ .TaxRate }}</td>
+    <td align="right">{{ .LineGross }}</td>
+    <td align="right">{{ .LineDiscount }}</td>
+    <td align="right">{{ .LineTax }}</td>
+    <td align="right">{{ .LineTotal }}</td>
+</tr>
+{{ end }}
+
+<tr>
+    <td colspan="7"></td>
+    <td align="right" style="padding-top:20px; font-weight:600;">
+        Invoice Discount
+    </td>
+    <td align="right" style="padding-top:20px;">
+        {{ .TotalDiscount }}
+    </td>
+</tr>
+
+<tr>
+    <td colspan="7"></td>
+    <td align="right" style="font-weight:600;">
+        Invoice Tax
+    </td>
+    <td align="right">
+        {{ .TotalTax }}
+    </td>
+</tr>
+
+<tr style="border-top:2px solid #333333;">
+    <td colspan="7"></td>
+    <td align="right" style="padding-top:16px; font-size:16px; font-weight:600;">
+        Invoice Subtotal
+    </td>
+    <td align="right" style="padding-top:16px; font-size:16px; font-weight:600;">
+        {{ .SubTotal }}
+    </td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+
+{{ if .Note }}
+<tr>
+    <td style="padding-top:56px;">
+
+        <p style="margin:0 0 12px; font-size:18px; font-weight:600; color:#333333;">
+            Note
+        </p>
+
+        <p style="margin:0; font-size:16px; line-height:1.8; color:#333333; white-space:pre-wrap;">{{ .Note }}</p>
+
+    </td>
+</tr>
+{{ end }}
+
+</table>
+
+</td>
+</tr>
+</table>
+
 </body>
 </html>

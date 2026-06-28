@@ -81,9 +81,11 @@ func main() {
 
 	// Environment
 	// ----------------------------------------------------------------------------
-	publicURL := env("PUBLIC_URL")
+	publicURL := (env("PUBLIC_URL"))
 	if publicURL == "" {
 		log.Warn("public url not specified, required for email links")
+	} else {
+		publicURL = strings.TrimSuffix(publicURL, "/")
 	}
 
 	serverAddr := env("SERVER_ADDR")

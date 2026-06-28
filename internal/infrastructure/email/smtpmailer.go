@@ -123,9 +123,11 @@ func (m *SMTPMailer) SendRecoveryEmail(ctx context.Context, e iam.Email, token i
 	}
 
 	data := struct {
-		recoveryURL string
+		BaseURL       string
+		RecoveryToken string
 	}{
-		recoveryURL: m.config.BaseURL + "/recover/" + token.String(),
+		BaseURL:       m.config.BaseURL,
+		RecoveryToken: token.String(),
 	}
 
 	var body bytes.Buffer
@@ -172,9 +174,11 @@ func (m *SMTPMailer) SendVerificationEmail(
 	}
 
 	data := struct {
-		VerificationURL string
+		BaseURL        string
+		VerificationID string
 	}{
-		VerificationURL: m.config.BaseURL + "/verify/" + vID.String(),
+		BaseURL:        m.config.BaseURL,
+		VerificationID: vID.String(),
 	}
 
 	var body bytes.Buffer
@@ -258,7 +262,6 @@ func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 	var body bytes.Buffer
 
 	data := struct {
-		Subject       string
 		ContractID    string
 		ContractName  string
 		ContractTerms string
@@ -266,7 +269,6 @@ func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 		ProjectName   string
 		Signatories   []mailer.ContractSignatory
 	}{
-		Subject:       email.Subject,
 		ContractID:    email.ContractID,
 		ContractName:  email.ContractName,
 		ContractTerms: email.ContractTerms,
@@ -319,20 +321,22 @@ func (m *SMTPMailer) SendInvoiceEmail(ctx context.Context, email mailer.InvoiceE
 		dueAt = email.DueAt.UTC().Format("02 Jan 2006 UTC")
 	}
 	data := struct {
-		InvoiceID     string
-		ProjectID     string
-		Status        string
-		CurrencyName  string
-		CurrencyCode  string
-		DueAt         string
-		Note          *string
-		Items         []mailer.InvoiceItem
-		SubTotal      string
-		TotalTax      string
-		TotalDiscount string
+		InvoiceID          string
+		FormattedInvoiceID string
+		ProjectID          string
+		Status             string
+		CurrencyName       string
+		CurrencyCode       string
+		DueAt              string
+		Note               *string
+		Items              []mailer.InvoiceItem
+		SubTotal           string
+		TotalTax           string
+		TotalDiscount      string
 	}{
-		InvoiceID: email.InvoiceID,
-		ProjectID: email.ProjectID,
+		InvoiceID:          email.InvoiceID,
+		FormattedInvoiceID: strings.ToUpper(email.InvoiceID[len(email.InvoiceID)-8:]),
+		ProjectID:          email.ProjectID,
 
 		Status:       email.Status,
 		CurrencyName: email.CurrencyName,
