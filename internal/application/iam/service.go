@@ -442,6 +442,21 @@ func (s *Service) VerificationExists(ctx context.Context, verificationID string)
 	return nil
 }
 
+func (s *Service) RecoveryExists(ctx context.Context, token string) error {
+
+	vID, err := iam.NewRecoveryToken(token)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.recoveryRepo.GetByToken(ctx, vID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) RegenerateRecovery(ctx context.Context, email string) error {
 	now := time.Now()
 

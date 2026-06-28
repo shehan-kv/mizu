@@ -48,11 +48,13 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	mux.Handle("GET /users/me", authMiddleware(http.HandlerFunc(h.GetMe)))
 	mux.Handle("GET /users/profile-images/{userID}", authMiddleware(http.HandlerFunc(h.GetProfileImage)))
 
-	// Verify routes are unauthenticated
+	// Unauthenticated
 	mux.Handle("GET /users/verifications/{verificationID}", http.HandlerFunc(h.ValidateVerification))
 	mux.Handle("POST /users/verifications/{verificationID}/confirm", http.HandlerFunc(h.VerifyAccount))
 
+	// Unauthenticated
 	mux.Handle("POST /users/recovery", http.HandlerFunc(h.GenerateRecovery))
+	mux.Handle("GET /users/recovery/{recoveryToken}", http.HandlerFunc(h.ValidateRecovery))
 
 	mux.Handle("POST /users/verifications/{userID}/regenerate-verification", authMiddleware(http.HandlerFunc(h.RegenerateVerification)))
 	mux.Handle("PUT /users/{userID}/activate", authMiddleware(http.HandlerFunc(h.ActivateUser)))
@@ -61,7 +63,7 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	mux.Handle("PUT /users/{userID}", authMiddleware(http.HandlerFunc(h.UpdateUser)))
 	mux.Handle("DELETE /users/{userID}", authMiddleware(http.HandlerFunc(h.DeleteUser)))
 
-	// Auth routes are unauthenticated
+	// Unauthenticated
 	mux.HandleFunc("POST /users/auth/sign-in", h.SignIn)
 	mux.HandleFunc("POST /users/auth/sign-out", h.SignOut)
 
@@ -199,6 +201,17 @@ func (h *IAMHandler) GetProfileImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+}
+
+func (h *IAMHandler) ValidateRecovery(w http.ResponseWriter, r *http.Request) {
+
+	err := h.iamSrv.RecoveryExists(r.Context(), r.PathValue("recoveryToken"))
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *IAMHandler) ValidateVerification(w http.ResponseWriter, r *http.Request) {
