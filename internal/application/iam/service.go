@@ -457,16 +457,25 @@ func (s *Service) ConfirmRecovery(ctx context.Context, token string, password st
 			// Only treat "not found" as insert case
 			if errors.Is(err, iam.ErrCredentialNotFound) {
 				cred := iam.NewCredential(r.UserID(), hash)
-				return s.credRepo.Add(ctx, cred)
+				if err := s.credRepo.Add(ctx, cred); err != nil {
+					return err
+				}
+			} else {
+				return err
 			}
+		} else {
+			// Update existing credential
+			existingCred.UpdateHash(hash)
+			if err := s.credRepo.Save(ctx, existingCred); err != nil {
+				return err
+			}
+		}
 
+		if err := s.recoveryRepo.Remove(ctx, r); err != nil {
 			return err
 		}
 
-		// Update existing credential
-		existingCred.UpdateHash(hash)
-
-		return s.credRepo.Save(ctx, existingCred)
+		return nil
 	})
 
 }
