@@ -112,10 +112,55 @@ func (m *SMTPMailer) Stop() {
 	m.wg.Wait()
 }
 
+func (m *SMTPMailer) SendRecoveryEmail(ctx context.Context, e iam.Email, token iam.RecoveryToken) error {
+	if m.closed.Load() {
+		return errors.New("email.Mailer.SendRecoveryEmail: mailer closed")
+	}
+
+	t, err := m.templates.Get(TemplateRecoveryEmail)
+	if err != nil {
+		return fmt.Errorf("email.Mailer.SendRecoveryEmail: %w", err)
+	}
+
+	data := struct {
+		recoveryURL string
+	}{
+		recoveryURL: m.config.BaseURL + "/recover/" + token.String(),
+	}
+
+	var body bytes.Buffer
+
+	if err := t.Execute(&body, data); err != nil {
+		return fmt.Errorf("email.Mailer.SendRecoveryEmail: render template: %w", err)
+	}
+
+	result := make(chan error, 1)
+
+	msg := message{
+		to:      sanitizeHeader(e.String()),
+		subject: sanitizeHeader("Recover Your Account"),
+		body:    body.String(),
+		result:  result,
+	}
+
+	select {
+	case m.ch <- msg:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 func (m *SMTPMailer) SendVerificationEmail(
 	ctx context.Context,
 	email iam.Email,
-	verificationID verification.VerificationID,
+	vID verification.VerificationID,
 ) error {
 	if m.closed.Load() {
 		return errors.New("email.Mailer.SendVerificationEmail: mailer closed")
@@ -129,7 +174,7 @@ func (m *SMTPMailer) SendVerificationEmail(
 	data := struct {
 		VerificationURL string
 	}{
-		VerificationURL: m.config.BaseURL + "/verify/" + verificationID.String(),
+		VerificationURL: m.config.BaseURL + "/verify/" + vID.String(),
 	}
 
 	var body bytes.Buffer

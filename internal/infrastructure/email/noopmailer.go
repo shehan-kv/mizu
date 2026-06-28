@@ -16,6 +16,13 @@ func NewNoOpMailer(logger logger.Logger) *NoOpMailer {
 	return &NoOpMailer{logger: logger}
 }
 
+func (m *NoOpMailer) SendRecoveryEmail(_ context.Context, _ iam.Email, _ iam.RecoveryToken) error {
+
+	m.logger.Info("recovery email skipped: using no-op mailer")
+
+	return nil
+}
+
 func (m *NoOpMailer) SendVerificationEmail(_ context.Context, _ iam.Email, _ verification.VerificationID) error {
 
 	m.logger.Info("verification email skipped: using no-op mailer")

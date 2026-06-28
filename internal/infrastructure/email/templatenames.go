@@ -5,4 +5,5 @@ const (
 	TemplateVerifiedEmail = "verified"
 	TemplateContractEmail = "contract"
 	TemplateInvoiceEmail  = "invoice"
+	TemplateRecoveryEmail = "recovery"
 )

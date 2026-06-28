@@ -24,4 +24,8 @@ var (
 
 	ErrCredentialConcurrentModification = errors.New("credential concurrent modification")
 	ErrCredentialNotFound               = errors.New("credential not found")
+
+	ErrRecoveryConcurrentModification = errors.New("recovery concurrent modification")
+	ErrRecoveryTokenCannotBeEmpty     = errors.New("recovery token cannot be empty")
+	ErrRecoveryNotFound               = errors.New("recovery not found")
 )

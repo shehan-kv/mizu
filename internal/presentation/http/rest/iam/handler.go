@@ -52,6 +52,8 @@ func (h *IAMHandler) NewMux(authMiddleware func(http.Handler) http.Handler) *htt
 	mux.Handle("GET /users/verifications/{verificationID}", http.HandlerFunc(h.ValidateVerification))
 	mux.Handle("POST /users/verifications/{verificationID}/confirm", http.HandlerFunc(h.VerifyAccount))
 
+	mux.Handle("POST /users/recovery", http.HandlerFunc(h.GenerateRecovery))
+
 	mux.Handle("POST /users/verifications/{userID}/regenerate-verification", authMiddleware(http.HandlerFunc(h.RegenerateVerification)))
 	mux.Handle("PUT /users/{userID}/activate", authMiddleware(http.HandlerFunc(h.ActivateUser)))
 	mux.Handle("PUT /users/{userID}/deactivate", authMiddleware(http.HandlerFunc(h.DeactivateUser)))
@@ -272,6 +274,23 @@ func (h *IAMHandler) DeactivateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (h *IAMHandler) GenerateRecovery(w http.ResponseWriter, r *http.Request) {
+	var req GenerateRecoveryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	err := h.iamSrv.RegenerateRecovery(r.Context(), req.Email)
+
+	if err != nil {
+		h.writeServiceError(w, r.Method, r.URL.Path, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *IAMHandler) RegenerateVerification(w http.ResponseWriter, r *http.Request) {
 
 	actorID := middleware.ActorIDFromContext(r.Context())
@@ -362,11 +381,17 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 	case errors.Is(err, domainiam.ErrUserImageNotFound):
 		response.WriteError(w, http.StatusNotFound, "user image not found")
 
+	case errors.Is(err, domainiam.ErrRecoveryNotFound):
+		response.WriteError(w, http.StatusNotFound, "recovery not found")
+
 	case errors.Is(err, domainverification.ErrVerificationNotFound):
 		response.WriteError(w, http.StatusNotFound, "user not found")
 
 	// 401
 	case errors.Is(err, domainiam.ErrUserInvalidCredentials):
+		response.WriteError(w, http.StatusUnauthorized, "invalid credentials")
+
+	case errors.Is(err, domainiam.ErrCredentialNotFound):
 		response.WriteError(w, http.StatusUnauthorized, "invalid credentials")
 
 	// 403
@@ -384,6 +409,12 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 		response.WriteError(w, http.StatusConflict, "user already verified")
 
 	case errors.Is(err, domainiam.ErrUserConcurrentModification):
+		response.WriteError(w, http.StatusConflict, "concurrent modification")
+
+	case errors.Is(err, domainiam.ErrCredentialConcurrentModification):
+		response.WriteError(w, http.StatusConflict, "concurrent modification")
+
+	case errors.Is(err, domainiam.ErrRecoveryConcurrentModification):
 		response.WriteError(w, http.StatusConflict, "concurrent modification")
 
 	// 400
@@ -407,6 +438,9 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 
 	case errors.Is(err, domainiam.ErrUserIDCannotBeEmpty):
 		response.WriteError(w, http.StatusBadRequest, "user id cannot be empty")
+
+	case errors.Is(err, domainiam.ErrRecoveryTokenCannotBeEmpty):
+		response.WriteError(w, http.StatusBadRequest, "recovery token cannot be empty")
 
 	case errors.Is(err, domainiam.ErrUserInvalidRole):
 		response.WriteError(w, http.StatusBadRequest, "invalid role")

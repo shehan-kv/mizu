@@ -20,6 +20,7 @@ import (
 type Service struct {
 	userRepo         iam.UserRepository
 	credRepo         iam.CredentialRepository
+	recoveryRepo     iam.RecoveryRepository
 	verificationRepo verification.Repository
 	projectRepo      project.Repository
 
@@ -42,6 +43,7 @@ type Service struct {
 func NewService(
 	userRepo iam.UserRepository,
 	credRepo iam.CredentialRepository,
+	recoveryRepo iam.RecoveryRepository,
 	verificationRepo verification.Repository,
 	projectRepo project.Repository,
 	uow uow.UnitOfWork,
@@ -60,6 +62,7 @@ func NewService(
 	return &Service{
 		userRepo:         userRepo,
 		credRepo:         credRepo,
+		recoveryRepo:     recoveryRepo,
 		verificationRepo: verificationRepo,
 		projectRepo:      projectRepo,
 		uow:              uow,
@@ -435,6 +438,51 @@ func (s *Service) VerificationExists(ctx context.Context, verificationID string)
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (s *Service) RegenerateRecovery(ctx context.Context, email string) error {
+	now := time.Now()
+
+	e, err := iam.NewEmail(email)
+	if err != nil {
+		return err
+	}
+
+	u, err := s.userRepo.GetByEmail(ctx, e)
+	if err != nil {
+		return err
+	}
+
+	if !u.IsActive() {
+		return iam.ErrUserInactive
+	}
+
+	id, err := s.idGen.Generate()
+	if err != nil {
+		return err
+	}
+
+	rToken, err := iam.NewRecoveryToken(id)
+	if err != nil {
+		return err
+	}
+
+	r := iam.NewRecovery(u.ID(), rToken, now)
+
+	err = s.uow.Execute(ctx, func(ctx context.Context) error {
+		if err := s.recoveryRepo.RemoveByUser(ctx, u.ID()); err != nil {
+			return err
+		}
+
+		return s.recoveryRepo.Add(ctx, r)
+	})
+	if err != nil {
+		return err
+	}
+
+	s.publishEvents(ctx, r.PullEvents())
 
 	return nil
 }

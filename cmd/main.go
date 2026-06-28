@@ -266,6 +266,7 @@ func main() {
 	// ----------------------------------------------------------------------------
 	var userRepo iam.UserRepository
 	var credsRepo iam.CredentialRepository
+	var recoveryRepo iam.RecoveryRepository
 	var verificationRepo verification.Repository
 	var projectRepo project.Repository
 	var taskRepo task.Repository
@@ -292,6 +293,7 @@ func main() {
 
 		userRepo = sqlite.NewUserRepository(db)
 		credsRepo = sqlite.NewCredentialRepository(db)
+		recoveryRepo = sqlite.NewRecoveryRepository(db)
 		verificationRepo = sqlite.NewVerificationRepository(db)
 		projectRepo = sqlite.NewProjectRepository(db)
 		taskRepo = sqlite.NewTaskRepository(db)
@@ -317,6 +319,7 @@ func main() {
 
 		userRepo = postgres.NewUserRepository(db)
 		credsRepo = postgres.NewCredentialRepository(db)
+		recoveryRepo = postgres.NewRecoveryRepository(db)
 		verificationRepo = postgres.NewVerificationRepository(db)
 		projectRepo = postgres.NewProjectRepository(db)
 		taskRepo = postgres.NewTaskRepository(db)
@@ -373,6 +376,7 @@ func main() {
 
 	verificationEmailEvtHdl := iamEvtHdl.NewSendVerificationEmail(mlr, userRepo)
 	verifiedEmailEvtHdl := iamEvtHdl.NewSendVerifiedEmail(mlr, userRepo)
+	recoveryCreatedEvtHdl := iamEvtHdl.NewRecoveryCreated(mlr, userRepo)
 	emailChangedEvtHdl := iamEvtHdl.NewEmailChanged(mlr, idgen, verificationRepo)
 	contractCreatedEvtHdl := messageEvtHdl.NewAddContractCreatedMessage(systemMsgPub)
 	contractStatusEvtHdl := messageEvtHdl.NewAddContractStatusChangedMessage(userRepo, systemMsgPub)
@@ -395,6 +399,7 @@ func main() {
 	intBus.Subscribe(iam.EventTypeUserCreated, createDefaultChannelEvtHdl.Handle)
 	intBus.Subscribe(iam.EventTypeUserVerified, verifiedEmailEvtHdl.Handle)
 	intBus.Subscribe(iam.EventTypeUserEmailChanged, emailChangedEvtHdl.Handle)
+	intBus.Subscribe(iam.EventTypeRecoveryCreated, recoveryCreatedEvtHdl.Handle)
 	intBus.Subscribe(project.EventTypeProjectCreated, createProjectChannelEvtHdl.Handle)
 
 	// Domain services
@@ -411,6 +416,7 @@ func main() {
 	iamAppService := iamApp.NewService(
 		userRepo,
 		credsRepo,
+		recoveryRepo,
 		verificationRepo,
 		projectRepo,
 		uow,

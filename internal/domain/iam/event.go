@@ -9,6 +9,8 @@ var (
 	EventTypeUserCreated      common.EventType = "iam.user.created"
 	EventTypeUserVerified     common.EventType = "iam.user.verified"
 	EventTypeUserEmailChanged common.EventType = "iam.user.email.changed"
+
+	EventTypeRecoveryCreated common.EventType = "iam.recovery.created"
 )
 
 type UserCreatedEvent struct {
@@ -39,5 +41,15 @@ type UserEmailChangedEvent struct {
 }
 
 func (e UserEmailChangedEvent) EventType() common.EventType {
+	return EventTypeUserEmailChanged
+}
+
+type RecoveryCreatedEvent struct {
+	UserID     UserID
+	Token      RecoveryToken
+	OccurredAt time.Time
+}
+
+func (e RecoveryCreatedEvent) EventType() common.EventType {
 	return EventTypeUserEmailChanged
 }
