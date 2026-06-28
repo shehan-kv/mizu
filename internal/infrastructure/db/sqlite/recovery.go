@@ -37,14 +37,12 @@ func (r *RecoveryRepository) Add(ctx context.Context, recovery *iam.Recovery) er
 			user_id,
 			token,
 			version,
-			created_at,
-			expires_at
-		) VALUES (?, ?, ?, ?, ?)`,
+			created_at
+		) VALUES (?, ?, ?, ?)`,
 		recovery.UserID().String(),
 		recovery.Token().String(),
 		recovery.Version(),
 		recovery.CreatedAt(),
-		recovery.ExpiresAt(),
 	)
 	if err != nil {
 		if sqlite3Err, ok := errors.AsType[sqlite3.Error](err); ok {
@@ -193,14 +191,12 @@ func (r *RecoveryRepository) Save(ctx context.Context, recovery *iam.Recovery) e
 			token = ?,
 			version = ?,
 			created_at = ?,
-			expires_at = ?
 		WHERE
 			user_id = ?
 			AND version = ?`,
 		recovery.Token().String(),
 		recovery.Version()+1,
 		recovery.CreatedAt(),
-		recovery.ExpiresAt(),
 		recovery.UserID().String(),
 		recovery.Version(),
 	)

@@ -14,7 +14,6 @@ type Recovery struct {
 	version int
 
 	createdAt time.Time
-	expiresAt time.Time
 }
 
 func NewRecovery(
@@ -27,7 +26,6 @@ func NewRecovery(
 		token:     token,
 		version:   1,
 		createdAt: now,
-		expiresAt: now.Add(time.Hour),
 	}
 
 	r.events = append(r.events, RecoveryCreatedEvent{
@@ -51,7 +49,6 @@ func RestoreRecovery(
 		token:     token,
 		version:   version,
 		createdAt: createdAt,
-		expiresAt: expiresAt,
 	}
 }
 
@@ -69,14 +66,6 @@ func (r *Recovery) Version() int {
 
 func (r *Recovery) CreatedAt() time.Time {
 	return r.createdAt
-}
-
-func (r *Recovery) ExpiresAt() time.Time {
-	return r.expiresAt
-}
-
-func (r *Recovery) IsExpired(now time.Time) bool {
-	return now.After(r.expiresAt)
 }
 
 func (r *Recovery) PullEvents() []common.Event {
