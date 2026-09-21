@@ -1,11 +1,13 @@
 package contract
 
+import "unicode/utf8"
+
 type Terms struct {
 	value string
 }
 
 func NewTerms(value string) (Terms, error) {
-	if len(value) < 50 {
+	if utf8.RuneCountInString(value) < 50 {
 		return Terms{}, ErrContractTermsTooShort
 	}
 
