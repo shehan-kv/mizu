@@ -32,7 +32,8 @@ func NewTask(
 	name Name,
 	description string,
 	estMinutes Minutes,
-	assignees []iam.UserID) (*Task, error) {
+	assignees []iam.UserID,
+	now time.Time) (*Task, error) {
 
 	assigneesSet := make(map[iam.UserID]struct{})
 
@@ -40,8 +41,6 @@ func NewTask(
 	for i := range assignees {
 		assigneesSet[assignees[i]] = struct{}{}
 	}
-
-	now := time.Now()
 
 	return &Task{
 		id:               id,
@@ -73,6 +72,10 @@ func RestoreTask(
 ) *Task {
 
 	aMap := make(map[iam.UserID]struct{}, len(assignees))
+
+	for i := range assignees {
+		aMap[assignees[i]] = struct{}{}
+	}
 
 	return &Task{
 		id:               id,
