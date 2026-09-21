@@ -42,7 +42,6 @@ func RestoreRecovery(
 	token RecoveryToken,
 	version int,
 	createdAt time.Time,
-	expiresAt time.Time,
 ) *Recovery {
 	return &Recovery{
 		userID:    userID,

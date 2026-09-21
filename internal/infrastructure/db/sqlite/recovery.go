@@ -80,8 +80,7 @@ func (r *RecoveryRepository) GetByToken(ctx context.Context, token iam.RecoveryT
 			user_id,
 			token,
 			version,
-			created_at,
-			expires_at
+			created_at
 		FROM recoveries
 		WHERE token = ?`,
 		token.String(),
@@ -118,7 +117,6 @@ func (r *RecoveryRepository) GetByToken(ctx context.Context, token iam.RecoveryT
 		recoveryToken,
 		version,
 		createdAt,
-		expiresAt,
 	), nil
 }
 
@@ -139,8 +137,7 @@ func (r *RecoveryRepository) GetByUser(ctx context.Context, uID iam.UserID) (*ia
 			user_id,
 			token,
 			version,
-			created_at,
-			expires_at
+			created_at
 		FROM recoveries
 		WHERE user_id = ?`,
 		uID.String(),
@@ -177,7 +174,6 @@ func (r *RecoveryRepository) GetByUser(ctx context.Context, uID iam.UserID) (*ia
 		recoveryToken,
 		version,
 		createdAt,
-		expiresAt,
 	), nil
 }
 
