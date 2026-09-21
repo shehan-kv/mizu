@@ -178,10 +178,6 @@ func (p *Project) ReplaceMembers(members []iam.UserID, now time.Time) error {
 }
 
 func (p *Project) AddMember(memberID iam.UserID, now time.Time) error {
-	if memberID == "" {
-		return ErrProjectMemberIDCannotBeEmpty
-	}
-
 	p.members[memberID] = struct{}{}
 	p.updatedAt = now
 
@@ -189,8 +185,8 @@ func (p *Project) AddMember(memberID iam.UserID, now time.Time) error {
 }
 
 func (p *Project) RemoveMember(memberID iam.UserID, now time.Time) error {
-	if memberID == "" {
-		return ErrProjectMemberIDCannotBeEmpty
+	if len(p.members) == 1 && p.HasMember(memberID) {
+		return ErrProjectMustHaveAtLeastOneMember
 	}
 
 	delete(p.members, memberID)
