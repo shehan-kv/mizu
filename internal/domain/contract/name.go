@@ -7,12 +7,13 @@ type Name struct {
 }
 
 func NewName(name string) (Name, error) {
+	tName := strings.TrimSpace(name)
 
-	if name == "" {
+	if tName == "" {
 		return Name{}, ErrContractNameCannotBeEmpty
 	}
 
-	return Name{value: strings.TrimSpace(name)}, nil
+	return Name{value: tName}, nil
 }
 
 func (n Name) String() string {
