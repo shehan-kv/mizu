@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"mizu/internal/application/mailer"
 	"mizu/internal/domain/iam"
-	"mizu/internal/domain/verification"
 	"net"
 	"net/smtp"
 	"strings"
@@ -162,7 +161,7 @@ func (m *SMTPMailer) SendRecoveryEmail(ctx context.Context, e iam.Email, token i
 func (m *SMTPMailer) SendVerificationEmail(
 	ctx context.Context,
 	email iam.Email,
-	vID verification.VerificationID,
+	vID iam.VerificationID,
 ) error {
 	if m.closed.Load() {
 		return errors.New("email.Mailer.SendVerificationEmail: mailer closed")

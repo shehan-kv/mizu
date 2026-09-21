@@ -5,20 +5,19 @@ import (
 	"mizu/internal/application/mailer"
 	"mizu/internal/domain/common"
 	"mizu/internal/domain/iam"
-	"mizu/internal/domain/verification"
 	"time"
 )
 
 type EmailChanged struct {
 	mailer mailer.Mailer
 	idGen  common.IDGenerator
-	vRepo  verification.Repository
+	vRepo  iam.VerificationRepository
 }
 
 func NewEmailChanged(
 	mailer mailer.Mailer,
 	idGen common.IDGenerator,
-	vRepo verification.Repository,
+	vRepo iam.VerificationRepository,
 ) *EmailChanged {
 	return &EmailChanged{
 		mailer: mailer,
@@ -39,12 +38,12 @@ func (h *EmailChanged) Handle(ctx context.Context, event common.Event) error {
 		return err
 	}
 
-	vID, err := verification.NewVerificationID(id)
+	vID, err := iam.NewVerificationID(id)
 	if err != nil {
 		return err
 	}
 
-	v := verification.NewVerification(vID, e.UserID, time.Now())
+	v := iam.NewVerification(vID, e.UserID, time.Now())
 
 	err = h.vRepo.Add(ctx, v)
 	if err != nil {

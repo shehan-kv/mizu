@@ -37,7 +37,6 @@ import (
 	"mizu/internal/domain/message"
 	"mizu/internal/domain/project"
 	"mizu/internal/domain/task"
-	"mizu/internal/domain/verification"
 
 	authzApp "mizu/internal/application/authz"
 	billingApp "mizu/internal/application/billing"
@@ -269,7 +268,7 @@ func main() {
 	var userRepo iam.UserRepository
 	var credsRepo iam.CredentialRepository
 	var recoveryRepo iam.RecoveryRepository
-	var verificationRepo verification.Repository
+	var verificationRepo iam.VerificationRepository
 	var projectRepo project.Repository
 	var taskRepo task.Repository
 	var billingRepo billing.Repository
@@ -391,7 +390,7 @@ func main() {
 
 	intBus := internalbus.NewInMemoryBus(log, eventBufferSize)
 
-	intBus.Subscribe(verification.EventTypeVerificationCreated, verificationEmailEvtHdl.Handle)
+	intBus.Subscribe(iam.EventTypeVerificationCreated, verificationEmailEvtHdl.Handle)
 	intBus.Subscribe(contract.EventTypeContractCreated, contractCreatedEvtHdl.Handle)
 	intBus.Subscribe(contract.EventTypeContractStatusChanged, contractStatusEvtHdl.Handle)
 	intBus.Subscribe(message.EventTypeFileCreated, fileUploadEvtHdl.Handle)

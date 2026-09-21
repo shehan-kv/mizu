@@ -1,4 +1,4 @@
-package verification
+package iam
 
 type VerificationID string
 

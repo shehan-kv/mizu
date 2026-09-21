@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"mizu/internal/domain/iam"
-	"mizu/internal/domain/verification"
 	"time"
 )
 
@@ -27,7 +26,7 @@ func (r *VerificationRepository) executor(ctx context.Context) executor {
 	return r.db
 }
 
-func (r *VerificationRepository) Add(ctx context.Context, v *verification.Verification) error {
+func (r *VerificationRepository) Add(ctx context.Context, v *iam.Verification) error {
 	ex := r.executor(ctx)
 
 	_, err := ex.ExecContext(
@@ -44,13 +43,13 @@ func (r *VerificationRepository) Add(ctx context.Context, v *verification.Verifi
 		v.CreatedAt(),
 	)
 	if err != nil {
-		return fmt.Errorf("verification.VerificationRepository.Add: %w", err)
+		return fmt.Errorf("iam.VerificationRepository.Add: %w", err)
 	}
 
 	return nil
 }
 
-func (r *VerificationRepository) Get(ctx context.Context, id verification.VerificationID) (*verification.Verification, error) {
+func (r *VerificationRepository) Get(ctx context.Context, id iam.VerificationID) (*iam.Verification, error) {
 	ex := r.executor(ctx)
 
 	var (
@@ -78,13 +77,13 @@ func (r *VerificationRepository) Get(ctx context.Context, id verification.Verifi
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: %w", verification.ErrVerificationNotFound, err)
+			return nil, fmt.Errorf("%w: %w", iam.ErrVerificationNotFound, err)
 		}
 
-		return nil, fmt.Errorf("verification.VerificationRepository.Get: %w", err)
+		return nil, fmt.Errorf("iam.VerificationRepository.Get: %w", err)
 	}
 
-	verificationID, err := verification.NewVerificationID(rawID)
+	verificationID, err := iam.NewVerificationID(rawID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +93,7 @@ func (r *VerificationRepository) Get(ctx context.Context, id verification.Verifi
 		return nil, err
 	}
 
-	return verification.RestoreVerification(
+	return iam.RestoreVerification(
 		verificationID,
 		userID,
 		version,
@@ -102,7 +101,7 @@ func (r *VerificationRepository) Get(ctx context.Context, id verification.Verifi
 	), nil
 }
 
-func (r *VerificationRepository) Remove(ctx context.Context, v *verification.Verification) error {
+func (r *VerificationRepository) Remove(ctx context.Context, v *iam.Verification) error {
 	ex := r.executor(ctx)
 
 	result, err := ex.ExecContext(
@@ -112,18 +111,18 @@ func (r *VerificationRepository) Remove(ctx context.Context, v *verification.Ver
 		v.Version(),
 	)
 	if err != nil {
-		return fmt.Errorf("verification.VerificationRepository.Remove: %w", err)
+		return fmt.Errorf("iam.VerificationRepository.Remove: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("verification.VerificationRepository.Remove: rows affected: %w", err)
+		return fmt.Errorf("iam.VerificationRepository.Remove: rows affected: %w", err)
 	}
 
 	if rowsAffected == 0 {
 		return fmt.Errorf(
-			"verification.VerificationRepository.Remove: %w",
-			verification.ErrVerificationConcurrentModification,
+			"iam.VerificationRepository.Remove: %w",
+			iam.ErrVerificationConcurrentModification,
 		)
 	}
 
@@ -139,11 +138,11 @@ func (r *VerificationRepository) RemoveByUserID(ctx context.Context, uID iam.Use
 		uID.String(),
 	)
 	if err != nil {
-		return fmt.Errorf("verification.VerificationRepository.RemoveByUserID: %w", err)
+		return fmt.Errorf("iam.VerificationRepository.RemoveByUserID: %w", err)
 	}
 
 	if _, err := result.RowsAffected(); err != nil {
-		return fmt.Errorf("verification.VerificationRepository.RemoveByUserID: rows affected: %w", err)
+		return fmt.Errorf("iam.VerificationRepository.RemoveByUserID: rows affected: %w", err)
 	}
 
 	return nil

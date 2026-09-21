@@ -14,7 +14,6 @@ import (
 	"mizu/internal/domain/common"
 	"mizu/internal/domain/iam"
 	"mizu/internal/domain/project"
-	"mizu/internal/domain/verification"
 	"time"
 )
 
@@ -22,7 +21,7 @@ type Service struct {
 	userRepo         iam.UserRepository
 	credRepo         iam.CredentialRepository
 	recoveryRepo     iam.RecoveryRepository
-	verificationRepo verification.Repository
+	verificationRepo iam.VerificationRepository
 	projectRepo      project.Repository
 
 	uow uow.UnitOfWork
@@ -45,7 +44,7 @@ func NewService(
 	userRepo iam.UserRepository,
 	credRepo iam.CredentialRepository,
 	recoveryRepo iam.RecoveryRepository,
-	verificationRepo verification.Repository,
+	verificationRepo iam.VerificationRepository,
 	projectRepo project.Repository,
 	uow uow.UnitOfWork,
 	iamSrv *iam.Service,
@@ -273,12 +272,12 @@ func (s Service) CreateUser(ctx context.Context, params CreateUserParams) error 
 		return err
 	}
 
-	verificationID, err := verification.NewVerificationID(vID)
+	verificationID, err := iam.NewVerificationID(vID)
 	if err != nil {
 		return err
 	}
 
-	verificationReq := verification.NewVerification(
+	verificationReq := iam.NewVerification(
 		verificationID,
 		user.ID(),
 		now,
@@ -350,12 +349,12 @@ func (s *Service) RegenerateVerification(ctx context.Context, userID string, act
 		return err
 	}
 
-	verificationID, err := verification.NewVerificationID(vID)
+	verificationID, err := iam.NewVerificationID(vID)
 	if err != nil {
 		return err
 	}
 
-	req := verification.NewVerification(verificationID, user.ID(), now)
+	req := iam.NewVerification(verificationID, user.ID(), now)
 
 	err = s.uow.Execute(ctx, func(ctx context.Context) error {
 		if err := s.verificationRepo.RemoveByUserID(ctx, user.ID()); err != nil {
@@ -377,7 +376,7 @@ func (s *Service) VerifyAccount(ctx context.Context, verificationID string, pass
 
 	now := time.Now()
 
-	vID, err := verification.NewVerificationID(verificationID)
+	vID, err := iam.NewVerificationID(verificationID)
 	if err != nil {
 		return err
 	}
@@ -482,7 +481,7 @@ func (s *Service) ConfirmRecovery(ctx context.Context, token string, password st
 
 func (s *Service) VerificationExists(ctx context.Context, verificationID string) error {
 
-	vID, err := verification.NewVerificationID(verificationID)
+	vID, err := iam.NewVerificationID(verificationID)
 	if err != nil {
 		return err
 	}

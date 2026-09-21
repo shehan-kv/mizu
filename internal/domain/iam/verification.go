@@ -1,21 +1,20 @@
-package verification
+package iam
 
 import (
 	"mizu/internal/domain/common"
-	"mizu/internal/domain/iam"
 	"time"
 )
 
 type Verification struct {
 	id     VerificationID
-	userID iam.UserID
+	userID UserID
 	events []common.Event
 
 	version   int
 	createdAt time.Time
 }
 
-func NewVerification(id VerificationID, userID iam.UserID, now time.Time) *Verification {
+func NewVerification(id VerificationID, userID UserID, now time.Time) *Verification {
 
 	v := Verification{
 		id:        id,
@@ -32,7 +31,7 @@ func NewVerification(id VerificationID, userID iam.UserID, now time.Time) *Verif
 	return &v
 }
 
-func RestoreVerification(id VerificationID, userID iam.UserID, version int, createdAt time.Time) *Verification {
+func RestoreVerification(id VerificationID, userID UserID, version int, createdAt time.Time) *Verification {
 	return &Verification{
 		id:        id,
 		userID:    userID,
@@ -45,7 +44,7 @@ func (v *Verification) ID() VerificationID {
 	return v.id
 }
 
-func (v *Verification) UserID() iam.UserID {
+func (v *Verification) UserID() UserID {
 	return v.userID
 }
 

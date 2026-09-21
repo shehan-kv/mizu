@@ -28,4 +28,9 @@ var (
 	ErrRecoveryConcurrentModification = errors.New("recovery concurrent modification")
 	ErrRecoveryTokenCannotBeEmpty     = errors.New("recovery token cannot be empty")
 	ErrRecoveryNotFound               = errors.New("recovery not found")
+
+	ErrVerificationConcurrentModification = errors.New("verification concurrent modification")
+	ErrVerificationUserIDCannotBeEmpty    = errors.New("verification user id cannot be empty")
+	ErrVerificationIDCannotBeEmpty        = errors.New("verification id cannot be empty")
+	ErrVerificationNotFound               = errors.New("verification not found")
 )

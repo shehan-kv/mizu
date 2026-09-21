@@ -7,7 +7,6 @@ import (
 	"mizu/internal/application/iam"
 	"mizu/internal/application/logger"
 	domainiam "mizu/internal/domain/iam"
-	domainverification "mizu/internal/domain/verification"
 	"mizu/internal/presentation/http/cookie"
 	"mizu/internal/presentation/http/rest/middleware"
 	"mizu/internal/presentation/http/rest/page"
@@ -420,7 +419,7 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 	case errors.Is(err, domainiam.ErrRecoveryNotFound):
 		response.WriteError(w, http.StatusNotFound, "recovery not found")
 
-	case errors.Is(err, domainverification.ErrVerificationNotFound):
+	case errors.Is(err, domainiam.ErrVerificationNotFound):
 		response.WriteError(w, http.StatusNotFound, "user not found")
 
 	// 401
@@ -487,10 +486,10 @@ func (h *IAMHandler) writeServiceError(w http.ResponseWriter, method string, pat
 	case errors.Is(err, domainiam.ErrUserInvalidImageMimeType):
 		response.WriteError(w, http.StatusBadRequest, "invalid image type")
 
-	case errors.Is(err, domainverification.ErrVerificationIDCannotBeEmpty):
+	case errors.Is(err, domainiam.ErrVerificationIDCannotBeEmpty):
 		response.WriteError(w, http.StatusBadRequest, "verification id cannot be empty")
 
-	case errors.Is(err, domainverification.ErrVerificationUserIDCannotBeEmpty):
+	case errors.Is(err, domainiam.ErrVerificationUserIDCannotBeEmpty):
 		response.WriteError(w, http.StatusBadRequest, "verification user id cannot be empty")
 
 	default:

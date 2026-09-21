@@ -5,7 +5,6 @@ import (
 	"mizu/internal/application/mailer"
 	"mizu/internal/domain/common"
 	"mizu/internal/domain/iam"
-	"mizu/internal/domain/verification"
 )
 
 type SendVerificationEmail struct {
@@ -19,7 +18,7 @@ func NewSendVerificationEmail(mailer mailer.Mailer, userRepo iam.UserRepository)
 
 func (h *SendVerificationEmail) Handle(ctx context.Context, event common.Event) error {
 
-	e, ok := event.(verification.VerificationCreatedEvent)
+	e, ok := event.(iam.VerificationCreatedEvent)
 	if !ok {
 		return nil
 	}

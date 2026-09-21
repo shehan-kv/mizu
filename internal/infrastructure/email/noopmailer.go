@@ -5,7 +5,6 @@ import (
 	"mizu/internal/application/logger"
 	"mizu/internal/application/mailer"
 	"mizu/internal/domain/iam"
-	"mizu/internal/domain/verification"
 )
 
 type NoOpMailer struct {
@@ -23,7 +22,7 @@ func (m *NoOpMailer) SendRecoveryEmail(_ context.Context, _ iam.Email, _ iam.Rec
 	return nil
 }
 
-func (m *NoOpMailer) SendVerificationEmail(_ context.Context, _ iam.Email, _ verification.VerificationID) error {
+func (m *NoOpMailer) SendVerificationEmail(_ context.Context, _ iam.Email, _ iam.VerificationID) error {
 
 	m.logger.Info("verification email skipped: using no-op mailer")
 

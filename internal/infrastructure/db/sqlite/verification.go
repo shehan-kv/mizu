@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"mizu/internal/domain/iam"
-	"mizu/internal/domain/verification"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -29,7 +28,7 @@ func (r *VerificationRepository) executor(ctx context.Context) executor {
 	return r.db
 }
 
-func (r *VerificationRepository) Add(ctx context.Context, v *verification.Verification) error {
+func (r *VerificationRepository) Add(ctx context.Context, v *iam.Verification) error {
 
 	ex := r.executor(ctx)
 
@@ -50,14 +49,14 @@ func (r *VerificationRepository) Add(ctx context.Context, v *verification.Verifi
 		if sqlite3Err, ok := errors.AsType[sqlite3.Error](err); ok {
 			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
 				return fmt.Errorf(
-					"verification.VerificationRepository.Add: duplicate verification id: %w",
+					"iam.VerificationRepository.Add: duplicate verification id: %w",
 					err,
 				)
 			}
 		}
 
 		return fmt.Errorf(
-			"verification.VerificationRepository.Add: %w",
+			"iam.VerificationRepository.Add: %w",
 			err,
 		)
 	}
@@ -65,7 +64,7 @@ func (r *VerificationRepository) Add(ctx context.Context, v *verification.Verifi
 	return nil
 }
 
-func (r *VerificationRepository) Get(ctx context.Context, id verification.VerificationID) (*verification.Verification, error) {
+func (r *VerificationRepository) Get(ctx context.Context, id iam.VerificationID) (*iam.Verification, error) {
 	ex := r.executor(ctx)
 
 	var (
@@ -93,16 +92,16 @@ func (r *VerificationRepository) Get(ctx context.Context, id verification.Verifi
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%w: %w", verification.ErrVerificationNotFound, err)
+			return nil, fmt.Errorf("%w: %w", iam.ErrVerificationNotFound, err)
 		}
 
 		return nil, fmt.Errorf(
-			"verification.VerificationRepository.Get: %w",
+			"iam.VerificationRepository.Get: %w",
 			err,
 		)
 	}
 
-	verificationID, err := verification.NewVerificationID(rawID)
+	verificationID, err := iam.NewVerificationID(rawID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +111,7 @@ func (r *VerificationRepository) Get(ctx context.Context, id verification.Verifi
 		return nil, err
 	}
 
-	v := verification.RestoreVerification(
+	v := iam.RestoreVerification(
 		verificationID,
 		userID,
 		version,
@@ -122,7 +121,7 @@ func (r *VerificationRepository) Get(ctx context.Context, id verification.Verifi
 	return v, nil
 }
 
-func (r *VerificationRepository) Remove(ctx context.Context, v *verification.Verification) error {
+func (r *VerificationRepository) Remove(ctx context.Context, v *iam.Verification) error {
 
 	ex := r.executor(ctx)
 
@@ -134,7 +133,7 @@ func (r *VerificationRepository) Remove(ctx context.Context, v *verification.Ver
 	)
 	if err != nil {
 		return fmt.Errorf(
-			"verification.VerificationRepository.Remove: %w",
+			"iam.VerificationRepository.Remove: %w",
 			err,
 		)
 	}
@@ -142,14 +141,14 @@ func (r *VerificationRepository) Remove(ctx context.Context, v *verification.Ver
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf(
-			"verification.VerificationRepository.Remove: rows affected: %w",
+			"iam.VerificationRepository.Remove: rows affected: %w",
 			err,
 		)
 	}
 
 	if rowsAffected == 0 {
 		return fmt.Errorf(
-			"verification.VerificationRepository.Remove: %w", verification.ErrVerificationConcurrentModification,
+			"iam.VerificationRepository.Remove: %w", iam.ErrVerificationConcurrentModification,
 		)
 	}
 
@@ -166,7 +165,7 @@ func (r *VerificationRepository) RemoveByUserID(ctx context.Context, uID iam.Use
 	)
 	if err != nil {
 		return fmt.Errorf(
-			"verification.VerificationRepository.RemoveByUserID: %w",
+			"iam.VerificationRepository.RemoveByUserID: %w",
 			err,
 		)
 	}
@@ -174,7 +173,7 @@ func (r *VerificationRepository) RemoveByUserID(ctx context.Context, uID iam.Use
 	_, err = result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf(
-			"verification.VerificationRepository.RemoveByUserID: rows affected: %w",
+			"iam.VerificationRepository.RemoveByUserID: rows affected: %w",
 			err,
 		)
 	}
