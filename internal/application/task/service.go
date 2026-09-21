@@ -51,6 +51,7 @@ func NewService(
 }
 
 func (s *Service) Create(ctx context.Context, params CreateTaskParams) error {
+	now := time.Now()
 
 	pID, err := project.NewProjectID(params.ProjectID)
 	if err != nil {
@@ -132,6 +133,7 @@ func (s *Service) Create(ctx context.Context, params CreateTaskParams) error {
 		params.Description,
 		estMinutes,
 		assignees,
+		now,
 	)
 	if err != nil {
 		return err
