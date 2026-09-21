@@ -233,7 +233,11 @@ func (c *Contract) ReplaceSignatories(userIDs []iam.UserID, now time.Time) error
 
 	signatories := make([]Signatory, len(userIDs))
 	for i := range userIDs {
-		signatories[i] = Signatory{userID: userIDs[i], status: SignatoryStatusPending}
+		signatories[i] = Signatory{
+			userID:    userIDs[i],
+			status:    SignatoryStatusPending,
+			updatedAt: now,
+		}
 	}
 	c.signatories = signatories
 
