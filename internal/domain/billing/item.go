@@ -195,7 +195,19 @@ func (t Item) LineTotal() Decimal {
 }
 
 func (t Item) Equals(other Item) bool {
-	return t == other
+	return t.description == other.description &&
+		t.qty.String() == other.qty.String() &&
+		t.unitPrice.Equals(other.unitPrice) &&
+		t.discountRate.Equals(other.discountRate) &&
+		t.discountType == other.discountType &&
+		t.taxRate.Equals(other.taxRate) &&
+		t.taxType == other.taxType &&
+		t.lineDiscount.Equals(other.lineDiscount) &&
+		t.lineGross.Equals(other.lineGross) &&
+		t.lineNet.Equals(other.lineNet) &&
+		t.lineTax.Equals(other.lineTax) &&
+		t.lineTotal.Equals(other.lineTotal)
+
 }
 
 func percentageOf(rate Decimal, base Decimal) (Decimal, error) {
