@@ -20,5 +20,6 @@ var (
 	ErrMessageInvalidSender        = errors.New("message invalid sender")
 	ErrMessageNotFound             = errors.New("message not found")
 
-	ErrFileIDCannotBeEmpty = errors.New("file id cannot be empty")
+	ErrFileNameCannotBeEmpty = errors.New("file name cannot be empty")
+	ErrFileIDCannotBeEmpty   = errors.New("file id cannot be empty")
 )

@@ -7,7 +7,7 @@ type FileName struct {
 func NewFileName(name string) (FileName, error) {
 
 	if name == "" {
-		return FileName{}, ErrChannelNameCannotBeEmpty
+		return FileName{}, ErrFileNameCannotBeEmpty
 	}
 
 	return FileName{value: name}, nil
