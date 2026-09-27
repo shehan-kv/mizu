@@ -32,6 +32,9 @@ func (h *DefaultPasswordHasher) Hash(password iam.PlainPassword) (string, error)
 //
 // Returns true if the password is valid, false otherwise.
 func (h *DefaultPasswordHasher) Verify(hash string, password iam.PlainPassword) bool {
+	if len(hash) < 2 {
+		return false
+	}
 
 	switch hash[:2] {
 	case bcryptHashPrefix:
