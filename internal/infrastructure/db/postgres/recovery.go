@@ -75,7 +75,6 @@ func (r *RecoveryRepository) GetByToken(ctx context.Context, token iam.RecoveryT
 		rawToken  string
 		version   int
 		createdAt time.Time
-		expiresAt time.Time
 	)
 
 	err := ex.QueryRowContext(
@@ -93,7 +92,6 @@ func (r *RecoveryRepository) GetByToken(ctx context.Context, token iam.RecoveryT
 		&rawToken,
 		&version,
 		&createdAt,
-		&expiresAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -129,7 +127,6 @@ func (r *RecoveryRepository) GetByUser(ctx context.Context, uID iam.UserID) (*ia
 		rawToken  string
 		version   int
 		createdAt time.Time
-		expiresAt time.Time
 	)
 
 	err := ex.QueryRowContext(
@@ -147,7 +144,6 @@ func (r *RecoveryRepository) GetByUser(ctx context.Context, uID iam.UserID) (*ia
 		&rawToken,
 		&version,
 		&createdAt,
-		&expiresAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -184,7 +180,7 @@ func (r *RecoveryRepository) Save(ctx context.Context, recovery *iam.Recovery) e
 		SET
 			token = $1,
 			version = $2,
-			created_at = $3,
+			created_at = $3
 		WHERE
 			user_id = $4
 			AND version = $5`,
