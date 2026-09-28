@@ -802,7 +802,7 @@ func (r *ProjectRepository) ListCreatedPerDay(ctx context.Context, mID iam.UserI
 		)
 		SELECT
 			m.year_month,
-			COUNT(p.id) AS count
+			COUNT(pm.project_id) AS count
 		FROM months m
 		LEFT JOIN projects p
 			ON to_char(p.created_at, 'YYYY-MM') = m.year_month
