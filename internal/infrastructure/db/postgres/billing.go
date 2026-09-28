@@ -67,9 +67,9 @@ func (r *BillingRepository) Add(ctx context.Context, i *billing.Invoice) error {
 		i.DueAt(),
 		i.Currency().Code().String(),
 		i.Note(),
-		i.TotalTax(),
-		i.TotalDiscount(),
-		i.SubTotal(),
+		i.TotalTax().String(),
+		i.TotalDiscount().String(),
+		i.SubTotal().String(),
 		i.Version(),
 		i.CreatedAt(),
 		i.UpdatedAt(),
@@ -133,20 +133,20 @@ func (r *BillingRepository) Add(ctx context.Context, i *billing.Invoice) error {
 			args,
 			i.ID().String(),
 			item.Description(),
-			item.Qty(),
-			item.UnitPrice(),
-			item.DiscountRate(),
+			item.Qty().String(),
+			item.UnitPrice().String(),
+			item.DiscountRate().String(),
 			item.DiscountType(),
-			item.TaxRate(),
+			item.TaxRate().String(),
 			item.TaxType(),
-			item.DiscountAmountPerUnit(),
-			item.TaxableBasePerUnit(),
-			item.TaxAmountPerUnit(),
-			item.LineGross(),
-			item.LineDiscount(),
-			item.LineNet(),
-			item.LineTax(),
-			item.LineTotal(),
+			item.DiscountAmountPerUnit().String(),
+			item.TaxableBasePerUnit().String(),
+			item.TaxAmountPerUnit().String(),
+			item.LineGross().String(),
+			item.LineDiscount().String(),
+			item.LineNet().String(),
+			item.LineTax().String(),
+			item.LineTotal().String(),
 		)
 	}
 
@@ -793,33 +793,47 @@ func (r *BillingRepository) ListByMember(ctx context.Context, f billing.FilterBy
 
 	queryArgs = append(queryArgs, f.MemberID.String())
 
+	pos := 2
+
 	if f.Keyword != nil && strings.TrimSpace(*f.Keyword) != "" {
 		keyword := "%" + strings.TrimSpace(*f.Keyword) + "%"
 
-		invQuery.WriteString(`
-			AND (
-				i.id::text ILIKE $2
-				OR i.note ILIKE $3
-			)
-		`)
+		invQuery.WriteString(` AND ( i.id::text ILIKE $`)
+		invQuery.WriteString(strconv.Itoa(pos))
 
-		queryArgs = append(queryArgs, keyword, keyword)
+		invQuery.WriteString(` OR i.note ILIKE $`)
+		invQuery.WriteString(strconv.Itoa(pos))
+
+		invQuery.WriteString(`)`)
+
+		queryArgs = append(queryArgs, keyword)
+		pos++
 	}
 
 	if f.IsInvoice != nil {
-		invQuery.WriteString(` AND i.is_invoice = $4`)
+		invQuery.WriteString(` AND i.is_invoice = $`)
+		invQuery.WriteString(strconv.Itoa(pos))
+
 		queryArgs = append(queryArgs, *f.IsInvoice)
+		pos++
 	}
 
 	if f.Status != nil {
-		invQuery.WriteString(` AND i.status = $5`)
+		invQuery.WriteString(` AND i.status = $`)
+		invQuery.WriteString(strconv.Itoa(pos))
+
 		queryArgs = append(queryArgs, string(*f.Status))
+		pos++
 	}
 
-	invQuery.WriteString(`
-		ORDER BY i.created_at DESC
-		LIMIT $6 OFFSET $7
-	`)
+	limitPos := pos
+	offsetPos := pos + 1
+
+	invQuery.WriteString(` ORDER BY i.created_at DESC LIMIT $`)
+	invQuery.WriteString(strconv.Itoa(limitPos))
+
+	invQuery.WriteString(` OFFSET $`)
+	invQuery.WriteString(strconv.Itoa(offsetPos))
 
 	queryArgs = append(queryArgs, p.Limit(), p.Offset())
 
@@ -1163,31 +1177,47 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 
 	args = append(args, f.ProjectID.String())
 
+	pos := 2
+
 	if f.Keyword != nil && strings.TrimSpace(*f.Keyword) != "" {
-		sb.WriteString(`
-			AND (
-				i.note ILIKE $2
-				OR i.id::text ILIKE $2
-			)
-		`)
 		keyword := "%" + strings.TrimSpace(*f.Keyword) + "%"
+
+		sb.WriteString(` AND ( i.id::text ILIKE $`)
+		sb.WriteString(strconv.Itoa(pos))
+
+		sb.WriteString(` OR i.note ILIKE $`)
+		sb.WriteString(strconv.Itoa(pos))
+
+		sb.WriteString(`)`)
+
 		args = append(args, keyword)
+		pos++
 	}
 
 	if f.IsInvoice != nil {
-		sb.WriteString(" AND i.is_invoice = $3")
+		sb.WriteString(` AND i.is_invoice = $`)
+		sb.WriteString(strconv.Itoa(pos))
+
 		args = append(args, *f.IsInvoice)
+		pos++
 	}
 
 	if f.Status != nil {
-		sb.WriteString(" AND i.status = $4")
+		sb.WriteString(` AND i.status = $`)
+		sb.WriteString(strconv.Itoa(pos))
+
 		args = append(args, string(*f.Status))
+		pos++
 	}
 
-	sb.WriteString(`
-		ORDER BY i.created_at DESC
-		LIMIT $5 OFFSET $6
-	`)
+	limitPos := pos
+	offsetPos := pos + 1
+
+	sb.WriteString(` ORDER BY i.created_at DESC LIMIT $`)
+	sb.WriteString(strconv.Itoa(limitPos))
+
+	sb.WriteString(` OFFSET $`)
+	sb.WriteString(strconv.Itoa(offsetPos))
 
 	args = append(args, p.Limit(), p.Offset())
 
@@ -1261,7 +1291,7 @@ func (r *BillingRepository) ListByProject(ctx context.Context, f billing.FilterB
 		WHERE invoice_id = ANY($1)
 	`)
 
-	itemArgs = append(itemArgs, invoiceIDs)
+	itemArgs = append(itemArgs, pq.Array(invoiceIDs))
 
 	itemRows, err := ex.QueryContext(ctx, itemSB.String(), itemArgs...)
 	if err != nil {
@@ -1644,7 +1674,7 @@ func (r *BillingRepository) ListStatsByProjects(ctx context.Context, projectIDs 
 		projectIDStrs = append(projectIDStrs, id.String())
 	}
 
-	args = append(args, projectIDStrs)
+	args = append(args, pq.Array(projectIDStrs))
 
 	rows, err := ex.QueryContext(ctx, query.String(), args...)
 	if err != nil {
