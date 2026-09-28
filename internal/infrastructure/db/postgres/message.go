@@ -175,8 +175,7 @@ func (r *MessageRepository) ListByChannel(
 
 	if before != nil {
 		query.WriteString(`
-		AND id < $
-	`)
+		AND id < $`)
 		query.WriteString(strconv.Itoa(argPos))
 		args = append(args, before.String())
 		argPos++
@@ -184,8 +183,7 @@ func (r *MessageRepository) ListByChannel(
 
 	query.WriteString(`
 	ORDER BY id DESC
-	LIMIT $
-	`)
+	LIMIT $`)
 	query.WriteString(strconv.Itoa(argPos))
 	args = append(args, limit)
 
