@@ -242,20 +242,22 @@ func (r *TaskRepository) ListCompletedPerDay(ctx context.Context, pID project.Pr
 	rows, err := r.executor(ctx).QueryContext(
 		ctx,
 		`WITH RECURSIVE last_two_weeks(day) AS (
-			SELECT CURRENT_DATE
+			SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date
+
 			UNION ALL
-			SELECT day - INTERVAL '1 day'
+
+			SELECT day - 1
 			FROM last_two_weeks
-			WHERE day > CURRENT_DATE - INTERVAL '13 days'
+			WHERE day > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date - 13
 		)
 		SELECT
-			ltw.day,
-			COUNT(*) FILTER (
-				WHERE t.project_id = $1 AND t.status = $2
-			) AS completed_count
+			TO_CHAR(ltw.day, 'YYYY-MM-DD') AS day,
+			COUNT(t.id) AS completed_count
 		FROM last_two_weeks ltw
 		LEFT JOIN tasks t
-			ON DATE(t.updated_at) = ltw.day
+			ON (t.updated_at AT TIME ZONE 'UTC')::date = ltw.day
+			AND t.project_id = $1
+			AND t.status = $2
 		GROUP BY ltw.day
 		ORDER BY ltw.day`,
 		pID.String(),
@@ -699,6 +701,9 @@ func (r *TaskRepository) Save(ctx context.Context, t *task.Task) error {
 	}
 
 	assignees := t.Assignees()
+	if len(assignees) == 0 {
+		return nil
+	}
 
 	var query strings.Builder
 
