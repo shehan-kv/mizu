@@ -837,8 +837,7 @@ func (r *ContractRepository) CountByProject(ctx context.Context, f contract.Filt
 
 	if f.Keyword != nil {
 		query.WriteString(`
-			AND name LIKE $
-		`)
+			AND name LIKE $`)
 		query.WriteString(strconv.Itoa(argPos))
 
 		args = append(args, "%"+*f.Keyword+"%")
@@ -847,8 +846,7 @@ func (r *ContractRepository) CountByProject(ctx context.Context, f contract.Filt
 
 	if f.Status != nil {
 		query.WriteString(`
-			AND status = $
-		`)
+			AND status = $`)
 		query.WriteString(strconv.Itoa(argPos))
 
 		args = append(args, f.Status.String())
@@ -892,8 +890,7 @@ func (r *ContractRepository) CountBySignatory(ctx context.Context, f contract.Fi
 
 	if f.Keyword != nil {
 		query.WriteString(`
-			AND c.name LIKE $
-		`)
+			AND c.name LIKE $`)
 		query.WriteString(strconv.Itoa(argPos))
 
 		args = append(args, "%"+*f.Keyword+"%")
@@ -902,8 +899,7 @@ func (r *ContractRepository) CountBySignatory(ctx context.Context, f contract.Fi
 
 	if f.Status != nil {
 		query.WriteString(`
-			AND c.status = $
-		`)
+			AND c.status = $`)
 		query.WriteString(strconv.Itoa(argPos))
 
 		args = append(args, f.Status.String())
@@ -1008,13 +1004,13 @@ func (r *ContractRepository) Save(ctx context.Context, c *contract.Contract) err
 			sb.WriteString(", ")
 		}
 
-		sb.WriteString("(")
+		sb.WriteString("($")
 		sb.WriteString(strconv.Itoa(argPos))
-		sb.WriteString(", ")
+		sb.WriteString(", $")
 		sb.WriteString(strconv.Itoa(argPos + 1))
-		sb.WriteString(", ")
+		sb.WriteString(", $")
 		sb.WriteString(strconv.Itoa(argPos + 2))
-		sb.WriteString(", ")
+		sb.WriteString(", $")
 		sb.WriteString(strconv.Itoa(argPos + 3))
 		sb.WriteString(")")
 
