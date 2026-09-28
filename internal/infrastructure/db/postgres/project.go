@@ -220,8 +220,7 @@ func (r *ProjectRepository) List(ctx context.Context, f project.Filter, p common
 		FROM projects p
 		INNER JOIN project_members pm
 			ON p.id = pm.project_id
-		WHERE pm.user_id = $
-	`)
+		WHERE pm.user_id = $`)
 	sb.WriteString(strconv.Itoa(argPos))
 
 	args = append(args, f.MemberID.String())
