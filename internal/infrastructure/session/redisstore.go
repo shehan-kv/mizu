@@ -125,6 +125,10 @@ func (s *RedisStore) ListByUser(ctx context.Context, userID iam.UserID) ([]*sess
 		s.client.SRem(ctx, userSessionsKey(userID), expiredIDs...)
 	}
 
+	if len(sessions) == 0 {
+		return nil, nil
+	}
+
 	return sessions, nil
 }
 
