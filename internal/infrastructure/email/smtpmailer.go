@@ -18,12 +18,13 @@ import (
 )
 
 type SMTPConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	From     string
-	BaseURL  string
+	Host      string
+	Port      int
+	Username  string
+	Password  string
+	From      string
+	BaseURL   string
+	TLSConfig *tls.Config
 }
 
 type message struct {
@@ -261,6 +262,7 @@ func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 	var body bytes.Buffer
 
 	data := struct {
+		BaseURL       string
 		ContractID    string
 		ContractName  string
 		ContractTerms string
@@ -268,6 +270,7 @@ func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 		ProjectName   string
 		Signatories   []mailer.ContractSignatory
 	}{
+		BaseURL:       m.config.BaseURL,
 		ContractID:    email.ContractID,
 		ContractName:  email.ContractName,
 		ContractTerms: email.ContractTerms,
@@ -277,7 +280,7 @@ func (m *SMTPMailer) SendContractEmail(ctx context.Context, email mailer.Contrac
 	}
 
 	if err := t.Execute(&body, data); err != nil {
-		return fmt.Errorf("email.Mailer.SendVerifiedEmail: render template: %w", err)
+		return fmt.Errorf("email.Mailer.SendContractEmail: render template: %w", err)
 	}
 
 	result := make(chan error, 1)
@@ -319,7 +322,14 @@ func (m *SMTPMailer) SendInvoiceEmail(ctx context.Context, email mailer.InvoiceE
 	if email.DueAt != nil {
 		dueAt = email.DueAt.UTC().Format("02 Jan 2006 UTC")
 	}
+
+	status := email.Status
+	if status != "" {
+		status = strings.ToUpper(status[:1]) + status[1:]
+	}
+
 	data := struct {
+		BaseURL            string
 		InvoiceID          string
 		FormattedInvoiceID string
 		ProjectID          string
@@ -333,11 +343,12 @@ func (m *SMTPMailer) SendInvoiceEmail(ctx context.Context, email mailer.InvoiceE
 		TotalTax           string
 		TotalDiscount      string
 	}{
+		BaseURL:            m.config.BaseURL,
 		InvoiceID:          email.InvoiceID,
 		FormattedInvoiceID: strings.ToUpper(email.InvoiceID[len(email.InvoiceID)-8:]),
 		ProjectID:          email.ProjectID,
 
-		Status:       email.Status,
+		Status:       status,
 		CurrencyName: email.CurrencyName,
 		CurrencyCode: email.CurrencyCode,
 
@@ -471,9 +482,12 @@ func (m *SMTPMailer) ensureConnected() error {
 		Timeout: 10 * time.Second,
 	}
 
-	tlsConfig := &tls.Config{
-		ServerName: m.config.Host,
-		MinVersion: tls.VersionTLS12,
+	tlsConfig := m.config.TLSConfig
+	if tlsConfig == nil {
+		tlsConfig = &tls.Config{
+			ServerName: m.config.Host,
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 
 	conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
@@ -487,18 +501,23 @@ func (m *SMTPMailer) ensureConnected() error {
 		return fmt.Errorf("smtp client: %w", err)
 	}
 
-	auth := smtp.PlainAuth(
-		"",
-		m.config.Username,
-		m.config.Password,
-		m.config.Host,
-	)
+	if m.config.Username != "" {
+		auth := smtp.PlainAuth(
+			"",
+			m.config.Username,
+			m.config.Password,
+			m.config.Host,
+		)
 
-	if err := client.Auth(auth); err != nil {
-		client.Close()
-		return fmt.Errorf("auth: %w", err)
+		if err := client.Auth(auth); err != nil {
+			client.Close()
+
+			return fmt.Errorf(
+				"auth: %w",
+				err,
+			)
+		}
 	}
-
 	m.client = client
 
 	return nil
