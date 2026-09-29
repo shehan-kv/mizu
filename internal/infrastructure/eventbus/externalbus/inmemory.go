@@ -35,13 +35,21 @@ func (b *InMemoryBus) Subscribe(eventType eventbus.EventType, handler eventbus.E
 
 func (b *InMemoryBus) Publish(ctx context.Context, event eventbus.Event) error {
 	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	select {
 	case b.ch <- event:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
-		b.log.Warn("external bus full, dropping event",
-			"event_type", event.EventType(),
+		b.log.Warn(
+			"external bus full, dropping event",
+			"event_type",
+			event.EventType(),
 		)
 		return nil
 	}
