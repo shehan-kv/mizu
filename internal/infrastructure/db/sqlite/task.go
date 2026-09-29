@@ -75,6 +75,9 @@ func (r *TaskRepository) Add(ctx context.Context, t *task.Task) error {
 	}
 
 	assignees := t.Assignees()
+	if len(assignees) == 0 {
+		return nil
+	}
 
 	var sb strings.Builder
 	args := make([]any, 0, len(assignees)*2)

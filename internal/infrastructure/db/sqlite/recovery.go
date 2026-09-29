@@ -46,9 +46,16 @@ func (r *RecoveryRepository) Add(ctx context.Context, recovery *iam.Recovery) er
 	)
 	if err != nil {
 		if sqlite3Err, ok := errors.AsType[sqlite3.Error](err); ok {
-			if sqlite3Err.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
+			switch sqlite3Err.ExtendedCode {
+			case sqlite3.ErrConstraintPrimaryKey:
 				return fmt.Errorf(
 					"iam.RecoveryRepository.Add: duplicate recovery: %w",
+					err,
+				)
+
+			case sqlite3.ErrConstraintForeignKey:
+				return fmt.Errorf(
+					"iam.RecoveryRepository.Add: foreign key constraint violation: %w",
 					err,
 				)
 			}

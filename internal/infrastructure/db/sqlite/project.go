@@ -525,7 +525,7 @@ func (r *ProjectRepository) ListCreatedPerDay(ctx context.Context, mID iam.UserI
         )
         SELECT
             m.year_month,
-            COUNT(p.id) AS count
+            COUNT(pm.project_id) AS count
         FROM months m
         LEFT JOIN projects p ON strftime('%Y-%m', p.created_at) = m.year_month
         LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = ?
@@ -623,6 +623,10 @@ func (r *ProjectRepository) Save(ctx context.Context, p *project.Project) error 
 	}
 
 	members := p.Members()
+	if len(members) == 0 {
+		return nil
+	}
+
 	var sb strings.Builder
 	args := make([]any, 0, len(members)*2)
 
