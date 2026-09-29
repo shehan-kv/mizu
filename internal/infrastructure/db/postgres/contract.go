@@ -64,10 +64,6 @@ func (r *ContractRepository) Add(ctx context.Context, c *contract.Contract) erro
 
 	signatories := c.Signatories()
 
-	if len(signatories) == 0 {
-		return nil
-	}
-
 	var sb strings.Builder
 	args := make([]any, 0, len(signatories)*4)
 
@@ -980,10 +976,6 @@ func (r *ContractRepository) Save(ctx context.Context, c *contract.Contract) err
 	}
 
 	signatories := c.Signatories()
-
-	if len(signatories) == 0 {
-		return nil
-	}
 
 	var sb strings.Builder
 	args := make([]any, 0, len(signatories)*4)

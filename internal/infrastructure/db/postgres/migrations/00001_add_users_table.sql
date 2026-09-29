@@ -4,7 +4,7 @@ CREATE TABLE users (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     title TEXT,
-    email TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
     role TEXT NOT NULL,
     image TEXT,
     image_mime TEXT,
