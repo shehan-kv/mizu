@@ -1,8 +1,23 @@
 .DEFAULT_GOAL := build
 
-.PHONY: ui ui-dev fmt vet build build-windows-on-linux clean
+.PHONY: \
+	build-ui \
+	ui-dev \
+	fmt \
+	vet \
+	test \
+	build \
+	build-go \
+	build-linux-amd64 \
+	build-linux-arm64 \
+	build-windows-amd64 \
+	build-all \
+	clean \
+	clean-ui \
+	clean-all
 
-ui:
+
+build-ui:
 	@echo "Building UI..."
 	npm --prefix web/ui install
 	npm --prefix web/ui run build
@@ -12,54 +27,101 @@ ui-dev:
 	npm --prefix web/ui install
 	npm --prefix web/ui run dev
 
-# Format Go code
+
+
 fmt:
 	@echo "Formatting Go code..."
 	go fmt ./...
 
-# Run `go vet` after formatting
-vet: fmt
+vet:
 	@echo "Running go vet..."
 	go vet ./...
 
+test:
+	@echo "Running tests..."
+	go test ./...
 
-OUTPUT = bin/mizu
+
+
+VERSION ?= dev
+OUTPUT_DIR := bin
 
 ifeq ($(OS),Windows_NT)
-	OUTPUT := $(OUTPUT).exe
+	BINARY_EXT := .exe
+else
+	BINARY_EXT :=
 endif
 
 
-# Build for current OS
-build: ui vet
-	@echo "Building for current platform..."
-	go build -tags "sqlite_foreign_keys" -o $(OUTPUT) ./cmd/...
 
-# Build backend for current OS
+build:
+	@echo "Building for current platform..."
+	go build \
+		-tags "sqlite_foreign_keys" \
+		-o $(OUTPUT_DIR)/mizu$(BINARY_EXT) \
+		./cmd/...
+
+
+# Build backend only for current platform
 build-go:
-	@echo "Building for current platform..."
-	go build -tags "sqlite_foreign_keys" -o $(OUTPUT) ./cmd/...
+	@echo "Building backend for current platform..."
+	go build \
+		-tags "sqlite_foreign_keys" \
+		-o $(OUTPUT_DIR)/mizu$(BINARY_EXT) \
+		./cmd/...
 
-# Cross-Compile for Windows
-build-xwin: ui vet
-	@echo "Cross-Compiling for Windows..."
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc \
-	go build -o $(OUTPUT).exe ./cmd/...
 
-# Cross-Compile backend for Windows
-build-xwin-go:
-	@echo "Cross-Compiling for Windows..."
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc \
-	go build -o $(OUTPUT).exe ./cmd/...
 
-# Clean built binaries
+build-linux-amd64:
+	@echo "Building Linux amd64..."
+	CGO_ENABLED=1 \
+	GOOS=linux \
+	GOARCH=amd64 \
+	go build \
+		-tags "sqlite_foreign_keys" \
+		-o $(OUTPUT_DIR)/mizu-$(VERSION)-linux-amd64 \
+		./cmd/...
+
+
+build-linux-arm64:
+	@echo "Building Linux arm64..."
+	CGO_ENABLED=1 \
+	GOOS=linux \
+	GOARCH=arm64 \
+	CC=aarch64-linux-gnu-gcc \
+	go build \
+		-tags "sqlite_foreign_keys" \
+		-o $(OUTPUT_DIR)/mizu-$(VERSION)-linux-arm64 \
+		./cmd/...
+
+
+build-windows-amd64:
+	@echo "Building Windows amd64..."
+	CGO_ENABLED=1 \
+	GOOS=windows \
+	GOARCH=amd64 \
+	CC=x86_64-w64-mingw32-gcc \
+	go build \
+		-tags "sqlite_foreign_keys" \
+		-o $(OUTPUT_DIR)/mizu-$(VERSION)-windows-amd64.exe \
+		./cmd/...
+
+build-all: \
+	build-ui \
+	build-linux-amd64 \
+	build-linux-arm64 \
+	build-windows-amd64
+
+	@echo "All builds completed."
+
+
+
 clean:
 	@echo "Cleaning binaries..."
-	rm -rf bin/
+	rm -rf $(OUTPUT_DIR)
 
-# Clean built ui
 clean-ui:
-	@echo "Cleaning ui build files..."
+	@echo "Cleaning UI build files..."
 	rm -rf web/ui/.svelte-kit/
 	rm -rf web/ui/build/
 
