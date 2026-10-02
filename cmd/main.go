@@ -80,19 +80,19 @@ func main() {
 
 	// Environment
 	// ----------------------------------------------------------------------------
-	publicURL := (env("PUBLIC_URL"))
+	publicURL := (os.Getenv("PUBLIC_URL"))
 	if publicURL == "" {
 		log.Warn("public url not specified, required for email links")
 	} else {
 		publicURL = strings.TrimSuffix(publicURL, "/")
 	}
 
-	serverAddr := env("SERVER_ADDR")
+	serverAddr := os.Getenv("SERVER_ADDR")
 	if serverAddr == "" {
 		log.Info("server address not set, using :8080")
 		serverAddr = ":8080"
 	}
-	emailDriver := env("EMAIL_DRIVER")
+	emailDriver := os.Getenv("EMAIL_DRIVER")
 	if emailDriver == "" {
 		log.Info("email driver not specified, using no-op driver")
 		emailDriver = "noop"
@@ -102,47 +102,42 @@ func main() {
 		log.Fatal("public url is required for email drivers other than no-op")
 	}
 
-	emailTemplateDir := env("EMAIL_TEMPLATE_DIR")
+	emailTemplateDir := os.Getenv("EMAIL_TEMPLATE_DIR")
 
-	fileStorageDriver := env("FILE_STORAGE_DRIVER")
+	fileStorageDriver := os.Getenv("FILE_STORAGE_DRIVER")
 	if fileStorageDriver == "" {
 		log.Info("file storage driver not specified, using disk")
 		fileStorageDriver = "disk"
 	}
 
-	fileConnString := env("FILE_CONNECTION_STRING")
-	if fileStorageDriver != "disk" && fileConnString == "" {
-		log.Fatal("file storage connection string is required")
-	}
-
-	messageQueueDriver := env("MESSAGE_QUEUE_DRIVER")
+	messageQueueDriver := os.Getenv("MESSAGE_QUEUE_DRIVER")
 	if messageQueueDriver == "" {
 		log.Info("message queue driver not specified, using in-memory queue")
 		messageQueueDriver = "memory"
 	}
 
-	messageQueueConnString := env("MESSAGE_QUEUE_CONNECTION_STRING")
+	messageQueueConnString := os.Getenv("MESSAGE_QUEUE_CONNECTION_STRING")
 	if messageQueueDriver != "memory" && messageQueueConnString == "" {
 		log.Fatal("message queue connection string is required")
 	}
 
-	sessionDriver := env("SESSION_DRIVER")
+	sessionDriver := os.Getenv("SESSION_DRIVER")
 	if sessionDriver == "" {
 		log.Info("session driver not specified, using in-memory sessions")
 		sessionDriver = "memory"
 	}
 
-	sessionConnString := env("SESSION_CONNECTION_STRING")
+	sessionConnString := os.Getenv("SESSION_CONNECTION_STRING")
 	if sessionDriver != "memory" && sessionConnString == "" {
 		log.Fatal("message queue connection string is required")
 	}
 
-	dbDriver := env("DB_DRIVER")
+	dbDriver := os.Getenv("DB_DRIVER")
 	if dbDriver == "" {
 		log.Info("database driver not specified, using sqlite")
 		dbDriver = "sqlite"
 	}
-	dbConnString := env("DB_CONNECTION_STRING")
+	dbConnString := os.Getenv("DB_CONNECTION_STRING")
 	if dbDriver == "sqlite" && dbConnString == "" {
 		log.Info("sqlite database name not specified, using mizu.db")
 		dbConnString = "mizu.db"
@@ -151,7 +146,7 @@ func main() {
 		log.Fatal("database connection string is required")
 	}
 
-	eventBufferSizeStr := env("EVENT_BUFFER_SIZE")
+	eventBufferSizeStr := os.Getenv("EVENT_BUFFER_SIZE")
 	if eventBufferSizeStr == "" {
 		log.Info("event buffer size not specified, using 1024 as default")
 		eventBufferSizeStr = "1024"
@@ -161,7 +156,7 @@ func main() {
 		log.Fatal("invalid event buffer size")
 	}
 
-	maxUploadSizeMBStr := env("MAX_UPLOAD_SIZE_MB")
+	maxUploadSizeMBStr := os.Getenv("MAX_UPLOAD_SIZE_MB")
 	if maxUploadSizeMBStr == "" {
 		log.Info("max upload size not specified, using 100MB as default")
 		maxUploadSizeMBStr = "100"
@@ -200,7 +195,7 @@ func main() {
 
 	case "s3":
 		config := filestoreInfra.S3Config{
-			Endpoint:  env("S3_ENDPOINT"),
+			Endpoint:  os.Getenv("S3_ENDPOINT"),
 			Region:    requireEnv(log, "S3_REGION"),
 			Bucket:    requireEnv(log, "S3_BUCKET"),
 			AccessKey: requireEnv(log, "S3_ACCESS_KEY"),
@@ -344,7 +339,7 @@ func main() {
 		extBus = externalbus.NewInMemoryBus(log, eventBufferSize)
 
 	case "redis":
-		opts, err := redis.ParseURL(sessionConnString)
+		opts, err := redis.ParseURL(messageQueueConnString)
 		if err != nil {
 			log.Fatal("invalid redis message bus connection string", "err", err)
 		}
@@ -633,14 +628,9 @@ func main() {
 
 }
 
-// env reads an environment variable, trims whitespace, and lowercases the result.
-func env(key string) string {
-	return strings.ToLower(strings.TrimSpace(os.Getenv(key)))
-}
-
 // requireEnv reads a required environment variable and fatally logs if it is empty.
 func requireEnv(log logger.Logger, key string) string {
-	val := env(key)
+	val := os.Getenv(key)
 	if val == "" {
 		log.Fatal("required environment variable is not set", "key", key)
 	}
