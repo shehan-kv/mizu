@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
 	import X from 'phosphor-svelte/lib/X';
 	import InputLabel from '../InputLabel.svelte';
 	import TextEditor from '../TextEditor.svelte';
@@ -8,12 +7,13 @@
 	import { createContract } from '$lib/api/contracts';
 	import { createDialogState } from './createDialogState.svelte';
 	import ConfirmDiscardData from './ConfirmDiscardData.svelte';
-	import { ApiError } from '$lib/api/client';
-	import UserCard from '../UserCard.svelte';
+	import { ApiError, BASE_URL } from '$lib/api/client';
 	import ErrorMessage from '../ErrorMessage.svelte';
 	import type { ProjectMember } from '$lib/api/projects';
 	import SearchProjectMember from '../SearchProjectMember.svelte';
-	import Info from 'phosphor-svelte/lib/Info';
+	import FullScreenDialog from './FullScreenDialog.svelte';
+	import { toTitleCaseDashed } from '$lib/utils/toTitleCaseDashed';
+	import { toTitleCase } from '$lib/utils/toTitleCase';
 
 	interface Props {
 		open: boolean;
@@ -57,13 +57,17 @@
 		req.signatories = req.signatories.filter((m) => m.id != member.id);
 	}
 
-	let isAiEnabled = $state(false);
-
 	let createAbort: AbortController | null = $state(null);
+	let isCreating = $state(false);
+
 	async function handleCreate() {
 		if (!validateReq()) {
 			toast.error('Missing Required Fields');
 			return;
+		}
+
+		if (req.terms.length < 50) {
+			toast.error('Terms Must Be At Least 50 Characters Long');
 		}
 
 		if (createAbort) {
@@ -72,6 +76,7 @@
 		createAbort = new AbortController();
 
 		try {
+			isCreating = true;
 			await createContract(
 				projectId,
 				{
@@ -87,10 +92,12 @@
 			open = false;
 		} catch (error) {
 			if (error instanceof ApiError) {
-				toast.error(error.message);
+				toast.error(toTitleCase(error.message));
 			} else {
 				toast.error('An Error Occurred');
 			}
+		} finally {
+			isCreating = false;
 		}
 	}
 
@@ -103,7 +110,7 @@
 	}
 </script>
 
-<Dialog.Root
+<FullScreenDialog
 	bind:open
 	onOpenChange={(state) => {
 		if (!state && (req.name.length > 0 || req.terms.length > 0 || req.signatories.length > 0)) {
@@ -115,126 +122,119 @@
 		}
 	}}
 >
-	<Dialog.Portal>
-		<Dialog.Overlay
-			class="data-[state=open]:animate-in data-[state=closed]:animate-out 
-			data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed 
-			inset-0 z-50 bg-neutral-100/80 dark:bg-black/80"
-		/>
-		<Dialog.Content
-			class="bg-background data-[state=open]:animate-in data-[state=closed]:animate-out 
-			data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:fade-out
-			data-[state=open]:slide-in-from-bottom-8 data-[state=open]:fade-in 
-			fixed top-1/2 left-1/2 z-50 grid w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 auto-rows-[min-content_1fr] gap-4 rounded outline-hidden 
-			duration-250"
-		>
-			<div class="text-right">
-				<Dialog.Close
-					class="cursor-pointer rounded-bl bg-neutral-50 px-4 py-2
-					transition duration-150
-					hover:bg-neutral-950 hover:text-neutral-50 dark:bg-neutral-900
-					hover:dark:bg-neutral-50 hover:dark:text-neutral-950"
-				>
-					<X class="size-3" />
-				</Dialog.Close>
-			</div>
-
-			<div class="px-6 pb-6">
+	<div class="grid auto-rows-[min-content_1fr] gap-4 overflow-scroll px-5">
+		<div class="flex-none">
+			<div class="container mx-auto">
 				<p class="font-bold">Create New Contract</p>
+			</div>
+		</div>
 
-				<div class="mt-4">
-					<div class="grid grid-cols-2 gap-4 text-sm">
-						<div>
-							<InputLabel htmlFor="name" text="Name" required />
-							<input
-								type="text"
-								id="name"
-								bind:value={req.name}
-								class="mt-1 block w-full rounded border border-neutral-200 bg-neutral-100 p-2
+		<div class="container mx-auto grid grid-cols-4 gap-2 overflow-hidden">
+			<div
+				class="col-span-3 grid h-full auto-rows-[min-content_1fr] gap-2 overflow-y-auto rounded border"
+			>
+				<div
+					class="sticky top-0 flex items-center justify-end bg-neutral-100 px-4 py-1 dark:bg-neutral-900"
+				>
+					<AiSuggestionsButton
+						class="cursor-pointer rounded p-2 text-xs transition hover:bg-neutral-200 
+						disabled:cursor-default dark:bg-neutral-950 dark:hover:bg-neutral-800"
+					/>
+				</div>
+				<div class="overflow-y-auto p-6">
+					<TextEditor
+						bind:value={req.terms}
+						placeholder="Write contract terms here (minimum 50 characters)"
+					/>
+				</div>
+			</div>
+			<div class="grid auto-rows-[min-content_1fr_min-content] space-y-2 overflow-y-auto">
+				<div class="space-y-1 rounded border p-4 text-sm *:block">
+					<InputLabel htmlFor="name" text="Contract Name" required />
+					<input
+						type="text"
+						id="name"
+						bind:value={req.name}
+						class="w-full rounded border border-neutral-200 bg-neutral-100 p-1.5
 							outline-hidden dark:border-neutral-800 dark:bg-neutral-900"
-							/>
-						</div>
+					/>
+				</div>
+
+				<div class="grid auto-rows-[min-content_1fr] gap-4 rounded border p-4">
+					<div>
+						<SearchProjectMember onSelect={(member) => addSignatory(member)} {projectId} />
 					</div>
 
-					<div class="mt-4 space-y-1 text-sm">
-						<p>
-							Contract Terms <span class="text-xs text-red-600 dark:text-red-500">(Required)</span>
-						</p>
-						<div
-							class="grid h-50 grid-rows-[1fr_min-content] rounded bg-neutral-100 px-3 pt-3 pb-2 dark:bg-neutral-900"
-						>
-							<TextEditor
-								bind:value={req.terms}
-								autoSuggest={isAiEnabled}
-								placeholder="Write your contract terms here"
-							/>
-							<div class="pt-2">
-								<AiSuggestionsButton
-									{isAiEnabled}
-									class="cursor-pointer rounded bg-neutral-200 p-2 
-									text-xs hover:bg-neutral-300 dark:bg-neutral-950 
-									dark:hover:bg-neutral-800"
-									onclick={() => (isAiEnabled = !isAiEnabled)}
-								/>
-							</div>
-						</div>
-					</div>
-
-					<div class="mt-4 space-y-1 text-sm">
-						<p>
-							Signatories
-							<span class="text-xs text-red-600 dark:text-red-500"> (Required) </span>
-						</p>
-
-						<div class="my-4 h-25 space-y-2 overflow-scroll">
-							{#if req.signatories.length > 0}
-								{#each req.signatories as signatory (signatory.id)}
-									<div class="flex items-center justify-between gap-2">
-										<UserCard
-											id={signatory.id}
-											hasImage={signatory.hasImage}
-											name={`${signatory.firstName} ${signatory.lastName}`}
-											role={signatory.role}
-											title={signatory.title}
-										/>
-
-										<button
-											class="cursor-pointer rounded p-2 transition hover:bg-neutral-100
-											dark:hover:bg-neutral-900"
-											onclick={() => removeSignatory(signatory)}
+					<div class="space-y-3 overflow-scroll">
+						{#if req.signatories.length > 0}
+							{#each req.signatories as signatory (signatory.id)}
+								<div class="flex items-center gap-1">
+									<div class="flex gap-1.5">
+										<div
+											class="size-10 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-neutral-800"
 										>
-											<X size={18} />
-										</button>
+											{#if signatory.hasImage}
+												<img
+													src={`${BASE_URL}users/profile-images/${signatory.id}`}
+													alt={`${signatory.firstName} ${signatory.lastName} profile picture`}
+													class="size-full object-cover"
+												/>
+											{:else}
+												<div
+													class="flex size-full items-center justify-center text-xs text-neutral-500"
+												>
+													{signatory.firstName[0]}
+												</div>
+											{/if}
+										</div>
+										<div>
+											<p class="text-sm">{signatory.firstName} {signatory.lastName}</p>
+											<p class="text-xs text-neutral-500 dark:text-neutral-400">
+												{#if signatory.title || signatory.role}
+													{signatory.title ? signatory.title : ''}
+													{signatory.role
+														? `${signatory.title ? ' - ' : ''}${toTitleCaseDashed(signatory.role)}`
+														: ''}
+												{:else}
+													N/A
+												{/if}
+											</p>
+										</div>
 									</div>
-								{/each}
-							{:else}
-								<ErrorMessage text="No Signatories Yet" variant="info" />
-							{/if}
-						</div>
 
-						<div class="space-y-2">
-							<SearchProjectMember {projectId} onSelect={addSignatory} />
-							<div class="flex items-start gap-1 text-xs text-neutral-500">
-								<Info size={16} />
-								<p>At Least 1 Client and 1 Administrator/Staff Member Are Required</p>
-							</div>
-						</div>
+									<div class="ml-auto">
+										<button
+											class="cursor-pointer rounded p-1 dark:hover:bg-neutral-800"
+											onclick={() => removeSignatory(signatory)}><X /></button
+										>
+									</div>
+								</div>
+							{/each}
+						{:else}
+							<ErrorMessage variant="info" text="Signatories Not Added" />
+						{/if}
 					</div>
 				</div>
 
-				<div class="mt-6 space-x-1 text-right text-xs *:cursor-pointer *:rounded *:px-6 *:py-3">
-					<Dialog.Close class="hover:bg-neutral-100 dark:hover:bg-neutral-900">Cancel</Dialog.Close>
+				<div>
 					<button
+						disabled={isCreating}
 						onclick={handleCreate}
-						class="bg-neutral-800 text-neutral-50 transition hover:bg-neutral-950
-                    dark:bg-neutral-200 dark:text-neutral-950 dark:hover:bg-neutral-50"
+						class="w-full cursor-pointer rounded bg-neutral-800 p-3
+						  text-sm text-neutral-50 transition
+						hover:bg-neutral-950 dark:bg-neutral-200 dark:text-neutral-950
+						 hover:dark:bg-neutral-50"
 					>
-						Create
+						{#if isCreating}
+							Creating...
+						{:else}
+							Create
+						{/if}
 					</button>
 				</div>
 			</div>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+		</div>
+	</div>
+</FullScreenDialog>
 
 <ConfirmDiscardData open={discardDialog.isOpen} onDiscard={handleDiscard} />
