@@ -57,8 +57,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
 	if (!response.ok) {
 		const message =
-			typeof data === 'object' && data !== null && 'err' in data && typeof data.err === 'string'
-				? data.err
+			typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
+				? data.error
 				: response.statusText;
 
 		throw new ApiError(message, response.status, data);

@@ -32,7 +32,6 @@
 
 	let chatWindow: HTMLDivElement | null = $state(null);
 
-	let isAiEnabled = $state(false);
 	let loading = $state({
 		channels: false,
 		members: false,
@@ -416,18 +415,12 @@
 						<div class="flex justify-end space-x-1 text-right text-xs">
 							<AiSuggestionsButton
 								class="cursor-pointer rounded p-2 hover:bg-neutral-200 dark:hover:bg-neutral-800"
-								onclick={() => (isAiEnabled = !isAiEnabled)}
-								{isAiEnabled}
 							/>
 							<FileUploadButton channelId={selectedChannel.id} />
 						</div>
 						<div class="grid grid-cols-[1fr_min-content]">
 							<div class="max-h-15 overflow-y-auto border-b">
-								<TextEditor
-									bind:value={messageToSend}
-									autoSuggest={isAiEnabled}
-									onSubmit={sendMessage}
-								/>
+								<TextEditor bind:value={messageToSend} onSubmit={sendMessage} />
 							</div>
 							<SendButton onclick={sendMessage} />
 						</div>

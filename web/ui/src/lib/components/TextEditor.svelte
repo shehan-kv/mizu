@@ -1,19 +1,17 @@
 <script lang="ts">
-	import { phrases } from '$lib/components/message/mockData';
 	import { debounce } from '$lib/utils/debounce';
 	import { onMount } from 'svelte';
+	import { aiState, suggest as generateSuggestion } from '$lib/ai';
 
 	interface Props {
 		value: string;
 		disabled?: boolean;
-		autoSuggest?: boolean;
 		placeholder?: string;
 		onSubmit?: () => void;
 	}
 	let {
 		value = $bindable(),
 		disabled = false,
-		autoSuggest = false,
 		placeholder = 'Write your message here',
 		onSubmit
 	}: Props = $props();
@@ -66,47 +64,87 @@
 		selection?.addRange(newRange);
 	}
 
-	// Autocomplete only considers the current sentence fragment,
-	// not the entire editor contents.
-	function getTextBeforeCursor() {
+	function getTextBeforeCursor(): string {
 		const selection = window.getSelection();
-		if (!selection || !selection.anchorNode) return;
 
-		const text = selection.anchorNode?.textContent ?? '';
-
-		if (!text) return;
-
-		const delimiters = ['.', ','];
-		const lastIndices = delimiters.map((d) => text.lastIndexOf(d));
-		const lastDelimiterIndex = Math.max(...lastIndices);
-
-		return lastDelimiterIndex === -1
-			? text.trimStart()
-			: text.substring(lastDelimiterIndex + 1).trimStart();
-	}
-
-	function fetchSuggestion() {
-		let sentence = getTextBeforeCursor();
-
-		if (!sentence) return;
-
-		let _suggested: string[] = [];
-		if (sentence) {
-			_suggested = phrases.filter((phrase) => phrase.startsWith(sentence));
+		if (!selection || !selection.rangeCount || !textInput) {
+			return '';
 		}
 
-		if (_suggested.length > 0) {
-			suggestion = _suggested[0].substring(sentence.length);
-		} else {
+		const range = selection.getRangeAt(0);
+
+		if (!textInput.contains(range.startContainer)) {
+			return '';
+		}
+
+		const cursorRange = range.cloneRange();
+		cursorRange.selectNodeContents(textInput);
+		cursorRange.setEnd(range.startContainer, range.startOffset);
+
+		const fragment = cursorRange.cloneContents();
+
+		const temporary = document.createElement('div');
+		temporary.appendChild(fragment);
+
+		return (temporary.textContent ?? '').replace(/\u200B/g, '').replace(/\r\n?/g, '\n');
+	}
+
+	function getCurrentSentence(): string {
+		const text = getTextBeforeCursor();
+
+		if (!text) {
+			return '';
+		}
+
+		const lastBoundary = Math.max(
+			text.lastIndexOf('.'),
+			text.lastIndexOf('!'),
+			text.lastIndexOf('?'),
+			text.lastIndexOf('\n')
+		);
+
+		return text.slice(lastBoundary + 1).trimStart();
+	}
+
+	let suggestionController: AbortController | null = null;
+
+	async function fetchSuggestion() {
+		removeSuggestionSpan();
+
+		if (!aiState.enabled) {
 			suggestion = '';
+			return;
+		}
+
+		const sentence = getCurrentSentence();
+
+		if (!sentence) {
+			suggestion = '';
+			return;
+		}
+
+		suggestionController?.abort();
+
+		const controller = new AbortController();
+		suggestionController = controller;
+
+		const result = await generateSuggestion(sentence, controller.signal);
+
+		if (controller.signal.aborted || suggestionController !== controller) {
+			return;
+		}
+
+		suggestionController = null;
+		suggestion = result ?? '';
+
+		if (suggestion) {
+			showSuggestionSpan();
 		}
 	}
-
 	// Delay suggestion rendering to avoid fighting the caret
 	// on every keystroke.
 	const suggest = debounce(() => {
 		fetchSuggestion();
-		showSuggestionSpan();
 	}, 250);
 
 	// Convert the contenteditable DOM into plain text.
@@ -142,6 +180,9 @@
 	}
 
 	function clearEditor() {
+		suggestionController?.abort();
+		suggestionController = null;
+
 		value = '';
 		suggestion = '';
 
@@ -215,11 +256,22 @@
 		}
 
 		if ((e.key == 'Backspace' || e.key == 'Escape') && suggestion) {
+			suggest.stop();
+
+			suggestionController?.abort();
+			suggestionController = null;
+
 			suggestion = '';
 
 			// Accept the current suggestion.
 		} else if (e.key == 'Tab' && suggestion) {
 			e.preventDefault();
+
+			suggest.stop();
+
+			suggestionController?.abort();
+			suggestionController = null;
+
 			insertTextAtCaret(suggestion);
 			suggestion = '';
 		}
@@ -264,7 +316,7 @@
 
 		setValue();
 
-		if (autoSuggest) {
+		if (aiState.enabled) {
 			suggest();
 		}
 	}
@@ -313,6 +365,7 @@
 
 		return () => {
 			suggest.stop();
+			suggestionController?.abort();
 		};
 	});
 </script>
