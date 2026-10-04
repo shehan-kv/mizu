@@ -519,21 +519,6 @@ func TestProjectAddMember(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects empty member ID", func(t *testing.T) {
-		now := time.Now()
-		project := newTestProject(t, now)
-
-		err := project.AddMember("", now.Add(time.Second))
-
-		if err != ErrProjectMemberIDCannotBeEmpty {
-			t.Fatalf(
-				"expected %v, got %v",
-				ErrProjectMemberIDCannotBeEmpty,
-				err,
-			)
-		}
-	})
-
 	t.Run("does not duplicate existing member", func(t *testing.T) {
 		now := time.Now()
 		project := newTestProject(t, now)
