@@ -1,0 +1,33 @@
+package billing
+
+import "errors"
+
+var (
+	ErrBillingCurrencyDecimalsCannotBeNegative = errors.New("billing currency decimals cannot be negative")
+	ErrBillingCurrencySymbolCannotBeEmpty      = errors.New("billing currency symbol cannot be empty")
+	ErrBillingCurrencyCodeCannotBeEmpty        = errors.New("billing currency code cannot be empty")
+	ErrBillingCurrencyNameCannotBeEmpty        = errors.New("billing currency name cannot be empty")
+	ErrBillingDescriptionCannotBeEmpty         = errors.New("billing description cannot be empty")
+	ErrBillingInvoiceIDCannotBeEmpty           = errors.New("billing invoice id cannot be empty")
+	ErrBillingConvertRequiresPending           = errors.New("billing convert requires pending")
+	ErrBillingConcurrentModification           = errors.New("billing concurrent modification")
+	ErrBillingRejectRequiresPending            = errors.New("billing reject requires pending")
+	ErrBillingAcceptRequiresPending            = errors.New("billing accept requires pending")
+	ErrBillingMultiplicationFailed             = errors.New("billing multiplication decimal")
+	ErrBillingInvalidDecimalPlaces             = errors.New("billing invalid decimal places")
+	ErrBillingInvoiceMustHaveItems             = errors.New("billing invoice must have items")
+	ErrBillingInvalidCurrencyCode              = errors.New("billing invalid currency code")
+	ErrBillingInvalidDiscountType              = errors.New("billing invalid discount type")
+	ErrBillingCancelInvalidStatus              = errors.New("billing cancel invalid status")
+	ErrBillingPayRequiresAccepted              = errors.New("billing pay requires accepted")
+	ErrBillingSubtractionFailed                = errors.New("billing subtraction failed")
+	ErrBillingQtyMustBePositive                = errors.New("billing qty must be positive")
+	ErrBillingAlreadyAnInvoice                 = errors.New("billing already an invoice")
+	ErrBillingCurrencyNotFound                 = errors.New("billing currency not found")
+	ErrBillingInvoiceNotFound                  = errors.New("billing invoice not found")
+	ErrBillingInvalidTaxType                   = errors.New("billing invalid tax type")
+	ErrBillingDivisionFailed                   = errors.New("billing division decimal")
+	ErrBillingAdditionFailed                   = errors.New("billing addition failed")
+	ErrBillingInvalidDecimal                   = errors.New("billing invalid decimal")
+	ErrBillingInvalidStatus                    = errors.New("billing invalid status")
+)
