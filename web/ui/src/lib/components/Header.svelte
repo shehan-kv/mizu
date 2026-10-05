@@ -46,8 +46,8 @@
 		<button class="cursor-pointer lg:hidden" onclick={openMobileMenu}>
 			<List />
 		</button>
-		<img src="/assets/logo-light.svg" alt="MizuPM logo" class="hidden w-15 dark:block" />
-		<img src="/assets/logo-dark.svg" alt="MizuPM logo" class="block w-15 dark:hidden" />
+		<img src="/assets/logo-light.svg" alt="MizuPM logo" class="hidden size-8 dark:block" />
+		<img src="/assets/logo-dark.svg" alt="MizuPM logo" class="block size-8 dark:hidden" />
 	</div>
 
 	<div class="flex items-center gap-5 text-neutral-700 dark:text-neutral-300">
