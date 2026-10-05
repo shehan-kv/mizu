@@ -291,6 +291,9 @@ func (h *ContractHandler) writeServiceError(w http.ResponseWriter, method string
 	case errors.Is(err, domaincontract.ErrContractMustHaveTeamSignatory):
 		response.WriteError(w, http.StatusBadRequest, "contract must have at least one team signatory")
 
+	case errors.Is(err, domaincontract.ErrContractTermsTooShort):
+		response.WriteError(w, http.StatusBadRequest, "contract terms too short")
+
 	// 403
 	case errors.Is(err, domainproject.ErrNotProjectMember):
 		response.WriteError(w, http.StatusForbidden, "not a project member")
