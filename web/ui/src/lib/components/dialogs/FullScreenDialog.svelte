@@ -19,8 +19,9 @@
 			inset-0 z-50 bg-neutral-100/80 dark:bg-black/80"
 		/>
 		<Dialog.Content
-			class="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=closed]:fade-out 
-			data-[state=open]:slide-in-from-bottom data-[state=open]:fade-in
+			class="data-[state=open]:animate-in data-[state=closed]:animate-out 
+			data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 
+			data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95
 			fixed inset-8 
 			z-50 grid auto-rows-[min-content_1fr] gap-4 overflow-hidden rounded bg-white pb-4 
 			outline-hidden duration-500 dark:bg-neutral-950 "

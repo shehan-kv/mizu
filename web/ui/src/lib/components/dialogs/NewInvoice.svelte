@@ -662,11 +662,6 @@
 
 			<div class="space-x-2 text-right text-xs *:cursor-pointer *:rounded *:px-6 *:py-3">
 				<button
-					class="bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-800"
-				>
-					Cancel
-				</button>
-				<button
 					onclick={handleCreate}
 					class="bg-neutral-800 text-neutral-50 hover:bg-neutral-950 dark:bg-neutral-200
 				dark:text-neutral-950 dark:hover:bg-neutral-50"
