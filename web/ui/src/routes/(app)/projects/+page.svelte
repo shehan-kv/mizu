@@ -185,20 +185,22 @@
 								{#each res.items as project (project.id)}
 									<Table.Row>
 										<Table.Cell>{project.name}</Table.Cell>
-										<Table.Cell class="flex items-center gap-1.5">
-											{#if project.status == 'started'}
-												<span class="relative flex size-2">
-													<span
-														class="absolute inline-flex h-full w-full animate-ping rounded-full
+										<Table.Cell>
+											<div class="flex items-center gap-1.5">
+												{#if project.status == 'started'}
+													<span class="relative flex size-2">
+														<span
+															class="absolute inline-flex h-full w-full animate-ping rounded-full
 												bg-green-500 opacity-75 dark:bg-green-600"
-													>
+														>
+														</span>
+														<span
+															class="relative inline-flex size-2 rounded-full bg-green-500 dark:bg-green-600"
+														></span>
 													</span>
-													<span
-														class="relative inline-flex size-2 rounded-full bg-green-500 dark:bg-green-600"
-													></span>
-												</span>
-											{/if}
-											{toTitleCaseDashed(project.status)}
+												{/if}
+												{toTitleCaseDashed(project.status)}
+											</div>
 										</Table.Cell>
 										<Table.Cell>{project.tasksCompleted} Completed</Table.Cell>
 										<Table.Cell>{formatDate(project.createdAt)}</Table.Cell>

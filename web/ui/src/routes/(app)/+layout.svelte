@@ -163,7 +163,10 @@
 {:else if auth.error}
 	<FullScreenErrorMessage variant="warn" text="There Was An Error, Please Try Refreshing" />
 {:else}
-	<div class="grid h-dvh auto-rows-[min-content_1fr] gap-2 bg-neutral-100 p-2 dark:bg-neutral-900">
+	<div
+		class="grid h-dvh auto-rows-[min-content_1fr] gap-2 bg-[url('/assets/wave-inverted.svg')] p-2
+	dark:bg-[url('/assets/wave-dark.svg')]"
+	>
 		<Header {openMobileMenu} openProfileSettings={viewProfile.open} />
 		<div class="grid grid-cols-1 gap-2 overflow-auto lg:grid-cols-[15rem_1fr]">
 			<div class="hidden rounded bg-neutral-50 p-2 lg:block dark:bg-neutral-950">
